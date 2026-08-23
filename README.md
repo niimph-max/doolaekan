@@ -18,8 +18,28 @@
 npm install
 cp .env.example .env.local   # ใส่ค่าถ้าจะใช้โหมดคลาวด์
 npm run dev                  # http://localhost:3000
-npm run build                # ตรวจ type + build จริง
+npm run build                # ตรวจ type + export ไฟล์นิ่งลง out/
 ```
+
+แอปคุยกับ Supabase จากเบราว์เซอร์ตรงๆ ไม่มีฝั่งเซิร์ฟเวอร์ของตัวเอง จึง `output: 'export'`
+เป็นไฟล์นิ่ง เอาไปวางบน static host ไหนก็ได้
+
+### ขึ้น GitHub Pages (ตั้งครั้งเดียว)
+`.github/workflows/deploy-pages.yml` build แล้ว deploy ให้อัตโนมัติทุกครั้งที่ push
+
+1. **Settings → Pages → Source** เลือก **GitHub Actions**
+2. **Settings → Secrets and variables → Actions → New repository secret** เพิ่ม 2 ตัว:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. **Actions → Deploy to GitHub Pages → Run workflow** (หรือรอ push ครั้งถัดไป)
+4. ได้ URL `https://<user>.github.io/<repo>/` แล้วเอาไปใส่ที่ Supabase →
+   Authentication → URL Configuration (Site URL + Redirect URLs)
+
+> anon key ถูกฝังในไฟล์ที่ส่งให้เบราว์เซอร์อยู่แล้วโดยธรรมชาติ (เป็นคีย์สาธารณะ)
+> ความปลอดภัยจริงอยู่ที่ RLS ไม่ใช่การซ่อนคีย์ — ดู `supabase/tests/`
+
+`NEXT_PUBLIC_BASE_PATH` ทำให้แอปอยู่ใต้ `/<repo>/` ได้ ตอน dev ในเครื่องไม่ต้องตั้ง
+manifest ใช้ path แบบ `./` และ service worker อ่าน scope ของตัวเอง จึงทำงานถูกทั้งสองแบบ
 
 ### ตั้งค่า Supabase (ทำครั้งเดียว)
 1. **รัน migration** — SQL Editor รัน `supabase/migrations/0001_init.sql` แล้วตามด้วย `0002_join_group.sql`
@@ -65,6 +85,7 @@ src/lib/          types, store (state + โหมดเครื่องเด�
 src/components/   AppShell, AuthGate, TabBar, Sheet, Onboarding, screens/, sheets/
 supabase/         migrations/ (0001 schema+RLS, 0002 เข้ากลุ่มด้วยรหัส), tests/
 public/           manifest.webmanifest, sw.js, ไอคอน
+.github/workflows/deploy-pages.yml  build + deploy ขึ้น GitHub Pages
 ```
 
 ## About the Design Files

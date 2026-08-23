@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Icon } from './Icon';
+import { Logo } from './Logo';
 import { getSupabase } from '@/lib/supabase';
 
 /** เข้าสู่ระบบด้วยรหัส 6 หลักทางอีเมล — ไม่ต้องจำรหัสผ่าน เหมาะกับเครื่องกลางที่บ้าน */
@@ -57,15 +58,9 @@ export function AuthGate() {
   return (
     <div className="full">
       <div className="full-inner">
-        <div style={{ textAlign: 'center', margin: '32px 0 24px' }}>
-          <div style={{
-            width: 84, height: 84, borderRadius: '50%', background: 'var(--color-accent-200)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon name="heart" size={40} color="var(--color-accent-600)" />
-          </div>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 36, margin: '16px 0 6px' }}>Doolaekan</h1>
-          <p className="subtle">สมุดสุขภาพของครอบครัว</p>
+        <div style={{ margin: '32px 0 24px' }}>
+          <Logo size={104} />
+          <p className="subtle" style={{ textAlign: 'center', marginTop: 10 }}>สมุดสุขภาพของครอบครัว</p>
         </div>
 
         {step === 'email' ? (

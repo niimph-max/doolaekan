@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Chips } from './Chips';
 import { Icon } from './Icon';
+import { Logo } from './Logo';
 import { CONDITION_CHIPS } from '@/lib/seed';
 import { useStore, type OnboardingInput } from '@/lib/store';
 import type { Doctor, ShareLevel } from '@/lib/types';
@@ -53,15 +54,11 @@ export function Onboarding() {
       <div className="full-inner">
         {step === 1 && (
           <>
-            <div style={{ textAlign: 'center', margin: '24px 0 20px' }}>
-              <div style={{
-                width: 84, height: 84, borderRadius: '50%', background: 'var(--color-accent-200)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Icon name="heart" size={40} color="var(--color-accent-600)" />
-              </div>
-              <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 36, margin: '16px 0 6px' }}>Doolaekan</h1>
-              <p className="subtle">สมุดสุขภาพของครอบครัว — ของใครของมัน แชร์เมื่อยินยอม</p>
+            <div style={{ margin: '24px 0 20px' }}>
+              <Logo size={100} />
+              <p className="subtle" style={{ textAlign: 'center', marginTop: 10 }}>
+                สมุดสุขภาพของครอบครัว — ของใครของมัน แชร์เมื่อยินยอม
+              </p>
             </div>
 
             <label className="o-label" htmlFor="ob-name">ชื่อเรียกในสมุด</label>

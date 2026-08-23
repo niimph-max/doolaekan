@@ -1,0 +1,58 @@
+# สร้างเว็บจากโค้ดแล้วเอาขึ้น GitHub Pages ทุกครั้งที่มีการ push
+# ตั้งค่าที่ต้องทำครั้งเดียวใน repo (ดู README):
+#   Settings → Pages → Source = GitHub Actions
+#   Settings → Secrets and variables → Actions → เพิ่ม 2 secret ข้างล่าง
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [claude/yangai-tao-cwds0x]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ปล่อยให้ deploy ทีละรอบ รอบใหม่มาระหว่างรอบเก่ายังไม่จบให้ยกเลิกรอบเก่า
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        env:
+          # GitHub Pages เสิร์ฟที่ /<ชื่อ repo>/ ไม่ใช่ราก
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      # กัน Jekyll ทิ้งโฟลเดอร์ _next (ชื่อขึ้นต้นด้วย _ จะถูกข้าม)
+      - run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

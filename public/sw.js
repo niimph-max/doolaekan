@@ -1,8 +1,12 @@
 // Doolaekan service worker — ให้ติดตั้งลงหน้าจอได้ และเปิดแอปได้ตอนเน็ตหลุด
 // (ขั้นถัดไปตาม notifications.md: รับ Web Push ที่นี่ด้วย)
 
-const CACHE = 'doolaekan-shell-v1';
-const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
+const CACHE = 'doolaekan-shell-v2';
+
+// scope คือโฟลเดอร์ที่แอปถูกวางไว้ ('/' บนโดเมนของตัวเอง, '/doolaekan/' บน GitHub Pages)
+const BASE = new URL(self.registration.scope).pathname;
+const SHELL = ['', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png']
+  .map((f) => BASE + f);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -32,7 +36,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE).then((c) => c.put(request, copy));
           return res;
         })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match('/'))),
+        .catch(() => caches.match(request).then((hit) => hit || caches.match(BASE))),
     );
     return;
   }

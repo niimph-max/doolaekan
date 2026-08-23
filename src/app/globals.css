@@ -9,6 +9,11 @@
   --font-heading-weight: 500;
   --font-body: 'Sarabun', system-ui, sans-serif;
 
+  /* สีของโลโก้ — ใช้เฉพาะเครื่องหมายและชื่อแบรนด์ ส่วน UI ยังเป็นดินเผา/เซจตามระบบเดิม */
+  --color-brand: #55897d;
+  --color-brand-soft: #7fae9d;
+  --color-brand-bg: #eaf4f0;
+
   --radius-card: 32px;
   --radius-pill: 999px;
   --radius-sheet: 28px;
