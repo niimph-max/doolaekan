@@ -5,8 +5,6 @@
 -- หลักการ: ทุกอย่างผูกกับ "book" (สมุดสุขภาพ 1 เล่ม/คน) — ส่วนตัว 100% โดยค่าเริ่มต้น
 -- แชร์เข้ากลุ่มเป็นราย book ด้วยระดับ full / appointments / none
 
-create extension if not exists pgcrypto;
-
 -- ─────────────────────────── enums ───────────────────────────
 create type share_level  as enum ('full', 'appointments', 'none');
 create type dose_status  as enum ('taken', 'refused');
@@ -57,7 +55,8 @@ create table groups (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   owner_id uuid not null references profiles(id) on delete cascade,
-  invite_code text unique not null default encode(gen_random_bytes(6), 'hex'),
+  -- ใช้ gen_random_uuid() ซึ่งเป็นของ Postgres แกนกลาง (13+) ไม่ต้องพึ่ง extension
+  invite_code text unique not null default substr(replace(gen_random_uuid()::text, '-', ''), 1, 12),
   created_at timestamptz not null default now()
 );
 
