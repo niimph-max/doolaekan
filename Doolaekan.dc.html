@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-6b7aa802-9c75-4d48-9247-605ab954ab06/styles.css">
+<script src="_ds/organic-6b7aa802-9c75-4d48-9247-605ab954ab06/_ds_bundle.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;600&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+:root{--font-heading:"Mitr",system-ui,sans-serif;--font-body:"Sarabun",system-ui,sans-serif;--font-heading-weight:500}
+body{margin:0;background:#eee7db;font-family:var(--font-body);color:#201e1d}
+a{color:#c67139}a:hover{color:#8c491a}
+@keyframes toastup{from{opacity:0;transform:translateX(-50%) translateY(14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes sheetup{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+<div style="max-width:480px;margin:0 auto;min-height:100dvh;background:var(--color-bg);position:relative;font-size:{{ rootFont }}">
+<div style="padding:24px 20px 116px;display:flex;flex-direction:column;gap:18px">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+<div><div style="font-size:12.5px;color:#b2622d;font-weight:800;letter-spacing:.12em;font-family:var(--font-body)">DOOLAEKAN</div><h2 style="font-size:28px;margin:0">วันนี้</h2><div style="font-size:16px;color:#645c50">{{ dateLine }} · <span style="white-space:nowrap">คนกดตอนนี้: <b style="color:#56633f;cursor:pointer;text-decoration:underline;text-underline-offset:3px" onClick="{{ openUser }}">{{ uname }}&nbsp;▾</b></span></div></div>
+<button class="btn btn-icon btn-secondary" style="width:46px;height:46px" aria-label="แจ้งเตือน" onClick="{{ bellToast }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+<button onClick="{{ c.pick }}" style="background:{{ c.bg }};color:{{ c.fg }};border:none;border-radius:999px;padding:9px 18px;font-size:16px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ c.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ hasNa }}" hint-placeholder-val="{{ true }}">
+<div class="card elev-sm" style="gap:10px;padding:20px;cursor:pointer" onClick="{{ goAppts }}">
+<div style="color:#8c491a;font-size:14px;font-weight:700;letter-spacing:.05em">นัดถัดไป · {{ na.days }}</div>
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:52px;height:52px;flex:none;border-radius:50%;background:#ffe1d0;display:grid;place-items:center;color:#8c491a"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></div>
+<div style="flex:1"><div style="font-family:var(--font-heading);font-size:20px;line-height:1.25">{{ na.title }}</div><div style="font-size:16px;color:#645c50">{{ na.when }}</div></div>
+<span style="color:#82796a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:14.5px;color:#56633f;background:#f0fae1;border-radius:999px;padding:7px 13px;width:fit-content"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>{{ na.remind }}</div>
+</div>
+</sc-if>
+<sc-if value="{{ noNa }}" hint-placeholder-val="{{ false }}">
+<div class="card" style="gap:8px;padding:20px;cursor:pointer;border:1.5px dashed #c0b6a5;background:#f9f4ed" onClick="{{ openAddAppt }}">
+<div style="font-family:var(--font-heading);font-size:18px">ยังไม่มีนัดหมอ</div>
+<div style="font-size:15.5px;color:#645c50">แตะที่นี่เพื่อเพิ่มนัดแรก — ถ้าเป็นนัดหมอหัวใจ แอปจะแนบขั้นตรวจเลือดล่วงหน้าให้เอง</div>
+</div>
+</sc-if>
+<div>
+<h4 style="font-size:20px;margin:0 0 10px">ยาวันนี้</h4>
+<sc-if value="{{ noDoses }}" hint-placeholder-val="{{ false }}">
+<div class="card" style="gap:8px;padding:18px;cursor:pointer;border:1.5px dashed #c0b6a5;background:#f9f4ed" onClick="{{ goMeds }}">
+<div style="font-size:16px;color:#645c50">ยังไม่มียาในระบบ — ไปที่แท็บ "ยา" เพื่อพิมพ์เพิ่มหรือสแกนถุงยา</div>
+</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ doses }}" as="d" hint-placeholder-count="2">
+<div class="card" style="gap:10px;padding:16px 18px;border:{{ d.border }}">
+<div style="display:flex;align-items:center;gap:10px"><div style="font-size:17.5px;font-weight:700;flex:1">{{ d.title }}</div><span style="font-size:14px;color:#82796a">{{ d.timeLabel }}</span></div>
+<div style="font-size:15px;color:#645c50">{{ d.meds }}</div>
+<sc-if value="{{ d.isTaken }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;background:#f0fae1;border-radius:999px;padding:9px 15px;color:#3d472b;font-size:15.5px;font-weight:600;width:fit-content"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#728157" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ d.info }}</div>
+</sc-if>
+<sc-if value="{{ d.isPending }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:10px">
+<button class="btn btn-primary" style="flex:1;font-size:16.5px;padding:12px" onClick="{{ d.take }}" disabled="{{ readOnly }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>กินแล้ว</button>
+<button class="btn btn-secondary" style="flex:1;font-size:16.5px;padding:12px;color:#8c491a" onClick="{{ d.refuse }}" disabled="{{ readOnly }}">ไม่ยอมกิน</button>
+</div>
+</sc-if>
+<sc-if value="{{ d.isAsking }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:15px;color:#8c491a;font-weight:600">เพราะอะไร? (แตะเลือก แล้วแจ้งพี่น้องให้เลย)</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ d.reasons }}" as="r" hint-placeholder-count="3">
+<button onClick="{{ r.pick }}" style="background:#fff2eb;color:#8c491a;border:1.5px solid #ffc6a5;border-radius:999px;padding:8px 16px;font-size:15px;font-family:var(--font-body);cursor:pointer">{{ r.label }}</button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ d.isRefused }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff2eb;border-radius:16px;padding:11px 15px">
+<div style="display:flex;align-items:center;gap:8px;color:#8c491a;font-size:15px;font-weight:700"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>ไม่ยอมกิน — {{ d.info }}</div>
+<div style="font-size:14.5px;color:#474238;margin-top:3px">แจ้งถึงพี่น้อง 4 คนแล้ว · <span style="color:#56633f;font-weight:600">ลองใหม่</span> <span style="cursor:pointer;text-decoration:underline" onClick="{{ d.take }}">กินแล้วตอนนี้</span></div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<div class="card" style="flex-direction:row;align-items:center;gap:12px;padding:15px 18px;background:#f9f4ed;cursor:pointer" onClick="{{ openSym }}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#728157" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+<div style="flex:1;font-size:17px">จดอาการวันนี้ — เป็นอย่างไรบ้าง?</div>
+<span style="color:#82796a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</div>
+<div class="card" style="gap:12px;padding:18px 20px">
+<div style="display:flex;align-items:center;gap:10px"><div style="font-family:var(--font-heading);font-size:19px;flex:1">วัดความดัน — {{ bpWho }}</div><span style="font-size:14px;color:#82796a">ทุกเช้า</span></div>
+<div style="display:flex;gap:10px">
+<div style="flex:1;background:#f9f4ed;border-radius:18px;padding:10px;text-align:center"><div style="font-size:13px;color:#82796a">ตัวบน</div><input class="input" inputMode="numeric" placeholder="132" onInput="{{ onBpS }}" disabled="{{ readOnly }}" style="text-align:center;font-size:23px;font-family:var(--font-heading);background:transparent;border:none;min-height:34px;padding:2px"></div>
+<div style="flex:1;background:#f9f4ed;border-radius:18px;padding:10px;text-align:center"><div style="font-size:13px;color:#82796a">ตัวล่าง</div><input class="input" inputMode="numeric" placeholder="78" onInput="{{ onBpD }}" disabled="{{ readOnly }}" style="text-align:center;font-size:23px;font-family:var(--font-heading);background:transparent;border:none;min-height:34px;padding:2px"></div>
+<div style="flex:1;background:#f9f4ed;border-radius:18px;padding:10px;text-align:center"><div style="font-size:13px;color:#82796a">ชีพจร</div><input class="input" inputMode="numeric" placeholder="72" onInput="{{ onBpP }}" disabled="{{ readOnly }}" style="text-align:center;font-size:23px;font-family:var(--font-heading);background:transparent;border:none;min-height:34px;padding:2px"></div>
+</div>
+<div style="display:flex;gap:10px;align-items:center">
+<button class="btn btn-primary" style="flex:1;font-size:16.5px;padding:12px" onClick="{{ saveBp }}" disabled="{{ readOnly }}">บันทึก — ทุกคนเห็นทันที</button>
+<button class="btn btn-ghost" style="font-size:15.5px" onClick="{{ goBookHist }}">ดูย้อนหลัง</button>
+</div>
+</div>
+<div class="card elev-md" style="flex-direction:row;align-items:center;gap:14px;padding:18px 20px;background:#402310;color:#ffe1d0;border-radius:26px;cursor:pointer" onClick="{{ openEm }}">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f6a06b" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+<div style="flex:1"><div style="font-family:var(--font-heading);font-size:19px;color:#fff2eb">บัตรสรุปฉุกเฉิน</div><div style="font-size:14.5px;opacity:.85">เปิดโชว์หมอได้ทันที ไม่ต้องเล่าเอง</div></div>
+<span style="color:#f6a06b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMeds }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px">
+<h2 style="font-size:26px;margin:0;flex:1">ยาของ{{ pName }}</h2>
+<span class="tag tag-neutral" style="font-size:14px;padding:6px 14px">{{ medCount }} รายการ</span>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ pChips }}" as="c" hint-placeholder-count="3">
+<button onClick="{{ c.pick }}" style="background:{{ c.bg }};color:{{ c.fg }};border:none;border-radius:999px;padding:9px 18px;font-size:16px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ c.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ hasDupe }}" hint-placeholder-val="{{ false }}">
+<div class="card elev-sm" style="gap:8px;padding:16px 18px;background:#fff2eb;border:1.5px solid #d67f48">
+<div style="display:flex;align-items:center;gap:10px;color:#8c491a;font-family:var(--font-heading);font-size:17px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>อาจได้ยาซ้ำกัน</div>
+<div style="font-size:15.5px;line-height:1.55">"แอสไพริน 81" จากหมอหัวใจ กับ "ASA 81" จากหมอกระดูก คือยาตัวเดียวกัน — ติดธงไว้ถามหมอนัด 27 ส.ค. แล้ว</div>
+</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ meds }}" as="m" hint-placeholder-count="4">
+<div class="card" style="gap:6px;padding:17px 19px;border:{{ m.border }}">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px"><div style="font-family:var(--font-heading);font-size:19px">{{ m.name }}</div><span class="tag" style="font-size:13px;background:{{ m.tagBg }};color:{{ m.tagFg }}">{{ m.tag }}</span></div>
+<div style="font-size:16px;line-height:1.6;color:#474238"><b style="color:#8c491a">ช่วยอะไร:</b> {{ m.helps }}</div>
+<div style="font-size:14.5px;color:#645c50">{{ m.sched }}</div>
+<sc-if value="{{ m.dupe }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:14px;color:#8c491a;font-weight:700">⚑ ติดธงยาซ้ำ — รอถามหมอ</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<button class="btn btn-primary btn-block" style="font-size:17px;padding:14px" onClick="{{ openScan }}" disabled="{{ readOnly }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.5"></circle></svg>สแกนถุงยาใหม่</button>
+<button class="btn btn-secondary btn-block" style="font-size:16.5px;padding:13px;margin-top:0" onClick="{{ openAddMed }}" disabled="{{ readOnly }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>พิมพ์เพิ่มยาเอง</button>
+</sc-if>
+
+<sc-if value="{{ isAppts }}" hint-placeholder-val="{{ false }}">
+<h2 style="font-size:26px;margin:0">นัดหมอ</h2>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ pChips }}" as="c" hint-placeholder-count="3">
+<button onClick="{{ c.pick }}" style="background:{{ c.bg }};color:{{ c.fg }};border:none;border-radius:999px;padding:9px 18px;font-size:16px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ c.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ showHeart }}" hint-placeholder-val="{{ true }}">
+<div class="card elev-sm" style="gap:14px;padding:20px;border:1.5px solid #d67f48">
+<div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-family:var(--font-heading);font-size:20px">หมอหัวใจ — เตี่ย</div><div style="font-size:15.5px;color:#645c50">พุธ 27 ส.ค. · 09:00 น. · รพ.พระปกเกล้าจันทบุรี</div></div><span class="tag tag-accent" style="font-size:13px">อีก 4 วัน</span></div>
+<div style="display:flex;gap:12px">
+<div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;flex:none;border-radius:50%;background:#7a8a5e;color:#f5ead8;display:grid;place-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div><div style="width:2.5px;flex:1;background:#ccdbb2"></div></div>
+<div style="flex:1;padding-bottom:12px"><div style="font-size:16px;font-weight:700">1 · ตรวจเลือดล่วงหน้า — ไปแล้ว</div><div style="font-size:14.5px;color:#645c50;line-height:1.5">ศุกร์ 22 ส.ค. · พี่หนึ่งพาไป · แอปกำหนดช่วงให้เอง 20–26 ส.ค. (ไม่เกิน 7 วันก่อนนัด)</div></div>
+</div>
+<div style="display:flex;gap:12px">
+<div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;flex:none;border-radius:50%;background:#c67139;color:#f5ead8;display:grid;place-items:center;font-size:13.5px;font-weight:700">2</div><div style="width:2.5px;flex:1;background:#ffc6a5"></div></div>
+<div style="flex:1;padding-bottom:12px"><div style="font-size:16px;font-weight:700">2 · พบหมอ — ฟังผลเลือด เล่าอาการ รับยา</div><div style="font-size:14.5px;color:#645c50;line-height:1.5">มีบันทึกอาการเตรียมไว้แล้ว · เตือน 1 วันก่อน + เช้าวันนัด 06:30</div></div>
+</div>
+<div style="display:flex;gap:12px">
+<div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;flex:none;border-radius:50%;border:2.5px dashed #c0b6a5;color:#82796a;display:grid;place-items:center;font-size:13.5px;font-weight:700">3</div></div>
+<div style="flex:1"><div style="font-size:16px;font-weight:700;color:#645c50">3 · กลับบ้าน — สแกนถุงยาใหม่เข้าประวัติ</div><div style="font-size:14.5px;color:#645c50;line-height:1.5">เช็คยาซ้ำกับหมอตา-หมอกระดูกให้อัตโนมัติ</div></div>
+</div>
+<div class="card" style="gap:6px;padding:14px 16px;background:#f9f4ed">
+<h5 style="font-size:15.5px;margin:0">เตรียมตัว · ใครพาไป</h5>
+<div style="font-size:15px;line-height:1.7;color:#474238">งดน้ำ-อาหารหลังเที่ยงคืน · เอาถุงยาทั้งหมดไปด้วย · พกบัตรประชาชน</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:2px">
+<sc-for list="{{ escorts }}" as="e" hint-placeholder-count="3">
+<button onClick="{{ e.pick }}" style="background:{{ e.bg }};color:{{ e.fg }};border:{{ e.border }};border-radius:999px;padding:7px 15px;font-size:14.5px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ e.label }}</button>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ appts }}" as="a" hint-placeholder-count="2">
+<div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:16px 18px">
+<div style="width:46px;height:46px;flex:none;border-radius:50%;background:#e1eecc;display:grid;place-items:center;color:#56633f"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></div>
+<div style="flex:1"><div style="font-size:17px;font-weight:700">{{ a.title }}</div><div style="font-size:14.5px;color:#645c50">{{ a.when }}</div></div>
+<span class="tag tag-neutral" style="font-size:13px">{{ a.days }}</span>
+</div>
+</sc-for>
+</div>
+<button class="btn btn-primary btn-block" style="font-size:16.5px;padding:13px" onClick="{{ openAddAppt }}" disabled="{{ readOnly }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"></path></svg>เพิ่มนัดใหม่</button>
+</sc-if>
+
+<sc-if value="{{ isBook }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<h2 style="font-size:26px;margin:0;flex:1">สมุดสุขภาพ</h2>
+<sc-if value="{{ notBlank }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ openGrp }}" style="display:flex;align-items:center;gap:7px;background:#ebddc5;border:none;border-radius:999px;padding:9px 16px;font-size:15px;font-family:var(--font-body);font-weight:700;color:#474238;cursor:pointer;white-space:nowrap"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b2622d" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>{{ grpName }}&nbsp;▾</button>
+</sc-if>
+<sc-if value="{{ isBlank }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ openProf }}" style="display:flex;align-items:center;gap:7px;background:#ebddc5;border:none;border-radius:999px;padding:9px 16px;font-size:15px;font-family:var(--font-body);font-weight:700;color:#474238;cursor:pointer;white-space:nowrap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b2622d" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>โปรไฟล์ & หมอ</button>
+</sc-if>
+</div>
+<sc-if value="{{ isFam2 }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:14.5px;color:#56633f;background:#f0fae1;border-radius:16px;padding:11px 16px;line-height:1.6">กลุ่มนี้เห็นกันเฉพาะครอบครัวเรา — สมาชิกบ้านเตี่ย–แม่มองไม่เห็นกลุ่มนี้ และเราก็ไม่เห็นกลุ่มของน้องสอง</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+<div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:15px 17px;cursor:pointer;border:{{ p.border }}" onClick="{{ p.pick }}">
+<div style="width:54px;height:54px;flex:none;border-radius:50%;overflow:hidden;background:{{ p.avBg }};display:grid;place-items:center"><span style="font:{{ p.avFont }};color:{{ p.avFg }}">{{ p.initial }}</span></div>
+<div style="flex:1"><div style="font-family:var(--font-heading);font-size:19px">{{ p.name }}</div><div style="font-size:14.5px;color:#645c50">{{ p.sub }}</div></div>
+<span class="tag" style="font-size:12.5px;background:{{ p.tagBg }};color:{{ p.tagFg }}">{{ p.tag }}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ showPerm }}" hint-placeholder-val="{{ true }}">
+<div class="card" style="gap:9px;padding:16px 18px;background:#f9f4ed">
+<h5 style="font-size:16px;margin:0">สิทธิ์การเห็นในกลุ่มนี้</h5>
+<div style="font-size:15px;line-height:1.75;color:#474238">· สมุดเตี่ย & แม่ — <b>ทุกคนในกลุ่มเห็น + บันทึกได้</b><br>· สมุดส่วนตัวแต่ละคน — เจ้าของเลือกเอง (ของฉัน: ส่วนตัว · น้องสอง: แชร์เฉพาะวันนัด)</div>
+<button class="btn btn-ghost" style="font-size:15px;width:fit-content" onClick="{{ permToast }}">ตั้งค่าสิทธิ์</button>
+</div>
+</sc-if>
+<sc-if value="{{ isFam1 }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+<h4 style="font-size:19px;margin:0;flex:1">สมุดของ{{ pName }}</h4>
+<button class="btn btn-ghost" style="font-size:15px" onClick="{{ openSym }}" disabled="{{ readOnly }}">+ จดอาการ</button>
+</div>
+<div class="card" style="gap:10px;padding:16px 18px;background:#f9f4ed">
+<div style="display:flex;align-items:center;gap:8px;color:#8c491a;font-size:15px;font-weight:700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>ข้อเฝ้าระวังของ{{ pName }}</div>
+<sc-for list="{{ rules }}" as="r" hint-placeholder-count="2">
+<div style="display:flex;gap:10px;font-size:15.5px;line-height:1.5"><span style="color:{{ r.color }}">●</span><div style="flex:1">{{ r.text }} <span style="color:#82796a;font-size:13.5px">({{ r.src }})</span></div></div>
+</sc-for>
+</div>
+<sc-if value="{{ showBp }}" hint-placeholder-val="{{ true }}">
+<div class="card" style="gap:12px;padding:17px 19px">
+<div style="display:flex;align-items:baseline;gap:8px"><div style="font-family:var(--font-heading);font-size:18px;flex:1">ความดันย้อนหลัง — {{ pName }}</div><span style="font-size:13.5px;color:#82796a">7 ครั้งล่าสุด</span></div>
+<div style="display:flex;align-items:flex-end;gap:7px;height:130px">
+<sc-for list="{{ bpBars }}" as="b" hint-placeholder-count="7">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end">
+<div style="font-size:12px;font-weight:700;color:{{ b.color }}">{{ b.val }}</div>
+<div style="width:100%;max-width:30px;height:{{ b.h }};background:{{ b.color }};border-radius:8px 8px 4px 4px"></div>
+<div style="font-size:10.5px;color:#82796a;white-space:nowrap">{{ b.label }}</div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;gap:14px;font-size:13px;color:#645c50"><span style="color:#56633f">● ปกติ (ตัวบนต่ำกว่า 140)</span><span style="color:#8c491a">● สูงกว่าเกณฑ์</span></div>
+</div>
+</sc-if>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+<sc-for list="{{ tlChips }}" as="c" hint-placeholder-count="4">
+<button onClick="{{ c.pick }}" style="background:{{ c.bg }};color:{{ c.fg }};border:none;border-radius:999px;padding:7px 15px;font-size:14.5px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ c.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ tlEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:15px;color:#82796a;background:#f9f4ed;border-radius:16px;padding:12px 16px">ยังไม่มีบันทึกหมวดนี้ในไทม์ไลน์ — ความดันดูกราฟด้านบนได้เลย</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:0;margin-top:4px">
+<sc-for list="{{ timeline }}" as="t" hint-placeholder-count="0">
+<div style="display:flex;gap:14px">
+<div style="display:flex;flex-direction:column;align-items:center"><div style="width:13px;height:13px;flex:none;border-radius:50%;background:{{ t.dot }};margin-top:7px"></div><div style="width:2.5px;flex:1;background:#dcd3c4"></div></div>
+<div class="card" style="flex:1;gap:6px;padding:15px 17px;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><div style="font-size:16.5px;font-weight:700">{{ t.title }}</div><div style="font-size:13.5px;color:#82796a">{{ t.date }}</div></div>
+<div style="font-size:15px;color:#645c50;line-height:1.55">{{ t.body }}</div>
+<sc-if value="{{ t.hasScans }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:8px"><div style="width:62px;height:42px;border-radius:10px;background:repeating-linear-gradient(45deg,#dcd3c4 0 6px,#eee7db 6px 12px);display:grid;place-items:center"><span style="font:8.5px ui-monospace,monospace;color:#645c50">สแกน 1</span></div><div style="width:62px;height:42px;border-radius:10px;background:repeating-linear-gradient(45deg,#dcd3c4 0 6px,#eee7db 6px 12px);display:grid;place-items:center"><span style="font:8.5px ui-monospace,monospace;color:#645c50">สแกน 2</span></div></div>
+</sc-if>
+<sc-if value="{{ t.hasImg }}" hint-placeholder-val="{{ false }}">{{ t.imgEl }}</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<input type="file" accept="image/*" capture="environment" style="display:none" ref="{{ fileRef }}" onChange="{{ onFile }}">
+<button class="btn btn-secondary btn-block" style="font-size:16px;padding:12px" onClick="{{ scanDoc }}" disabled="{{ readOnly }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.5"></circle></svg>สแกนเอกสารจากหมอ</button>
+</div>
+</sc-if>
+</sc-if>
+
+</div>
+
+<div style="position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;display:flex;justify-content:space-around;align-items:center;padding:12px 8px 22px;background:#ebddc5;border-radius:24px 24px 0 0;box-shadow:0 -3px 10px rgba(46,43,37,.1);z-index:20">
+<button onClick="{{ goHome }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:{{ cHome }};font-size:12.5px;font-weight:700;font-family:var(--font-body)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M9 22V12h6v10"></path></svg>หน้าหลัก</button>
+<button onClick="{{ goMeds }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:{{ cMeds }};font-size:12.5px;font-weight:700;font-family:var(--font-body)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>ยา</button>
+<button onClick="{{ goAppts }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:{{ cAppts }};font-size:12.5px;font-weight:700;font-family:var(--font-body)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>นัดหมอ</button>
+<button onClick="{{ goBook }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:{{ cBook }};font-size:12.5px;font-weight:700;font-family:var(--font-body)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8M16 13H8M16 17H8"></path></svg>สมุด</button>
+</div>
+
+<sc-if value="{{ symOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:40;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeSym }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:14px;animation:sheetup .25s;max-height:86dvh;overflow:auto" onClick="{{ stop }}">
+<div style="display:flex;align-items:center;gap:10px"><h3 style="font-size:22px;margin:0;flex:1">จดอาการ — {{ pName }}</h3><button class="btn btn-icon btn-secondary" onClick="{{ closeSym }}" aria-label="ปิด" style="width:40px;height:40px">✕</button></div>
+<div style="font-size:15.5px;color:#645c50;margin-top:-6px">วันนี้มีอาการอะไรบ้าง แตะเลือกได้หลายข้อ</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ symChips }}" as="s" hint-placeholder-count="5">
+<button onClick="{{ s.toggle }}" style="background:{{ s.bg }};color:{{ s.fg }};border:none;border-radius:999px;padding:10px 19px;font-size:16.5px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ s.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ watchAlert }}" hint-placeholder-val="{{ false }}">
+<div class="card elev-md" style="gap:12px;padding:19px;background:#402310;color:#ffe1d0;border-radius:24px">
+<div style="display:flex;align-items:center;gap:10px;color:#f6a06b;font-family:var(--font-heading);font-size:18px"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>ข้อเฝ้าระวังของ{{ pName }}</div>
+<div style="font-size:16.5px;line-height:1.6;color:#fff2eb">{{ watchText }}</div>
+<div style="display:flex;gap:10px">
+<button class="btn" style="flex:1;font-size:15.5px;padding:11px;background:#f6a06b;color:#402310" onClick="{{ callHosp }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.79.66 2.64a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.44-1.23a2 2 0 0 1 2.11-.45c.85.32 1.74.54 2.64.66A2 2 0 0 1 22 16.92z"></path></svg>โทรหาโรงพยาบาล</button>
+<button class="btn" style="flex:1;font-size:15.5px;padding:11px;background:transparent;border:1.5px solid #f6a06b;color:#ffe1d0" onClick="{{ notifySibs }}">แจ้งพี่น้องทุกคน</button>
+</div>
+</div>
+</sc-if>
+<div class="field"><label style="font-size:14px">เพิ่มเติม (พิมพ์เองได้)</label><textarea class="input" rows="2" placeholder="เช่น เวียนหัวตอนลุกจากเตียง ประมาณ 5 นาที กินข้าวได้ปกติ" onInput="{{ onSymNote }}" style="font-size:16.5px;border-radius:20px;min-height:74px"></textarea></div>
+<button class="btn btn-primary btn-block" style="font-size:17px;padding:14px" onClick="{{ saveSym }}" disabled="{{ symSaveOff }}">บันทึกลงสมุด — ทุกคนเห็น</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ scanOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:40;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeScan }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:14px;animation:sheetup .25s;max-height:86dvh;overflow:auto" onClick="{{ stop }}">
+<div style="display:flex;align-items:center;gap:10px"><h3 style="font-size:22px;margin:0;flex:1">สแกนถุงยา — {{ pName }}</h3><button class="btn btn-icon btn-secondary" onClick="{{ closeScan }}" aria-label="ปิด" style="width:40px;height:40px">✕</button></div>
+<sc-if value="{{ scanS1 }}" hint-placeholder-val="{{ true }}">
+<div style="position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#dcd3c4 0 8px,#eee7db 8px 16px);height:210px;display:grid;place-items:center">
+<div style="position:absolute;inset:18px;border:3px solid #c67139;border-radius:18px;opacity:.85"></div>
+<div style="font:11px ui-monospace,monospace;color:#645c50;background:#f9f4edcc;padding:6px 12px;border-radius:999px">ภาพกล้อง — เล็งที่ฉลากถุงยา</div>
+</div>
+<button class="btn btn-primary btn-block" style="font-size:18px;padding:15px" onClick="{{ capture }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.5"></circle></svg>ถ่ายรูปฉลาก</button>
+</sc-if>
+<sc-if value="{{ scanS2 }}" hint-placeholder-val="{{ false }}">
+<div class="card elev-md" style="gap:10px;padding:19px">
+<div style="display:flex;align-items:center;gap:8px;color:#56633f;font-size:14.5px;font-weight:700"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>อ่านจากฉลากได้แล้ว — ตรวจดูก่อนบันทึก</div>
+<div><div style="font-size:13.5px;color:#82796a">ชื่อยา</div><div style="font-family:var(--font-heading);font-size:20px">ASA 81 mg (แอสไพริน)</div></div>
+<div><div style="font-size:13.5px;color:#82796a">วิธีกิน (จากฉลาก)</div><div style="font-size:17px">ครั้งละ 1 เม็ด · เช้า · หลังอาหาร</div></div>
+<div><div style="font-size:13.5px;color:#82796a">ได้จาก</div><div style="font-size:15.5px">ห้องยา รพ.พระปกเกล้า · หมอกระดูก · 23 ส.ค. 2569</div></div>
+<div style="background:#f0fae1;border-radius:16px;padding:11px 15px">
+<div style="font-size:13.5px;color:#56633f;font-weight:700">แอปเติมให้: ช่วยอะไร</div>
+<div style="font-size:16px;line-height:1.55;color:#3d472b">ป้องกันเลือดจับตัวเป็นลิ่ม ลดเสี่ยงหัวใจขาดเลือด</div>
+</div>
+<div style="background:#fff2eb;border:1.5px solid #d67f48;border-radius:16px;padding:11px 15px">
+<div style="display:flex;align-items:center;gap:8px;color:#8c491a;font-size:15px;font-weight:700"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>ซ้ำกับยาที่มีอยู่!</div>
+<div style="font-size:15px;line-height:1.55;color:#474238">ตัวเดียวกับ "แอสไพริน 81" ที่หมอหัวใจสั่ง — ไม่ควรกินคู่กัน ควรถามหมอ</div>
+</div>
+</div>
+<div style="display:flex;gap:10px">
+<button class="btn btn-primary" style="flex:1.5;font-size:16px;padding:13px" onClick="{{ saveScan }}">บันทึก + ติดธงถามหมอ</button>
+<button class="btn btn-secondary" style="flex:1;font-size:16px;padding:13px" onClick="{{ closeScan }}">ยกเลิก</button>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ emOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:40;background:#ebddc5;overflow:auto;animation:fadein .2s">
+<div style="max-width:480px;margin:0 auto;padding:24px 20px 40px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:12px">
+<button class="btn btn-icon btn-secondary" onClick="{{ closeEm }}" aria-label="กลับ" style="width:44px;height:44px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<h2 style="font-size:23px;margin:0;flex:1">บัตรสรุปฉุกเฉิน</h2>
+</div>
+<div style="font-size:15px;color:#645c50;margin-top:-8px">ยื่นจอนี้ให้หมอหรือพยาบาลดูได้เลย</div>
+<div class="card elev-lg" style="gap:14px;padding:24px;background:#f9f4ed">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:62px;height:62px;flex:none;border-radius:50%;overflow:hidden;background:repeating-linear-gradient(45deg,#dcd3c4 0 7px,#eee7db 7px 14px);display:grid;place-items:center"><span style="font:9px ui-monospace,monospace;color:#645c50">รูป</span></div>
+<div><div style="font-family:var(--font-heading);font-size:22px">{{ em.name }}</div><div style="font-size:16px;color:#645c50">{{ em.sub }}</div></div>
+</div>
+<div style="background:#fff2eb;border:1.5px solid #d67f48;border-radius:16px;padding:12px 16px">
+<div style="font-size:14px;color:#8c491a;font-weight:700;letter-spacing:.05em">แพ้ยา</div>
+<div style="font-size:19px;font-weight:700;color:#643312">{{ em.allergy }}</div>
+</div>
+<div><div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em;margin-bottom:4px">โรคประจำตัว</div><div style="font-size:17px;line-height:1.6">{{ em.conds }}</div></div>
+<div><div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em;margin-bottom:4px">ยาที่กินอยู่</div><div style="font-size:17px;line-height:1.75">{{ em.meds }}</div></div>
+<div><div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em;margin-bottom:4px">ข้อเฝ้าระวัง</div><div style="font-size:16px;line-height:1.6;color:#8c491a;font-weight:600">{{ em.watch }}</div></div>
+<div><div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em;margin-bottom:4px">หมอประจำ</div><div style="font-size:16px;line-height:1.6;color:#474238">{{ em.docs }}</div></div>
+<div><div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em;margin-bottom:4px">ที่อยู่</div><div style="font-size:16px;line-height:1.6;color:#474238">{{ em.addr }}</div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #dcd3c4;padding-top:12px">
+<div style="font-size:14px;color:#82796a">อัปเดต 23 ส.ค. 2569</div>
+<div style="font-size:15px;font-weight:700;color:#56633f">ติดต่อลูก: 081-234-5678</div>
+</div>
+</div>
+<button class="btn btn-primary btn-block" style="font-size:17px;padding:14px" onClick="{{ zoomEm }}">{{ emZoomLabel }}</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ profOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:46;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeProf }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:13px;animation:sheetup .25s;max-height:90dvh;overflow:auto" onClick="{{ stop }}">
+<div style="display:flex;align-items:center;gap:10px"><h3 style="font-size:22px;margin:0;flex:1">โปรไฟล์ & หมอ</h3><button class="btn btn-icon btn-secondary" onClick="{{ closeProf }}" aria-label="ปิด" style="width:40px;height:40px">✕</button></div>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1"><label style="font-size:14px">ชื่อเรียก</label><input class="input" value="{{ pfName }}" onInput="{{ pfNameIn }}" style="font-size:16.5px;min-height:46px"></div>
+<div class="field" style="flex:1.5"><label style="font-size:14px">ชื่อ-นามสกุลจริง</label><input class="input" value="{{ pfFull }}" onInput="{{ pfFullIn }}" style="font-size:16.5px;min-height:46px"></div>
+</div>
+<div class="field"><label style="font-size:14px">ที่อยู่</label><input class="input" value="{{ pfAddr }}" onInput="{{ pfAddrIn }}" style="font-size:16.5px;min-height:46px"></div>
+<div class="field"><label style="font-size:14px">แพ้ยา / แพ้อาหาร</label><input class="input" value="{{ pfAllergy }}" onInput="{{ pfAllergyIn }}" style="font-size:16.5px;min-height:46px"></div>
+<h5 style="font-size:17px;margin:6px 0 0">หมอที่รักษา (ลบ/เพิ่มได้)</h5>
+<div style="font-size:14px;color:#645c50;margin-top:-8px">หมอคนเดียวออกตรวจหลายที่ — เพิ่มทีละแห่งพร้อมเวลา</div>
+<sc-for list="{{ pfDocList }}" as="d" hint-placeholder-count="0">
+<div style="display:flex;align-items:center;gap:10px;background:#f0fae1;border-radius:18px;padding:10px 12px 10px 18px;font-size:15.5px;color:#3d472b"><div style="flex:1;line-height:1.45">{{ d.label }}</div><button class="btn btn-icon btn-secondary" onClick="{{ d.del }}" aria-label="ลบ" style="width:34px;height:34px;flex:none">✕</button></div>
+</sc-for>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1"><label style="font-size:14px">หมอ / แผนก</label><input class="input" placeholder="หมอหัวใจ" value="{{ pdName }}" onInput="{{ pdNameIn }}" style="font-size:16px;min-height:44px"></div>
+<div class="field" style="flex:1.2"><label style="font-size:14px">รพ. / คลินิก</label><input class="input" placeholder="รพ.พระปกเกล้า" value="{{ pdHosp }}" onInput="{{ pdHospIn }}" style="font-size:16px;min-height:44px"></div>
+</div>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1"><label style="font-size:14px">เลข HN</label><input class="input" placeholder="12-34-567890" value="{{ pdHn }}" onInput="{{ pdHnIn }}" style="font-size:16px;min-height:44px"></div>
+<div class="field" style="flex:1.2"><label style="font-size:14px">เวลาออกตรวจ</label><input class="input" placeholder="พุธ 09:00–12:00" value="{{ pdHours }}" onInput="{{ pdHoursIn }}" style="font-size:16px;min-height:44px"></div>
+</div>
+<button class="btn btn-secondary btn-block" style="font-size:15.5px;padding:11px" onClick="{{ pdAdd }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"></path></svg>เพิ่มหมอ/สถานที่นี้</button>
+<button class="btn btn-primary btn-block" style="font-size:17.5px;padding:14px" onClick="{{ saveProf }}">บันทึกโปรไฟล์</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ addApptOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:45;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeAddAppt }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:13px;animation:sheetup .25s;max-height:88dvh;overflow:auto" onClick="{{ stop }}">
+<div style="display:flex;align-items:center;gap:10px"><h3 style="font-size:22px;margin:0;flex:1">เพิ่มนัดใหม่ — {{ pName }}</h3><button class="btn btn-icon btn-secondary" onClick="{{ closeAddAppt }}" aria-label="ปิด" style="width:40px;height:40px">✕</button></div>
+<div class="field"><label style="font-size:14px">หมอ / เรื่องที่นัด</label><input class="input" placeholder="เช่น หมอหัวใจ" value="{{ fmDoc }}" onInput="{{ fmDocIn }}" style="font-size:17px;min-height:48px"></div>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1.3"><label style="font-size:14px">วันที่</label><input class="input" type="date" value="{{ fmDate }}" onInput="{{ fmDateIn }}" style="font-size:16px;min-height:48px"></div>
+<div class="field" style="flex:1"><label style="font-size:14px">เวลา</label><input class="input" type="time" value="{{ fmTime }}" onInput="{{ fmTimeIn }}" style="font-size:16px;min-height:48px"></div>
+</div>
+<div class="field"><label style="font-size:14px">สถานที่</label><input class="input" placeholder="เช่น รพ.พระปกเกล้าจันทบุรี" value="{{ fmPlace }}" onInput="{{ fmPlaceIn }}" style="font-size:17px;min-height:48px"></div>
+<div style="font-size:14.5px;color:#56633f;background:#f0fae1;border-radius:16px;padding:11px 15px;line-height:1.6">ถ้าเป็นนัด "หมอหัวใจ" จะแนบขั้น <b>ตรวจเลือดล่วงหน้า ≤7 วันก่อนนัด</b> ให้อัตโนมัติ</div>
+<button class="btn btn-primary btn-block" style="font-size:17.5px;padding:14px" onClick="{{ saveAppt }}" disabled="{{ apptSaveOff }}">บันทึกนัด + ตั้งเตือน</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ addMedOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:45;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeAddMed }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:13px;animation:sheetup .25s;max-height:88dvh;overflow:auto" onClick="{{ stop }}">
+<div style="display:flex;align-items:center;gap:10px"><h3 style="font-size:22px;margin:0;flex:1">เพิ่มยา — {{ pName }}</h3><button class="btn btn-icon btn-secondary" onClick="{{ closeAddMed }}" aria-label="ปิด" style="width:40px;height:40px">✕</button></div>
+<div class="field"><label style="font-size:14px">ชื่อยา (ตามถุงยา)</label><input class="input" placeholder="เช่น Aspirin 81 mg" value="{{ fmMedName }}" onInput="{{ fmMedNameIn }}" style="font-size:17px;min-height:48px"></div>
+<div class="field"><label style="font-size:14px">วิธีกิน / เวลา</label><input class="input" placeholder="เช่น เช้า 1 เม็ด หลังอาหาร" value="{{ fmMedHow }}" onInput="{{ fmMedHowIn }}" style="font-size:17px;min-height:48px"></div>
+<div class="field"><label style="font-size:14px">หมอที่สั่ง</label><input class="input" placeholder="เช่น หมอหัวใจ" value="{{ fmMedDoc }}" onInput="{{ fmMedDocIn }}" style="font-size:17px;min-height:48px"></div>
+<div class="field"><label style="font-size:14px">ยานี้ช่วยอะไร (ถามหมอ/เภสัชแล้วมาเติมได้)</label><input class="input" placeholder="เช่น ป้องกันเลือดจับตัวเป็นลิ่ม" value="{{ fmMedHelp }}" onInput="{{ fmMedHelpIn }}" style="font-size:17px;min-height:48px"></div>
+<button class="btn btn-primary btn-block" style="font-size:17.5px;padding:14px" onClick="{{ saveMed }}" disabled="{{ medSaveOff }}">บันทึกยา</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ grpOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:50;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeGrp }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:12px;animation:sheetup .25s" onClick="{{ stop }}">
+<h3 style="font-size:22px;margin:0">กลุ่มครอบครัวของฉัน</h3>
+<div style="font-size:15.5px;color:#645c50;margin-top:-6px">แต่ละกลุ่มแยกกันสนิท — สมาชิกกลุ่มหนึ่งมองไม่เห็นอีกกลุ่ม</div>
+<sc-for list="{{ grpOpts }}" as="g" hint-placeholder-count="2">
+<button onClick="{{ g.pick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:{{ g.bg }};color:{{ g.fg }};border:none;border-radius:24px;padding:14px 20px;font-family:var(--font-body);cursor:pointer;text-align:left;width:100%"><span style="font-size:17.5px;font-weight:700">{{ g.label }}</span><span style="font-size:14px;opacity:.75">{{ g.sub }}</span></button>
+</sc-for>
+<button class="btn btn-secondary btn-block" style="font-size:16px;padding:12px" onClick="{{ newGrp }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"></path></svg>สร้างกลุ่มใหม่ / ชวนด้วยลิงก์</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ userOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:50;background:rgba(46,43,37,.5);display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s" onClick="{{ closeUser }}">
+<div style="width:100%;max-width:480px;background:var(--color-bg);border-radius:28px 28px 0 0;padding:24px 22px 30px;display:flex;flex-direction:column;gap:12px;animation:sheetup .25s" onClick="{{ stop }}">
+<h3 style="font-size:22px;margin:0">ตอนนี้ใครใช้เครื่องอยู่?</h3>
+<div style="font-size:15.5px;color:#645c50;margin-top:-6px">เครื่องนี้เป็นของเตี่ย/แม่ — แตะชื่อตัวเองก่อนบันทึก จะได้รู้ว่าใครเป็นคนกด</div>
+<sc-for list="{{ userOpts }}" as="u" hint-placeholder-count="4">
+<button onClick="{{ u.pick }}" style="display:flex;align-items:center;gap:12px;background:{{ u.bg }};color:{{ u.fg }};border:{{ u.border }};border-radius:999px;padding:14px 20px;font-size:18px;font-family:var(--font-body);font-weight:600;cursor:pointer;text-align:left">{{ u.label }}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ onbOn }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:55;background:var(--color-bg);overflow:auto;animation:fadein .2s">
+<div style="max-width:480px;margin:0 auto;min-height:100dvh;padding:44px 26px 40px;display:flex;flex-direction:column;gap:18px;justify-content:center">
+<sc-if value="{{ onb1 }}" hint-placeholder-val="{{ true }}">
+<div style="width:86px;height:86px;border-radius:50%;background:#ffe1d0;display:grid;place-items:center;color:#8c491a"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></div>
+<h1 style="font-size:36px;margin:0;line-height:1.15">Doolaekan</h1>
+<div style="font-size:18px;color:#8c491a;font-family:var(--font-heading);margin-top:-10px">สมุดสุขภาพของฉัน</div>
+<div style="font-size:17.5px;line-height:1.65;color:#474238">บันทึกนัดหมอ ยา อาการ และเอกสารของ<b>ตัวเอง</b>ก่อน — ข้อมูลเป็นของเรา <b>ส่วนตัว 100%</b> จนกว่าจะเลือกแชร์เอง</div>
+<div class="field"><label style="font-size:14.5px">ชื่อเรียกในสมุด</label><input class="input" placeholder="เช่น เตี่ย, แม่, หนึ่ง" onInput="{{ onbNameIn }}" style="font-size:18px;min-height:48px"></div>
+<div class="field"><label style="font-size:14.5px">ชื่อ-นามสกุลจริง (ขึ้นบัตรฉุกเฉิน)</label><input class="input" placeholder="เช่น นายสมชาย ใจดี" onInput="{{ onbFullIn }}" style="font-size:17px;min-height:48px"></div>
+<div class="field"><label style="font-size:14.5px">ที่อยู่</label><input class="input" placeholder="เช่น 12 ต.ตลาด อ.เมือง จันทบุรี" onInput="{{ onbAddrIn }}" style="font-size:17px;min-height:48px"></div>
+<button class="btn btn-primary btn-block" style="font-size:18px;padding:15px" onClick="{{ onbNext }}">เริ่มใช้สมุดของฉัน</button>
+</sc-if>
+<sc-if value="{{ onb2 }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em">ขั้น 1/3 · ระบบส่วนตัวของเรา</div>
+<h2 style="font-size:25px;margin:0;line-height:1.25">โรคประจำตัว & แพ้ยา</h2>
+<div style="font-size:15.5px;color:#645c50;margin-top:-8px">แตะเลือก — ข้อมูลนี้จะขึ้นในบัตรฉุกเฉินของเรา</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ onbCondChips }}" as="c" hint-placeholder-count="6">
+<button onClick="{{ c.toggle }}" style="background:{{ c.bg }};color:{{ c.fg }};border:none;border-radius:999px;padding:10px 18px;font-size:16px;font-family:var(--font-body);font-weight:600;cursor:pointer">{{ c.label }}</button>
+</sc-for>
+</div>
+<div class="field"><label style="font-size:14px">โรคอื่น (พิมพ์เอง)</label><input class="input" placeholder="เช่น ไทรอยด์" onInput="{{ onbCondIn }}" style="font-size:16.5px;min-height:46px"></div>
+<div class="field"><label style="font-size:14px">แพ้ยา / แพ้อาหาร</label><input class="input" placeholder="เช่น เพนิซิลลิน (ผื่นทั้งตัว)" onInput="{{ onbAllergyIn }}" style="font-size:16.5px;min-height:46px"></div>
+<button class="btn btn-primary btn-block" style="font-size:17px;padding:14px" onClick="{{ onbNext }}">ถัดไป — หมอที่รักษา</button>
+<button class="btn btn-ghost btn-block" style="font-size:15.5px" onClick="{{ onbNext }}">ข้ามไปก่อน เติมทีหลังได้</button>
+</sc-if>
+<sc-if value="{{ onb3 }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em">ขั้น 2/3 · ระบบส่วนตัวของเรา</div>
+<h2 style="font-size:25px;margin:0;line-height:1.25">หมอที่รักษาอยู่</h2>
+<div style="font-size:15.5px;color:#645c50;margin-top:-8px">ใส่ทีละคน — นัดและยาจะผูกกับหมอแต่ละคนได้</div>
+<div class="field"><label style="font-size:14px">หมอ / แผนก</label><input class="input" placeholder="เช่น หมอหัวใจ" value="{{ onbDocName }}" onInput="{{ onbDocNameIn }}" style="font-size:16.5px;min-height:46px"></div>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1.6"><label style="font-size:14px">โรงพยาบาล / คลินิก</label><input class="input" placeholder="เช่น รพ.พระปกเกล้าจันทบุรี" value="{{ onbDocHosp }}" onInput="{{ onbDocHospIn }}" style="font-size:16.5px;min-height:46px"></div>
+<div class="field" style="flex:1"><label style="font-size:14px">เลข HN</label><input class="input" placeholder="เช่น 12-34-567890" value="{{ onbDocHn }}" onInput="{{ onbDocHnIn }}" style="font-size:16.5px;min-height:46px"></div>
+</div>
+<div class="field"><label style="font-size:14px">เวลาออกตรวจ (ถ้าทราบ)</label><input class="input" placeholder="เช่น พุธ 09:00–12:00" value="{{ onbDocHours }}" onInput="{{ onbDocHoursIn }}" style="font-size:16.5px;min-height:46px"></div>
+<div style="font-size:14px;color:#645c50;line-height:1.6;background:#eee7db;border-radius:14px;padding:10px 14px">หมอคนเดียวออกตรวจหลายที่? กด "เพิ่มหมอคนนี้" ทีละแห่ง (ชื่อเดิม เปลี่ยนที่และเวลา) — มาเพิ่ม/แก้ทีหลังได้ที่หน้าโปรไฟล์</div>
+<button class="btn btn-secondary btn-block" style="font-size:16px;padding:12px" onClick="{{ onbAddDoc }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"></path></svg>เพิ่มหมอคนนี้</button>
+<sc-for list="{{ onbDocList }}" as="d" hint-placeholder-count="0">
+<div style="display:flex;align-items:center;gap:10px;background:#f0fae1;border-radius:999px;padding:10px 18px;font-size:16px;color:#3d472b"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#728157" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ d.label }}</div>
+</sc-for>
+<button class="btn btn-primary btn-block" style="font-size:17px;padding:14px" onClick="{{ onbNext }}">ถัดไป — เรื่องครอบครัว</button>
+<button class="btn btn-ghost btn-block" style="font-size:15.5px" onClick="{{ onbNext }}">ข้ามไปก่อน</button>
+</sc-if>
+<sc-if value="{{ onb4 }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:14px;color:#82796a;font-weight:700;letter-spacing:.05em">ขั้น 3/3 · สมุดส่วนตัวพร้อมแล้ว</div>
+<h2 style="font-size:26px;margin:0;line-height:1.25">ใช้ร่วมกับครอบครัวไหม?</h2>
+<div style="font-size:16px;color:#645c50;line-height:1.6">เลือกทีหลังก็ได้ — สมุดยังเป็นของเราเสมอ</div>
+<button class="btn btn-secondary btn-block" style="font-size:17px;padding:16px;justify-content:flex-start;text-align:left" onClick="{{ onbSolo }}">ใช้คนเดียวก่อน</button>
+<button class="btn btn-secondary btn-block" style="font-size:17px;padding:16px;justify-content:flex-start;text-align:left" onClick="{{ onbNext }}">สร้างกลุ่มครอบครัว — แล้วชวนคนอื่น</button>
+<button class="btn btn-primary btn-block" style="font-size:17px;padding:16px;justify-content:flex-start;text-align:left" onClick="{{ onbNext }}">มีคนชวน — สแกน QR เข้ากลุ่ม</button>
+<div style="font-size:14.5px;color:#645c50;line-height:1.65;background:#eee7db;border-radius:16px;padding:12px 16px">เคสเตี่ย–แม่: ลูกช่วยตั้งเครื่องให้ถึงขั้นนี้ แล้วเปิด QR จากเครื่องลูกให้เครื่องเตี่ยสแกน — เตี่ยก็เข้ากลุ่ม family ทันที</div>
+</sc-if>
+<sc-if value="{{ onb5 }}" hint-placeholder-val="{{ false }}">
+<div style="width:150px;height:150px;border-radius:24px;background:repeating-linear-gradient(45deg,#dcd3c4 0 8px,#eee7db 8px 16px);display:grid;place-items:center;align-self:center"><span style="font:11px ui-monospace,monospace;color:#645c50;background:#f9f4edcc;padding:5px 10px;border-radius:999px">QR กลุ่ม family</span></div>
+<h2 style="font-size:24px;margin:0;text-align:center">เข้ากลุ่ม "บ้านเตี่ย–แม่"</h2>
+<div style="font-size:16px;color:#645c50;text-align:center;margin-top:-8px">ก่อนเข้า เลือกว่าจะให้กลุ่มเห็นสมุดเราแค่ไหน</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ onbShares }}" as="o" hint-placeholder-count="3">
+<button onClick="{{ o.pick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:{{ o.bg }};color:{{ o.fg }};border:none;border-radius:24px;padding:13px 19px;font-family:var(--font-body);cursor:pointer;text-align:left;width:100%"><span style="font-size:17px;font-weight:700">{{ o.label }}</span><span style="font-size:14px;opacity:.75">{{ o.sub }}</span></button>
+</sc-for>
+</div>
+<button class="btn btn-primary btn-block" style="font-size:18px;padding:15px" onClick="{{ onbDone }}">ยืนยัน เข้ากลุ่ม</button>
+<div style="font-size:14px;color:#82796a;text-align:center">เปลี่ยนใจเมื่อไหร่ก็ได้ที่ "ตั้งค่าสิทธิ์" ในแท็บสมุด</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;bottom:104px;left:50%;transform:translateX(-50%);z-index:60;background:#2e2b25;color:#f9f4ed;border-radius:999px;padding:12px 22px;font-size:15.5px;box-shadow:0 6px 20px rgba(46,43,37,.3);animation:toastup .25s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis">{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;startBlank&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;โหมดลองใช้จริง (เริ่มจากศูนย์ ปิด = ดูตัวอย่าง)&quot;},&quot;firstOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;ดูหน้าเปิดแอปครั้งแรก (เฉพาะโหมดตัวอย่าง)&quot;},&quot;user&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;พี่แจ๋ว (คนดูแล)&quot;,&quot;options&quot;:[&quot;พี่แจ๋ว (คนดูแล)&quot;,&quot;พี่หนึ่ง&quot;,&quot;น้องสอง&quot;,&quot;เตี่ยเอง&quot;,&quot;แม่เอง&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;คนกด (เฉพาะโหมดตัวอย่าง)&quot;},&quot;bigText&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;การแสดงผล&quot;}}">
+class Component extends DCLogic {
+  state = {
+    tab: 'home', patient: 'all',
+    doses: [
+      { id: 'd1', p: 'dad', title: 'ยาเช้า — เตี่ย', time: '07:30', meds: 'แอสไพริน 81 · บิโซโพรลอล 2.5 · แอมโลดิพีน 5', status: 'taken', info: 'กินแล้ว 07:30 น. (พี่แจ๋วบันทึก)' },
+      { id: 'd2', p: 'mom', title: 'ยาเช้า — แม่', time: '08:00', meds: 'บิโซโพรลอล 2.5 มก. หลังอาหาร', status: 'pending', info: '' },
+      { id: 'd3', p: 'dad', title: 'น้ำตาเทียม เที่ยง — เตี่ย', time: '12:00', meds: 'หยอดตา 1 หยดทั้งสองข้าง', status: 'pending', info: '' }
+    ],
+    asking: null, escort: 'พี่หนึ่ง',
+    symOpen: false, symSel: [], symNote: '',
+    scanOpen: false, scanStep: 1,
+    emOpen: false, emZoom: false,
+    hasDupe: false, extraMeds: [], extraTl: { dad: [], mom: [], me: [] },
+    bp: { s: '', d: '', p: '' },
+    tlFilter: 'all', extraBp: { dad: [], mom: [], me: [] },
+    userSel: null, userOpen: false,
+    group: 'fam1', grpOpen: false,
+    onbStep: 1, onbHide: false, onbName: '', onbShare: 'ทั้งหมด',
+    onbConds: [], onbAllergy: '', onbDocName: '', onbDocHosp: '', onbDocHn: '', onbDocHours: '', onbDocs: [], onbCondOther: '', onbFull: '', onbAddr: '',
+    profOpen: false, pfName: '', pfFull: '', pfAddr: '', pfAllergy: '', pfDocs: [],
+    pdName: '', pdHosp: '', pdHn: '', pdHours: '',
+    profile: null, extraAppts: [], medTaken: {},
+    addApptOpen: false, addMedOpen: false,
+    fmDoc: '', fmDate: '', fmTime: '', fmPlace: '',
+    fmMedName: '', fmMedHow: '', fmMedDoc: '', fmMedHelp: '',
+    toast: ''
+  };
+  D = {
+    names: { dad: 'เตี่ย', mom: 'แม่', me: 'ฉัน (พี่หนึ่ง)' },
+    meds: {
+      dad: [
+        { name: 'แอสไพริน 81 มก.', helps: 'ป้องกันเลือดจับตัวเป็นลิ่ม ลดเสี่ยงหัวใจขาดเลือด', sched: 'เช้า 1 เม็ด หลังอาหาร · หมอหัวใจ', tag: 'หัวใจ', c: 'a' },
+        { name: 'บิโซโพรลอล 2.5 มก.', helps: 'คุมจังหวะหัวใจไม่ให้เต้นเร็วเกิน ช่วยลดความดัน', sched: 'เช้า 1 เม็ด · หมอหัวใจ', tag: 'หัวใจ', c: 'a' },
+        { name: 'อะทอร์วาสแตติน 40 มก.', helps: 'ลดไขมันในเลือด ป้องกันเส้นเลือดตีบ', sched: 'ก่อนนอน 1 เม็ด · หมอหัวใจ', tag: 'หัวใจ', c: 'a' },
+        { name: 'น้ำตาเทียม', helps: 'เพิ่มความชุ่มชื้น แก้ตาแห้งแสบตา', sched: 'หยอดวันละ 4 ครั้ง · หมอตา', tag: 'ตา', c: 'g' },
+        { name: 'แคลเซียม + วิตามินดี', helps: 'เสริมมวลกระดูก ลดเสี่ยงกระดูกหักจากการล้ม', sched: 'เย็น 1 เม็ด พร้อมอาหาร · หมอกระดูก', tag: 'กระดูก', c: 'n' }
+      ],
+      mom: [
+        { name: 'บิโซโพรลอล 2.5 มก.', helps: 'คุมจังหวะหัวใจ ช่วยลดความดัน', sched: 'เช้า 1 เม็ด หลังอาหาร · หมอหัวใจ', tag: 'หัวใจ', c: 'a' },
+        { name: 'ซิมวาสแตติน 20 มก.', helps: 'ลดไขมันในเลือด', sched: 'ก่อนนอน 1 เม็ด · หมอหัวใจ', tag: 'หัวใจ', c: 'a' }
+      ],
+      me: [{ name: 'ลอราทาดีน 10 มก.', helps: 'แก้แพ้ ลดผื่นคัน น้ำมูกไหล', sched: 'กินเมื่อมีอาการ', tag: 'ภูมิแพ้', c: 'g' }]
+    },
+    appts: {
+      dad: [{ title: 'หมอตา — เตี่ย', when: 'ศุกร์ 14 พ.ย. · 10:00 น. · รพ.พระปกเกล้า', days: 'อีก 3 เดือน' }],
+      mom: [{ title: 'หมอหัวใจ — แม่', when: 'ศุกร์ 12 ก.ย. · 10:30 น. · รพ.พระปกเกล้า', days: 'อีก 20 วัน' }],
+      me: [{ title: 'หมอฟัน — ฉัน', when: 'พุธ 3 ก.ย. · 17:00 น. · คลินิกฟันดี', days: 'อีก 11 วัน' }]
+    },
+    na: {
+      dad: { title: 'หมอหัวใจ — เตี่ย', when: 'พุธ 27 ส.ค. · 09:00 น. · รพ.พระปกเกล้า', days: 'อีก 4 วัน', remind: 'เตือนล่วงหน้า 1 วัน + เช้าวันนัด' },
+      mom: { title: 'หมอหัวใจ — แม่', when: 'ศุกร์ 12 ก.ย. · 10:30 น. · รพ.พระปกเกล้า', days: 'อีก 20 วัน', remind: 'เตือนล่วงหน้า 1 วัน' },
+      me: { title: 'หมอฟัน — ฉัน', when: 'พุธ 3 ก.ย. · 17:00 น. · คลินิกฟันดี', days: 'อีก 11 วัน', remind: 'เตือนล่วงหน้า 1 วัน' }
+    },
+    syms: {
+      dad: ['เวียนหัว', 'เคืองตา', 'เจ็บตา', 'เจ็บหน้าอก', 'เหนื่อยง่าย', 'นอนไม่หลับ', 'เบื่ออาหาร'],
+      mom: ['เวียนหัว', 'ใจสั่น', 'เจ็บหน้าอก', 'เหนื่อยง่าย', 'นอนไม่หลับ'],
+      me: ['ปวดหัว', 'ผื่นแพ้', 'ปวดฟัน']
+    },
+    watch: {
+      dad: [
+        { on: ['เคืองตา', 'เจ็บตา'], text: '"เคืองตา หรือเจ็บตา — ต้องไปพบหมอทันที ห้ามรอ"', src: 'หมอตาสั่งไว้', color: '#8c491a' },
+        { on: ['เจ็บหน้าอก'], text: '"เจ็บหน้าอก — โทร 1669 ทันที"', src: 'หมอหัวใจ', color: '#8c491a' },
+        { on: [], text: 'ล้ม แม้ไม่เจ็บ → จดไว้เล่าหมอกระดูก', src: 'หมอกระดูก', color: '#728157' }
+      ],
+      mom: [{ on: ['ใจสั่น', 'เจ็บหน้าอก'], text: '"ใจสั่นหรือเจ็บหน้าอก — โทรหาลูกและไป รพ. ทันที"', src: 'หมอหัวใจ', color: '#8c491a' }],
+      me: []
+    },
+    tl: {
+      dad: [
+        { title: 'ตรวจเลือดก่อนนัด', date: '22 ส.ค.', body: 'พี่หนึ่งพาไป · ผลรอที่ห้องตรวจวันนัด 27 ส.ค.', dot: '#7a8a5e', hasScans: false, kind: 'visit' },
+        { title: 'ผลตรวจเลือด', date: '20 ก.ค.', body: 'ไขมัน LDL 98 · น้ำตาลปกติ', dot: '#c67139', hasScans: true, kind: 'doc' },
+        { title: 'พบหมอตา', date: '14 ส.ค.', body: 'เปลี่ยนน้ำตาเทียมยี่ห้อใหม่ · นัดอีก 3 เดือน', dot: '#7a8a5e', hasScans: false, kind: 'visit' },
+        { title: 'อาการ: เวียนหัวตอนเช้า', date: '2 ส.ค.', body: 'น้องสองจดไว้ · หายเองช่วงสาย — เตรียมเล่าหมอหัวใจ', dot: '#c0b6a5', hasScans: false, kind: 'sym' }
+      ],
+      mom: [{ title: 'พบหมอหัวใจ', date: '15 ก.ค.', body: 'ความดันคุมได้ดี · คงยาเดิม', dot: '#7a8a5e', hasScans: false, kind: 'visit' }],
+      me: [{ title: 'ขูดหินปูน', date: '10 มิ.ย.', body: 'คลินิกฟันดี · นัดครั้งหน้า 3 ก.ย.', dot: '#c0b6a5', hasScans: false, kind: 'visit' }]
+    },
+    bpHist: {
+      dad: [{ l: '17 ส.ค.', s: 128, d: 76 }, { l: '18 ส.ค.', s: 135, d: 80 }, { l: '19 ส.ค.', s: 142, d: 84 }, { l: '20 ส.ค.', s: 138, d: 82 }, { l: '21 ส.ค.', s: 131, d: 78 }, { l: '22 ส.ค.', s: 129, d: 77 }],
+      mom: [{ l: '20 ส.ค.', s: 124, d: 74 }, { l: '21 ส.ค.', s: 127, d: 76 }, { l: '22 ส.ค.', s: 122, d: 72 }],
+      me: []
+    },
+    em: {
+      dad: { name: 'นายสมชาย (เตี่ย)', sub: 'อายุ 74 ปี · กรุ๊ปเลือด O', allergy: 'เพนิซิลลิน (ผื่นทั้งตัว)', conds: 'หัวใจขาดเลือด · ต้อกระจก · กระดูกพรุน', meds: 'แอสไพริน 81 · บิโซโพรลอล 2.5 · อะทอร์วาสแตติน 40 · แอมโลดิพีน 5 · น้ำตาเทียม · แคลเซียม+วิต.ดี', watch: 'เคืองตา/เจ็บตา → พบหมอทันที · เจ็บหน้าอก → โทร 1669', docs: 'หมอหัวใจ · หมอตา · หมอกระดูก — รพ.พระปกเกล้าจันทบุรี' },
+      mom: { name: 'นางสมศรี (แม่)', sub: 'อายุ 70 ปี · กรุ๊ปเลือด B', allergy: 'ไม่มีที่ทราบ', conds: 'ความดันสูง · หัวใจเต้นผิดจังหวะ', meds: 'บิโซโพรลอล 2.5 · ซิมวาสแตติน 20', watch: 'ใจสั่น/เจ็บหน้าอก → โทรหาลูกและไป รพ.', docs: 'หมอหัวใจ — รพ.พระปกเกล้าจันทบุรี' },
+      me: { name: 'พี่หนึ่ง', sub: 'อายุ 45 ปี · กรุ๊ปเลือด O', allergy: 'ไม่มีที่ทราบ', conds: 'ภูมิแพ้อากาศ', meds: 'ลอราทาดีน 10 (เมื่อมีอาการ)', watch: '—', docs: 'คลินิกฟันดี' }
+    }
+  };
+  showToast(msg) { this.setState({ toast: msg }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: '' }), 2800); }
+  setDose(id, patch) { this.setState(s => ({ doses: s.doses.map(d => d.id === id ? { ...d, ...patch } : d), asking: null })); }
+  addTl(p, entry) { this.setState(s => ({ extraTl: { ...s.extraTl, [p]: [entry, ...s.extraTl[p]] } }), () => this.persist()); }
+  persist() { if (!(this.props.startBlank ?? true)) return; const s = this.state; try { localStorage.setItem('myhealth_trial_v1', JSON.stringify({ profile: s.profile, extraMeds: s.extraMeds, extraAppts: s.extraAppts, medTaken: s.medTaken, tlMe: s.extraTl.me, bpMe: s.extraBp.me })); } catch (e) {} }
+  fmtD(d) { if (!d) return ''; try { return new Date(d + 'T00:00').toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
+  daysLbl(d) { const t0 = new Date(); t0.setHours(0, 0, 0, 0); const n = Math.round((new Date(d + 'T00:00') - t0) / 864e5); return n === 0 ? 'วันนี้' : n > 0 ? 'อีก ' + n + ' วัน' : 'ผ่านไปแล้ว'; }
+  componentDidMount() { try { const j = JSON.parse(localStorage.getItem('myhealth_trial_v1') || 'null'); if (j) this.setState(st => ({ profile: j.profile || null, extraMeds: j.extraMeds || [], extraAppts: j.extraAppts || [], medTaken: j.medTaken || {}, extraTl: { ...st.extraTl, me: j.tlMe || [] }, extraBp: { ...st.extraBp, me: j.bpMe || [] } })); } catch (e) {} }
+  renderVals() {
+    const s = this.state, D = this.D;
+    const readOnly = false;
+    const blank = this.props.startBlank ?? true;
+    const prof = s.profile;
+    const cur = blank ? 'me' : (s.patient === 'all' ? 'dad' : s.patient);
+    const pName = blank ? ((prof && prof.name) || 'ฉัน') : D.names[cur];
+    const uname = blank ? ((prof && prof.name) || 'ฉัน') : (s.userSel ?? this.props.user ?? 'พี่แจ๋ว (คนดูแล)').replace(' (คนดูแล)', '');
+    const setSt = p => this.setState(p);
+    const mkChips = (ids, withAll) => ids.map(id => {
+      const on = s.patient === id;
+      return { label: id === 'all' ? 'ทุกคน' : D.names[id].split(' ')[0], bg: on ? '#c67139' : '#f9f4ed', fg: on ? '#f5ead8' : '#474238', pick: () => setSt({ patient: id }) };
+    });
+    const tagC = c => c === 'a' ? { tagBg: '#fff2eb', tagFg: '#8c491a' } : c === 'g' ? { tagBg: '#f0fae1', tagFg: '#3d472b' } : { tagBg: '#f9f4ed', tagFg: '#474238' };
+    const medsAll = blank ? s.extraMeds : (cur === 'dad' ? [...D.meds.dad, ...s.extraMeds] : D.meds[cur]);
+    const meds = medsAll.map(m => ({ ...m, ...tagC(m.c), dupe: !!m.dupe, border: m.dupe ? '1.5px solid #d67f48' : 'none' }));
+    let doses;
+    if (blank) {
+      doses = s.extraMeds.map((m, i) => {
+        const id = 'bm' + i, t = s.medTaken[id];
+        const st = s.asking === id ? 'asking' : (t ? t.status : 'pending');
+        return {
+          id, title: m.name, meds: m.sched, timeLabel: '', info: t ? t.info : '',
+          isTaken: st === 'taken', isPending: st === 'pending', isAsking: st === 'asking', isRefused: st === 'refused',
+          border: st === 'taken' ? 'none' : '1.5px solid #d67f48',
+          take: () => this.setState(x => ({ medTaken: { ...x.medTaken, [id]: { status: 'taken', info: 'กินแล้ว เมื่อสักครู่ (' + uname + 'บันทึก)' } }, asking: null }), () => { this.persist(); this.showToast('บันทึกแล้ว ✓'); }),
+          refuse: () => setSt({ asking: id }),
+          reasons: ['บอกว่าขม', 'อิ่มเกิน ขอไว้ก่อน', 'อารมณ์ไม่ดี'].map(r => ({ label: r, pick: () => this.setState(x => ({ medTaken: { ...x.medTaken, [id]: { status: 'refused', info: r } }, asking: null }), () => { this.persist(); this.showToast('บันทึกเหตุผลแล้ว'); }) }))
+        };
+      });
+    } else {
+    const visDoses = s.doses.filter(d => s.patient === 'all' || d.p === s.patient);
+    doses = visDoses.map(d => {
+      const st = d.id === s.asking ? 'asking' : d.status;
+      return {
+        ...d, timeLabel: d.time + ' น.',
+        isTaken: st === 'taken', isPending: st === 'pending' && s.asking !== d.id, isAsking: st === 'asking', isRefused: st === 'refused',
+        border: st === 'pending' || st === 'asking' ? '1.5px solid #d67f48' : 'none',
+        take: () => { this.setDose(d.id, { status: 'taken', info: 'กินแล้ว เมื่อสักครู่ (' + uname + 'บันทึก)' }); this.showToast('บันทึกแล้ว — ทุกคนเห็นว่า' + uname + 'บันทึก ✓'); },
+        refuse: () => setSt({ asking: d.id }),
+        reasons: ['บอกว่าขม', 'อิ่มเกิน ขอไว้ก่อน', 'อารมณ์ไม่ดี'].map(r => ({ label: r, pick: () => { this.setDose(d.id, { status: 'refused', info: r }); this.showToast('แจ้ง "ไม่ยอมกินยา" ถึงพี่น้อง 4 คนแล้ว'); } }))
+      };
+    });
+    }
+    let na = D.na[cur], hasNa = true;
+    if (blank) {
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const fut = s.extraAppts.filter(a => a.date && new Date(a.date + 'T00:00') >= t0).sort((a, b) => (a.date < b.date ? -1 : 1));
+      hasNa = fut.length > 0;
+      na = hasNa ? { title: fut[0].title, when: fut[0].when, days: fut[0].days === 'แนบอัตโนมัติ' ? 'ก่อนนัด ≤7 วัน' : this.daysLbl(fut[0].date), remind: 'เตือนล่วงหน้า 1 วัน + เช้าวันนัด' } : { title: '', when: '', days: '', remind: '' };
+    }
+    const symChips = D.syms[cur].map(l => {
+      const on = s.symSel.includes(l);
+      return { label: on ? l + ' ✓' : l, bg: on ? '#8c491a' : '#f9f4ed', fg: on ? '#fff2eb' : '#474238', toggle: () => setSt({ symSel: on ? s.symSel.filter(x => x !== l) : [...s.symSel, l] }) };
+    });
+    const hitRule = D.watch[cur].find(r => r.on.some(o => s.symSel.includes(o)));
+    const escorts = ['พี่หนึ่ง', 'น้องสอง', 'น้องสาม'].map(n => {
+      const on = s.escort === n;
+      return { label: on ? '✓ ' + n : n, bg: on ? '#7a8a5e' : 'transparent', fg: on ? '#f5ead8' : '#645c50', border: on ? 'none' : '1.5px solid #c0b6a5', pick: () => { setSt({ escort: n }); this.showToast('มอบหมายให้ ' + n + ' พาไป — แจ้งทุกคนแล้ว'); } };
+    });
+    const timeline = [...s.extraTl[cur], ...(blank ? [] : D.tl[cur])];
+    const tabC = t => s.tab === t ? '#b2622d' : '#82796a';
+    return {
+      rootFont: (this.props.bigText ?? false) ? '19px' : '17px',
+      greet: 'วันนี้', uname, readOnly, pName,
+      userOpen: s.userOpen, openUser: () => setSt({ userOpen: true }), closeUser: () => setSt({ userOpen: false }),
+      userOpts: ['พี่แจ๋ว (คนดูแล)', 'พี่หนึ่ง', 'น้องสอง', 'น้องสาม', 'เตี่ยเอง', 'แม่เอง'].map(n => {
+        const on = n.replace(' (คนดูแล)', '') === uname;
+        return { label: on ? '✓ ' + n : n, bg: on ? '#7a8a5e' : '#f9f4ed', fg: on ? '#f5ead8' : '#474238', border: 'none', pick: () => { setSt({ userSel: n, userOpen: false }); this.showToast('สลับเป็น ' + n.replace(' (คนดูแล)', '') + ' — บันทึกต่อได้เลย'); } };
+      }),
+      isHome: s.tab === 'home', isMeds: s.tab === 'meds', isAppts: s.tab === 'appts', isBook: s.tab === 'book',
+      cHome: tabC('home'), cMeds: tabC('meds'), cAppts: tabC('appts'), cBook: tabC('book'),
+      goHome: () => setSt({ tab: 'home' }), goMeds: () => setSt({ tab: 'meds' }), goAppts: () => setSt({ tab: 'appts' }), goBook: () => setSt({ tab: 'book' }),
+      chips: blank ? [] : mkChips(['all', 'dad', 'mom', 'me']),
+      pChips: blank ? [] : mkChips(['dad', 'mom', 'me']),
+      na, hasNa, noNa: !hasNa, doses, noDoses: blank && doses.length === 0,
+      isBlank: blank, notBlank: !blank,
+      dateLine: blank ? new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }) : 'เสาร์ 23 ส.ค. 2569',
+      addApptOpen: s.addApptOpen, openAddAppt: () => setSt({ addApptOpen: true }), closeAddAppt: () => setSt({ addApptOpen: false }),
+      fmDoc: s.fmDoc, fmDate: s.fmDate, fmTime: s.fmTime, fmPlace: s.fmPlace,
+      fmDocIn: e => setSt({ fmDoc: e.target.value }), fmDateIn: e => setSt({ fmDate: e.target.value }), fmTimeIn: e => setSt({ fmTime: e.target.value }), fmPlaceIn: e => setSt({ fmPlace: e.target.value }),
+      apptSaveOff: !s.fmDoc.trim() || !s.fmDate,
+      saveAppt: () => {
+        const when = this.fmtD(s.fmDate) + (s.fmTime ? ' · ' + s.fmTime + ' น.' : '') + (s.fmPlace.trim() ? ' · ' + s.fmPlace.trim() : '');
+        const list = [{ title: s.fmDoc.trim() + ' — ' + pName, when, date: s.fmDate, days: this.daysLbl(s.fmDate) }];
+        const heart = /หัวใจ/.test(s.fmDoc);
+        if (heart) list.unshift({ title: 'ตรวจเลือดล่วงหน้า — ' + s.fmDoc.trim(), when: 'ภายใน 7 วันก่อนนัด (' + this.fmtD(s.fmDate) + ')', date: s.fmDate, days: 'แนบอัตโนมัติ' });
+        this.setState(st => ({ extraAppts: [...st.extraAppts, ...list], addApptOpen: false, fmDoc: '', fmDate: '', fmTime: '', fmPlace: '' }), () => this.persist());
+        this.showToast(heart ? 'บันทึกนัดแล้ว + แนบขั้นตรวจเลือดล่วงหน้าให้' : 'บันทึกนัด + ตั้งเตือนแล้ว ✓');
+      },
+      addMedOpen: s.addMedOpen, openAddMed: () => setSt({ addMedOpen: true }), closeAddMed: () => setSt({ addMedOpen: false }),
+      fmMedName: s.fmMedName, fmMedHow: s.fmMedHow, fmMedDoc: s.fmMedDoc, fmMedHelp: s.fmMedHelp,
+      fmMedNameIn: e => setSt({ fmMedName: e.target.value }), fmMedHowIn: e => setSt({ fmMedHow: e.target.value }), fmMedDocIn: e => setSt({ fmMedDoc: e.target.value }), fmMedHelpIn: e => setSt({ fmMedHelp: e.target.value }),
+      medSaveOff: !s.fmMedName.trim(),
+      saveMed: () => {
+        const m = { name: s.fmMedName.trim(), sched: (s.fmMedHow.trim() || 'ตามฉลาก') + (s.fmMedDoc.trim() ? ' · ' + s.fmMedDoc.trim() : ''), helps: s.fmMedHelp.trim() || 'ยังไม่ได้ระบุ — ถามหมอ/เภสัชแล้วมาเติมได้', tag: s.fmMedDoc.trim() || 'ยา', c: 'n' };
+        this.setState(st => ({ extraMeds: [...st.extraMeds, m], addMedOpen: false, fmMedName: '', fmMedHow: '', fmMedDoc: '', fmMedHelp: '' }), () => this.persist());
+        this.showToast('บันทึกยาแล้ว — ขึ้นใน "ยาวันนี้" ที่หน้าหลักด้วย');
+      },
+      bellToast: () => this.showToast('เตือนถัดไป: ตรวจเลือดเตี่ยผ่านแล้ว · นัดหมอหัวใจ 27 ส.ค.'),
+      bpWho: blank ? pName : (s.patient === 'mom' ? 'แม่' : 'เตี่ย'),
+      onBpS: e => setSt({ bp: { ...s.bp, s: e.target.value } }), onBpD: e => setSt({ bp: { ...s.bp, d: e.target.value } }), onBpP: e => setSt({ bp: { ...s.bp, p: e.target.value } }),
+      saveBp: () => {
+        const b = s.bp, sv = parseInt(b.s || '132', 10), dv = parseInt(b.d || '78', 10), v = sv + '/' + dv + ' ชีพจร ' + (b.p || '72');
+        const who = blank ? 'me' : (s.patient === 'mom' ? 'mom' : 'dad'), hi = sv >= 140;
+        this.addTl(who, { title: 'ความดัน ' + v, date: 'วันนี้', body: uname + 'วัดตอนเช้า · ' + (hi ? 'สูงกว่าเกณฑ์ — แจ้งทุกคนแล้ว' : 'อยู่ในเกณฑ์ปกติ'), dot: hi ? '#c67139' : '#7a8a5e', hasScans: false, kind: 'bp' });
+        this.setState(st => ({ extraBp: { ...st.extraBp, [who]: [...st.extraBp[who], { l: 'วันนี้', s: sv, d: dv }] } }), () => this.persist());
+        this.showToast('บันทึกความดัน ' + v + ' แล้ว ✓');
+      },
+      goBookHist: () => setSt({ tab: 'book', tlFilter: 'bp', patient: cur }),
+      openSym: () => setSt({ symOpen: true, symSel: [], symNote: '', patient: cur }), closeSym: () => setSt({ symOpen: false }),
+      onSymNote: e => setSt({ symNote: e.target.value }),
+      symOpen: s.symOpen, symChips, watchAlert: !!hitRule, watchText: hitRule ? hitRule.text + ' (' + hitRule.src + ')' : '',
+      symSaveOff: readOnly || (s.symSel.length === 0 && !s.symNote.trim()),
+      saveSym: () => {
+        const note = s.symNote.trim();
+        this.addTl(cur, { title: s.symSel.length ? 'อาการ: ' + s.symSel.join(', ') : 'บันทึก: ' + note, date: 'วันนี้', body: (s.symSel.length && note ? '"' + note + '" · ' : '') + uname + 'จดไว้ · ' + (hitRule ? 'เข้าข้อเฝ้าระวัง — แจ้งเตือนทุกคนแล้ว' : 'เตรียมเล่าหมอนัดหน้า'), dot: hitRule ? '#c67139' : '#c0b6a5', hasScans: false, kind: 'sym' });
+        setSt({ symOpen: false }); this.showToast(hitRule ? 'บันทึกแล้ว — แจ้งเตือนด่วนถึงทุกคน' : 'จดอาการลงสมุดแล้ว ✓');
+      },
+      callHosp: () => this.showToast('โทร 039-319-666 รพ.พระปกเกล้า...'),
+      notifySibs: () => this.showToast('ส่งแจ้งเตือนด่วนถึงพี่น้อง 4 คนแล้ว'),
+      medCount: String(meds.length), meds, hasDupe: s.hasDupe,
+      openScan: () => setSt({ scanOpen: true, scanStep: 1 }), closeScan: () => setSt({ scanOpen: false }),
+      scanOpen: s.scanOpen, scanS1: s.scanStep === 1, scanS2: s.scanStep === 2,
+      capture: () => setSt({ scanStep: 2 }),
+      saveScan: () => {
+        this.setState(st => ({ scanOpen: false, hasDupe: true, patient: 'dad', tab: 'meds', extraMeds: [...st.extraMeds, { name: 'ASA 81 มก. (แอสไพริน)', helps: 'ป้องกันเลือดจับตัวเป็นลิ่ม — ตัวเดียวกับแอสไพริน 81 ที่มีอยู่', sched: 'เช้า 1 เม็ด · หมอกระดูก · สแกน 23 ส.ค.', tag: 'กระดูก', c: 'n', dupe: true }] }));
+        this.showToast('บันทึกยาแล้ว — ติดธงถามหมอเรื่องยาซ้ำ');
+      },
+      showHeart: !blank && s.patient !== 'mom' && s.patient !== 'me', escorts,
+      appts: (blank ? [] : (s.patient === 'all' ? [...D.appts.dad, ...D.appts.mom, ...D.appts.me] : D.appts[cur])).concat(s.extraAppts.map(a => ({ ...a, days: a.days === 'แนบอัตโนมัติ' ? 'ก่อนนัด ≤7 วัน' : (a.date ? this.daysLbl(a.date) : a.days) }))),
+      grpName: s.group === 'fam1' ? 'บ้านเตี่ย–แม่' : 'ครอบครัวน้องสอง',
+      isFam1: s.group === 'fam1', isFam2: s.group === 'fam2',
+      openGrp: () => setSt({ grpOpen: true }), closeGrp: () => setSt({ grpOpen: false }), grpOpen: s.grpOpen,
+      grpOpts: [
+        { id: 'fam1', label: 'บ้านเตี่ย–แม่', sub: 'สมาชิก 5 คน · สมุดเตี่ย แม่ และของแต่ละคน' },
+        { id: 'fam2', label: 'ครอบครัวน้องสอง', sub: 'ตัวอย่างกลุ่มแยก — บ้านเตี่ย–แม่มองไม่เห็นกลุ่มนี้' }
+      ].map(g => ({ ...g, bg: s.group === g.id ? '#7a8a5e' : '#f9f4ed', fg: s.group === g.id ? '#f5ead8' : '#474238', pick: () => { setSt({ group: g.id, grpOpen: false }); this.showToast('สลับไปกลุ่ม "' + g.label + '"'); } })),
+      newGrp: () => this.showToast('เดโม่: สร้างกลุ่มใหม่แล้วส่งลิงก์ชวนทาง LINE ได้'),
+      onbOn: blank ? (!prof && !s.onbHide) : ((this.props.firstOpen ?? false) && !s.onbHide),
+      onb1: s.onbStep === 1, onb2: s.onbStep === 2, onb3: s.onbStep === 3, onb4: s.onbStep === 4, onb5: s.onbStep === 5,
+      onbNameIn: e => setSt({ onbName: e.target.value }),
+      onbFullIn: e => setSt({ onbFull: e.target.value }), onbAddrIn: e => setSt({ onbAddr: e.target.value }),
+      onbNext: () => setSt({ onbStep: s.onbStep + 1 }),
+      onbCondChips: ['ความดันสูง', 'เบาหวาน', 'โรคหัวใจ', 'ไขมันสูง', 'ต้อกระจก', 'กระดูกพรุน', 'ภูมิแพ้'].map(l => {
+        const on = s.onbConds.includes(l);
+        return { label: on ? l + ' ✓' : l, bg: on ? '#7a8a5e' : '#f9f4ed', fg: on ? '#f5ead8' : '#474238', toggle: () => setSt({ onbConds: on ? s.onbConds.filter(x => x !== l) : [...s.onbConds, l] }) };
+      }),
+      onbCondIn: e => setSt({ onbCondOther: e.target.value }), onbAllergyIn: e => setSt({ onbAllergy: e.target.value }),
+      onbDocName: s.onbDocName, onbDocHosp: s.onbDocHosp, onbDocHn: s.onbDocHn, onbDocHours: s.onbDocHours,
+      onbDocNameIn: e => setSt({ onbDocName: e.target.value }), onbDocHospIn: e => setSt({ onbDocHosp: e.target.value }), onbDocHnIn: e => setSt({ onbDocHn: e.target.value }), onbDocHoursIn: e => setSt({ onbDocHours: e.target.value }),
+      onbAddDoc: () => { if (!s.onbDocName.trim()) return; this.setState(st => ({ onbDocs: [...st.onbDocs, s.onbDocName.trim() + (s.onbDocHosp.trim() ? ' · ' + s.onbDocHosp.trim() : '') + (s.onbDocHn.trim() ? ' · HN ' + s.onbDocHn.trim() : '') + (s.onbDocHours.trim() ? ' · ออกตรวจ ' + s.onbDocHours.trim() : '')], onbDocName: '', onbDocHosp: '', onbDocHn: '', onbDocHours: '' })); },
+      profOpen: s.profOpen,
+      openProf: () => setSt({ profOpen: true, pfName: (prof && prof.name) || '', pfFull: (prof && prof.fullName) || '', pfAddr: (prof && prof.addr) || '', pfAllergy: (prof && prof.allergy) || '', pfDocs: (prof && prof.docs) ? [...prof.docs] : [] }),
+      closeProf: () => setSt({ profOpen: false }),
+      pfName: s.pfName, pfFull: s.pfFull, pfAddr: s.pfAddr, pfAllergy: s.pfAllergy,
+      pfNameIn: e => setSt({ pfName: e.target.value }), pfFullIn: e => setSt({ pfFull: e.target.value }), pfAddrIn: e => setSt({ pfAddr: e.target.value }), pfAllergyIn: e => setSt({ pfAllergy: e.target.value }),
+      pfDocList: s.pfDocs.map((label, i) => ({ label, del: () => setSt({ pfDocs: s.pfDocs.filter((_, j) => j !== i) }) })),
+      pdName: s.pdName, pdHosp: s.pdHosp, pdHn: s.pdHn, pdHours: s.pdHours,
+      pdNameIn: e => setSt({ pdName: e.target.value }), pdHospIn: e => setSt({ pdHosp: e.target.value }), pdHnIn: e => setSt({ pdHn: e.target.value }), pdHoursIn: e => setSt({ pdHours: e.target.value }),
+      pdAdd: () => { if (!s.pdName.trim()) return; setSt({ pfDocs: [...s.pfDocs, s.pdName.trim() + (s.pdHosp.trim() ? ' · ' + s.pdHosp.trim() : '') + (s.pdHn.trim() ? ' · HN ' + s.pdHn.trim() : '') + (s.pdHours.trim() ? ' · ออกตรวจ ' + s.pdHours.trim() : '')], pdName: '', pdHosp: '', pdHn: '', pdHours: '' }); },
+      saveProf: () => { this.setState({ profile: { ...(prof || { conds: [] }), name: s.pfName.trim() || 'ฉัน', fullName: s.pfFull.trim(), addr: s.pfAddr.trim(), allergy: s.pfAllergy.trim(), docs: s.pfDocs }, profOpen: false }, () => this.persist()); this.showToast('บันทึกโปรไฟล์แล้ว ✓'); },
+      onbDocList: s.onbDocs.map(label => ({ label })),
+      onbSolo: () => { this.setState({ profile: { name: (s.onbName || 'ฉัน').trim() || 'ฉัน', fullName: s.onbFull.trim(), addr: s.onbAddr.trim(), conds: [...s.onbConds, ...(s.onbCondOther.trim() ? [s.onbCondOther.trim()] : [])], allergy: s.onbAllergy.trim(), docs: s.onbDocs }, onbHide: true, onbStep: 1 }, () => this.persist()); this.showToast('เริ่มใช้ Doolaekan แล้ว — ลองเพิ่มนัดและยาได้เลย'); },
+      onbShares: [
+        ['ทั้งหมด', 'นัด ยา อาการ เอกสาร — เหมาะกับสมุดเตี่ย/แม่'],
+        ['เฉพาะวันนัด', 'คนอื่นเห็นแค่ปฏิทินนัดของเรา'],
+        ['ยังไม่แชร์', 'อยู่ในกลุ่มได้ เห็นสมุดที่คนอื่นแชร์ แต่ของเราส่วนตัว']
+      ].map(([label, sub]) => ({ label, sub, bg: s.onbShare === label ? '#7a8a5e' : '#f9f4ed', fg: s.onbShare === label ? '#f5ead8' : '#474238', pick: () => setSt({ onbShare: label }) })),
+      onbDone: () => { this.setState({ profile: { name: (s.onbName || 'ฉัน').trim() || 'ฉัน', fullName: s.onbFull.trim(), addr: s.onbAddr.trim(), conds: [...s.onbConds, ...(s.onbCondOther.trim() ? [s.onbCondOther.trim()] : [])], allergy: s.onbAllergy.trim(), docs: s.onbDocs }, onbHide: true, onbStep: 1 }, () => this.persist()); this.showToast((s.onbName || 'เรา') + ' เข้ากลุ่มแล้ว — แชร์: ' + s.onbShare); },
+      permToast: () => this.showToast('เดโม่: หน้าตั้งค่าสิทธิ์รายสมุด'),
+      showPerm: !blank && s.group === 'fam1',
+      people: (blank ? [{ id: 'me', name: 'สมุดของฉัน (' + pName + ')', sub: 'ข้อมูลทั้งหมดเป็นส่วนตัว จนกว่าจะเข้ากลุ่ม', tag: 'ส่วนตัว', tagBg: '#f0fae1', tagFg: '#3d472b', initial: 'ฉัน', avBg: '#ccdbb2', avFg: '#3d472b', avFont: '500 17px Mitr,sans-serif' }] : s.group === 'fam1' ? [
+        { id: 'dad', name: 'เตี่ย', sub: 'นัดหมอหัวใจพุธนี้ · เฝ้าระวังเรื่องตา', tag: 'ทุกคนเห็น', tagBg: '#fff2eb', tagFg: '#8c491a', initial: 'รูปเตี่ย', avBg: 'repeating-linear-gradient(45deg,#dcd3c4 0 7px,#eee7db 7px 14px)', avFg: '#645c50', avFont: '9px ui-monospace,monospace' },
+        { id: 'mom', name: 'แม่', sub: 'ยาเช้ายังไม่บันทึก · นัด 12 ก.ย.', tag: 'ทุกคนเห็น', tagBg: '#fff2eb', tagFg: '#8c491a', initial: 'รูปแม่', avBg: 'repeating-linear-gradient(45deg,#dcd3c4 0 7px,#eee7db 7px 14px)', avFg: '#645c50', avFont: '9px ui-monospace,monospace' },
+        { id: 'me', name: 'สมุดของฉัน (พี่หนึ่ง)', sub: 'นัดหมอฟัน 3 ก.ย. · ยาแก้แพ้ 1 ตัว', tag: 'ส่วนตัว', tagBg: '#f0fae1', tagFg: '#3d472b', initial: 'ฉัน', avBg: '#ccdbb2', avFg: '#3d472b', avFont: '500 17px Mitr,sans-serif' }
+      ] : [
+        { id: 'x1', name: 'น้องสอง', sub: 'สมุดของเขาในกลุ่มนี้ — แยกจากบ้านเตี่ย–แม่', tag: 'เจ้าของกลุ่ม', tagBg: '#f0fae1', tagFg: '#3d472b', initial: 'สอง', avBg: '#ccdbb2', avFg: '#3d472b', avFont: '500 15px Mitr,sans-serif' },
+        { id: 'x2', name: 'ภรรยาน้องสอง', sub: 'สมุดส่วนตัว', tag: 'สมาชิก', tagBg: '#f9f4ed', tagFg: '#474238', initial: 'ภร', avBg: '#eee7db', avFg: '#82796a', avFont: '500 15px Mitr,sans-serif' },
+        { id: 'x3', name: 'ลูกสาว', sub: 'สมุดวัคซีน · แม่ลูกเห็นกัน 2 คน', tag: 'สมาชิก', tagBg: '#f9f4ed', tagFg: '#474238', initial: 'ลูก', avBg: '#eee7db', avFg: '#82796a', avFont: '500 15px Mitr,sans-serif' }
+      ]).map(p => ({ ...p, border: s.group === 'fam1' && cur === p.id ? '1.5px solid #c67139' : 'none', pick: s.group === 'fam1' ? () => setSt({ patient: p.id }) : () => this.showToast('ตัวอย่างเท่านั้น — เรามองไม่เห็นข้อมูลกลุ่มอื่นจริง ๆ') })),
+      rules: D.watch[cur].length ? D.watch[cur].map(r => ({ text: r.text.replace(/"/g, ''), src: r.src, color: r.color })) : [{ text: 'ยังไม่มีข้อเฝ้าระวัง', src: 'เพิ่มได้', color: '#c0b6a5' }],
+      timeline: (s.tlFilter === 'all' ? timeline : timeline.filter(t => t.kind === s.tlFilter)).map(t => ({ ...t, imgEl: t.img ? React.createElement('img', { src: t.img, className: 'washed', alt: 'เอกสารที่สแกน', style: { width: '100%', maxHeight: 260, objectFit: 'contain', objectPosition: 'left', borderRadius: 14, background: '#eee7db' } }) : null })),
+      tlEmpty: (s.tlFilter === 'all' ? timeline : timeline.filter(t => t.kind === s.tlFilter)).length === 0,
+      tlChips: [['all', 'ทั้งหมด'], ['sym', 'อาการ'], ['bp', 'ความดัน'], ['doc', 'เอกสาร']].map(([id, label]) => ({ label, bg: s.tlFilter === id ? '#7a8a5e' : '#f9f4ed', fg: s.tlFilter === id ? '#f5ead8' : '#474238', pick: () => setSt({ tlFilter: id }) })),
+      showBp: blank || cur !== 'me',
+      bpBars: [...(blank ? [] : D.bpHist[cur]), ...s.extraBp[cur]].slice(-7).map(b => ({ val: b.s + '/' + b.d, label: b.l, h: Math.max(16, Math.round((b.s - 95) * 1.7)) + 'px', color: b.s >= 140 ? '#b2622d' : '#7a8a5e' })),
+      fileRef: (this._fr = this._fr || React.createRef()),
+      scanDoc: () => { if (this._fr && this._fr.current) this._fr.current.click(); },
+      onFile: e => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = () => { this.addTl(cur, { title: 'เอกสารจากหมอ (สแกน)', date: 'วันนี้', body: 'เก็บเข้าสมุดของ' + pName + 'แล้ว · ทุกคนเปิดดูได้', dot: '#c67139', hasImg: true, img: rd.result, kind: 'doc' }); this.showToast('สแกนเก็บเข้าสมุดแล้ว ✓'); };
+        rd.readAsDataURL(f); e.target.value = '';
+      },
+      openEm: () => setSt({ emOpen: true }), closeEm: () => setSt({ emOpen: false, emZoom: false }),
+      emOpen: s.emOpen, em: blank ? { name: (prof && prof.fullName) || pName, sub: 'สมุด Doolaekan ของ' + pName, allergy: (prof && prof.allergy) || 'ไม่มีที่ทราบ', conds: (prof && prof.conds.length ? prof.conds.join(' · ') : '—'), meds: s.extraMeds.length ? s.extraMeds.map(m => m.name).join(' · ') : '—', watch: '—', docs: (prof && prof.docs.length ? prof.docs.join(' / ') : '—'), addr: (prof && prof.addr) || '—' } : { ...D.em[cur], addr: cur === 'me' ? '99 หมู่ 4 ต.ตลาด อ.เมือง จันทบุรี' : '12 หมู่ 2 ต.ตลาด อ.เมือง จันทบุรี' },
+      emZoom: s.emZoom, emZoomLabel: s.emZoom ? 'ตัวหนังสือขนาดปกติ' : 'ขยายตัวหนังสือให้ใหญ่ขึ้น',
+      zoomEm: () => { setSt({ emZoom: !s.emZoom }); this.showToast(s.emZoom ? 'กลับขนาดปกติ' : 'ขยายแล้ว — เดโม่'); },
+      stop: e => e.stopPropagation(),
+      toast: s.toast, toastOn: !!s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
