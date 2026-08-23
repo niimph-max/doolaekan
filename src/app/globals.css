@@ -1,0 +1,195 @@
+/* Doolaekan — app styles.
+   ต่อยอดจาก design system "Organic" (organic.css = source of truth ของโทเคน)
+   ไฟล์นี้เก็บเฉพาะสิ่งที่แอปนี้ต้องการเพิ่ม: ฟอนต์ไทย, การ์ดโค้งใหญ่, pill, sheet, tab bar */
+@import url('https://fonts.googleapis.com/css2?family=Mitr:wght@400;500&family=Sarabun:wght@400;600;700&display=swap');
+@import './organic.css';
+
+:root {
+  --font-heading: 'Mitr', system-ui, sans-serif;
+  --font-heading-weight: 500;
+  --font-body: 'Sarabun', system-ui, sans-serif;
+
+  --radius-card: 32px;
+  --radius-pill: 999px;
+  --radius-sheet: 28px;
+  --tap: 44px;
+  --font-base: 17px;
+}
+
+/* โหมดตัวหนังสือใหญ่สำหรับผู้สูงอายุ */
+:root[data-bigtext='1'] { --font-base: 19px; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--font-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); margin: 0; }
+button { font-family: inherit; font-size: inherit; }
+:where(button, a, input, textarea, select):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* ── โครงหน้าจอ ───────────────────────────────────────────── */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  position: relative;
+  background: var(--color-bg);
+}
+.screen { padding: 22px 18px calc(96px + env(safe-area-inset-bottom)); }
+.kicker {
+  font-size: 12.5px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--color-accent-600);
+}
+.screen h2 { font-size: 28px; margin: 4px 0 2px; }
+.subtle { color: var(--color-neutral-700); font-size: 14.5px; }
+
+/* ── การ์ด ─────────────────────────────────────────────────── */
+.o-card {
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+.o-card.dark { background: var(--color-accent-900); color: var(--color-accent-200); }
+.o-card.warn { background: var(--color-accent-100); border: 1.5px solid var(--color-accent-500); }
+.o-card.due { border: 1.5px solid var(--color-accent-500); }
+.o-card h3 { font-size: 19px; margin-bottom: 4px; }
+.o-empty {
+  border: 1.5px dashed var(--color-neutral-400);
+  border-radius: var(--radius-card);
+  padding: 22px; text-align: center; color: var(--color-neutral-700);
+  background: transparent; width: 100%; display: block; cursor: pointer;
+  margin-bottom: 14px;
+}
+
+/* ── ปุ่ม ──────────────────────────────────────────────────── */
+.o-btn {
+  min-height: var(--tap); padding: 11px 20px;
+  border-radius: var(--radius-pill); border: 1.5px solid transparent;
+  font-weight: 600; cursor: pointer; display: inline-flex;
+  align-items: center; justify-content: center; gap: 8px;
+}
+.o-btn:disabled { opacity: .45; cursor: default; }
+.o-btn.primary { background: var(--color-accent); color: var(--color-bg); }
+.o-btn.secondary { background: var(--color-neutral-200); color: var(--color-accent-700); }
+.o-btn.ghost { background: transparent; color: var(--color-accent-700); border-color: var(--color-neutral-300); }
+.o-btn.danger { background: var(--color-accent-700); color: var(--color-accent-100); }
+.o-btn.block { width: 100%; }
+.o-row { display: flex; gap: 10px; }
+.o-row > * { flex: 1; }
+
+/* ── ช่องกรอก + chips ─────────────────────────────────────── */
+.o-input, .o-textarea {
+  width: 100%; min-height: var(--tap); padding: 12px 18px;
+  border-radius: var(--radius-pill); border: 1.5px solid var(--color-neutral-300);
+  background: var(--color-neutral-100); color: var(--color-text);
+  font-family: inherit; font-size: inherit;
+}
+.o-textarea { border-radius: 22px; min-height: 88px; resize: vertical; }
+.o-label { display: block; font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: var(--color-neutral-800); }
+.o-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.o-chip {
+  min-height: 38px; padding: 8px 16px; border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-neutral-300); background: var(--color-neutral-100);
+  color: var(--color-neutral-800); cursor: pointer; font-size: 15px;
+}
+.o-chip[aria-pressed='true'] { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-bg); }
+.o-tag {
+  display: inline-block; padding: 3px 12px; border-radius: var(--radius-pill);
+  font-size: 12.5px; font-weight: 600;
+  background: var(--color-neutral-200); color: var(--color-neutral-800);
+}
+.o-tag.accent { background: var(--color-accent-200); color: var(--color-accent-700); }
+.o-tag.sage { background: var(--color-accent-2-100); color: var(--color-accent-2-700); }
+.o-pill-done {
+  display: inline-block; padding: 8px 16px; border-radius: var(--radius-pill);
+  background: var(--color-accent-2-100); color: var(--color-accent-2-700); font-weight: 600;
+}
+
+/* ── ตัวเลขวัดความดัน ─────────────────────────────────────── */
+.bp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.bp-grid input {
+  width: 100%; text-align: center; font-family: var(--font-heading); font-size: 23px;
+  padding: 12px 6px; border-radius: 20px;
+  border: 1.5px solid var(--color-neutral-300); background: var(--color-neutral-100);
+}
+.bp-bars { display: flex; align-items: flex-end; gap: 8px; height: 140px; }
+.bp-bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.bp-bar i { display: block; width: 100%; border-radius: 10px 10px 4px 4px; }
+
+/* ── ไทม์ไลน์ ─────────────────────────────────────────────── */
+.tl-item { display: flex; gap: 12px; }
+.tl-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 26px; flex: 0 0 12px; }
+.tl-item > div:last-child { flex: 1; min-width: 0; }
+.scan-img { width: 100%; border-radius: 18px; margin-top: 10px; display: block; }
+
+/* ── bottom sheet ─────────────────────────────────────────── */
+.backdrop {
+  position: fixed; inset: 0; background: rgba(46, 43, 37, .5);
+  animation: fade .2s ease both; z-index: 40;
+}
+.sheet {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 0; width: 100%; max-width: 480px; z-index: 41;
+  background: var(--color-bg);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  padding: 20px 18px calc(24px + env(safe-area-inset-bottom));
+  max-height: 88dvh; overflow-y: auto;
+  animation: up .25s cubic-bezier(.22, .8, .3, 1) both;
+}
+.sheet-grip { width: 42px; height: 4px; border-radius: 4px; background: var(--color-neutral-300); margin: 0 auto 14px; }
+.sheet h3 { font-size: 21px; margin-bottom: 10px; }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes up { from { transform: translate(-50%, 100%) } to { transform: translate(-50%, 0) } }
+
+/* ── tab bar ──────────────────────────────────────────────── */
+.tabbar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 30;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--color-surface);
+  border-radius: 24px 24px 0 0;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 14px rgba(46, 43, 37, .10);
+}
+.tabbar button {
+  background: none; border: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 0; min-height: var(--tap);
+  color: var(--color-neutral-700); font-size: 12px; font-weight: 600;
+}
+.tabbar button[aria-current='page'] { color: var(--color-accent-600); }
+
+/* ── toast ────────────────────────────────────────────────── */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 60;
+  background: var(--color-neutral-900); color: var(--color-neutral-100);
+  padding: 12px 20px; border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-md); max-width: 92%; text-align: center;
+  animation: fade .18s ease both;
+}
+
+/* ── รูป placeholder ─────────────────────────────────────── */
+.ph {
+  background: repeating-linear-gradient(45deg, #dcd3c4, #dcd3c4 8px, #eee7db 8px, #eee7db 16px);
+  border-radius: 50%; flex: 0 0 auto;
+}
+
+/* ── เต็มจอ (onboarding / บัตรฉุกเฉิน) ───────────────────── */
+.full {
+  position: fixed; inset: 0; z-index: 50; overflow-y: auto;
+  background: var(--color-bg); padding: 28px 20px calc(28px + env(safe-area-inset-bottom));
+}
+.full.card-bg { background: #ebddc5; }
+.full-inner { max-width: 480px; margin: 0 auto; }

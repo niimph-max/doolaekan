@@ -1,0 +1,29 @@
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import { RegisterSW } from '@/components/RegisterSW';
+import { StoreProvider } from '@/lib/store';
+
+export const metadata: Metadata = {
+  title: 'Doolaekan — สมุดสุขภาพครอบครัว',
+  description: 'บันทึกยา นัดหมอ ความดัน และอาการของคนที่บ้าน แชร์กันในครอบครัวเมื่อยินยอม',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Doolaekan', statusBarStyle: 'default' },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#f5ead8',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="th" data-bigtext="0">
+      <body>
+        <StoreProvider>{children}</StoreProvider>
+        <RegisterSW />
+      </body>
+    </html>
+  );
+}
