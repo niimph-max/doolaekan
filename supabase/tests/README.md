@@ -21,6 +21,8 @@ psql -h /var/tmp -p 55432 -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/01_rl
 psql -h /var/tmp -p 55432 -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/02_join_group_test.sql
 ```
 
+ไฟล์ migration รันซ้ำได้ (idempotent) — รันแล้วพลาดกลางทาง รันใหม่ทับได้เลย ไม่ต้องล้างฐาน
+
 เคสที่ตรวจ (ค่าที่ควรได้เขียนกำกับไว้ในผลลัพธ์แต่ละแถว):
 
 | สถานการณ์ | ผลที่ต้องได้ |

@@ -1,20 +1,40 @@
 -- Doolaekan — สคีมาเริ่มต้น (Postgres + RLS)
 -- ต่อยอดจาก supabase_schema.sql ในชุด handoff โดยเติมส่วนที่ย่อไว้ให้รันได้จริง:
 -- RLS ครบทุกตาราง, ดัชนี, storage bucket, และ realtime publication
+-- ไฟล์นี้รันซ้ำได้ (idempotent) — รันแล้วพลาดกลางทาง รันใหม่ทับได้เลย ไม่ต้องล้างฐาน
 --
 -- หลักการ: ทุกอย่างผูกกับ "book" (สมุดสุขภาพ 1 เล่ม/คน) — ส่วนตัว 100% โดยค่าเริ่มต้น
 -- แชร์เข้ากลุ่มเป็นราย book ด้วยระดับ full / appointments / none
 
 -- ─────────────────────────── enums ───────────────────────────
-create type share_level  as enum ('full', 'appointments', 'none');
-create type dose_status  as enum ('taken', 'refused');
-create type dose_slot    as enum ('morning', 'noon', 'evening', 'bedtime', 'prn');
-create type record_kind  as enum ('symptom', 'bp', 'doc', 'visit', 'note');
+do $$
+begin
+  create type share_level as enum ('full', 'appointments', 'none');
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type dose_status as enum ('taken', 'refused');
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type dose_slot as enum ('morning', 'noon', 'evening', 'bedtime', 'prn');
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type record_kind as enum ('symptom', 'bp', 'doc', 'visit', 'note');
+exception when duplicate_object then null;
+end $$;
 
 -- ─────────────────────────── ตาราง ───────────────────────────
 
 -- ผู้ใช้ (ต่อยอดจาก auth.users)
-create table profiles (
+create table if not exists profiles (
   id uuid primary key references auth.users on delete cascade,
   display_name text not null,            -- ชื่อเรียก เช่น "พี่หนึ่ง"
   line_user_id text,                     -- สำหรับแจ้งเตือนผ่าน LINE (ดู notifications.md)
@@ -22,7 +42,7 @@ create table profiles (
 );
 
 -- สมุดสุขภาพ (ปกติ 1 คน 1 เล่ม; owner คือผู้ใช้เจ้าของ)
-create table books (
+create table if not exists books (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references profiles(id) on delete cascade,
   display_name text not null,            -- "เตี่ย"
@@ -36,10 +56,10 @@ create table books (
   emergency_contact text,                -- เบอร์ลูก
   created_at timestamptz not null default now()
 );
-create index books_owner_idx on books(owner_id);
+create index if not exists books_owner_idx on books(owner_id);
 
 -- หมอที่รักษา (หมอคนเดียวออกตรวจหลายที่ = หลายแถว ชื่อเดิม HN/เวลาต่างกัน)
-create table doctors (
+create table if not exists doctors (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references books(id) on delete cascade,
   name text not null,                    -- "หมอหัวใจ"
@@ -48,10 +68,10 @@ create table doctors (
   clinic_hours text,                     -- "พุธ 09:00–12:00"
   created_at timestamptz not null default now()
 );
-create index doctors_book_idx on doctors(book_id);
+create index if not exists doctors_book_idx on doctors(book_id);
 
 -- กลุ่มครอบครัว (1 คนอยู่ได้หลายกลุ่ม แยกกันสนิท)
-create table groups (
+create table if not exists groups (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   owner_id uuid not null references profiles(id) on delete cascade,
@@ -60,16 +80,16 @@ create table groups (
   created_at timestamptz not null default now()
 );
 
-create table group_members (
+create table if not exists group_members (
   group_id uuid references groups(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
   joined_at timestamptz not null default now(),
   primary key (group_id, user_id)
 );
-create index group_members_user_idx on group_members(user_id);
+create index if not exists group_members_user_idx on group_members(user_id);
 
 -- การแชร์รายสมุดเข้ากลุ่ม = การยินยอม
-create table book_shares (
+create table if not exists book_shares (
   book_id uuid references books(id) on delete cascade,
   group_id uuid references groups(id) on delete cascade,
   level share_level not null default 'none',
@@ -77,7 +97,7 @@ create table book_shares (
 );
 
 -- ยา
-create table medications (
+create table if not exists medications (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references books(id) on delete cascade,
   name text not null,
@@ -93,11 +113,11 @@ create table medications (
   created_by uuid references profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
-create index medications_book_idx on medications(book_id);
+create index if not exists medications_book_idx on medications(book_id);
 
 -- บันทึกกินยา (รวม "ไม่ยอมกิน") — actor_name เผื่อกดจากเครื่องกลางที่บ้าน
 -- book_id เก็บซ้ำไว้เพื่อให้ RLS/เรียลไทม์ไม่ต้อง join ทุกครั้ง
-create table med_logs (
+create table if not exists med_logs (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references books(id) on delete cascade,
   medication_id uuid not null references medications(id) on delete cascade,
@@ -111,10 +131,10 @@ create table med_logs (
   -- กดซ้ำมื้อเดิมของวันเดิม = แก้ของเดิม ไม่ใช่เพิ่มแถวใหม่
   unique (medication_id, dose_day, slot)
 );
-create index med_logs_book_day_idx on med_logs(book_id, dose_day);
+create index if not exists med_logs_book_day_idx on med_logs(book_id, dose_day);
 
 -- นัดหมอ
-create table appointments (
+create table if not exists appointments (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references books(id) on delete cascade,
   title text not null,
@@ -131,10 +151,10 @@ create table appointments (
   created_by uuid references profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
-create index appointments_book_date_idx on appointments(book_id, appt_date);
+create index if not exists appointments_book_date_idx on appointments(book_id, appt_date);
 
 -- ไทม์ไลน์รวม: อาการ / ความดัน / เอกสารสแกน / บันทึกพบหมอ
-create table records (
+create table if not exists records (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references books(id) on delete cascade,
   kind record_kind not null,
@@ -147,10 +167,10 @@ create table records (
   actor_name text,
   created_at timestamptz not null default now()
 );
-create index records_book_created_idx on records(book_id, created_at desc);
+create index if not exists records_book_created_idx on records(book_id, created_at desc);
 
 -- ข้อเฝ้าระวังประจำตัว ("เคืองตา/เจ็บตา → พบหมอทันที")
-create table watch_rules (
+create table if not exists watch_rules (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references books(id) on delete cascade,
   triggers text[] not null,          -- ['เคืองตา','เจ็บตา']
@@ -158,10 +178,10 @@ create table watch_rules (
   source text,                       -- "หมอตาสั่งไว้"
   severity text not null default 'urgent' check (severity in ('urgent', 'note'))
 );
-create index watch_rules_book_idx on watch_rules(book_id);
+create index if not exists watch_rules_book_idx on watch_rules(book_id);
 
 -- push subscriptions (Web Push / PWA)
-create table push_subscriptions (
+create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
   subscription jsonb not null,
@@ -169,7 +189,7 @@ create table push_subscriptions (
 );
 
 -- กันแจ้งเตือนซ้ำ (pg_cron สแกนทุก 15 นาที — ดู notifications.md)
-create table notified_log (
+create table if not exists notified_log (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
   event_key text not null,           -- เช่น 'appt:<id>:day_before'
@@ -188,6 +208,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
@@ -243,58 +264,79 @@ alter table push_subscriptions enable row level security;
 alter table notified_log      enable row level security;
 
 -- profiles: เห็นตัวเอง + คนที่อยู่กลุ่มเดียวกัน
+drop policy if exists profiles_self on profiles;
 create policy profiles_self on profiles for all
   using (id = auth.uid()) with check (id = auth.uid());
+drop policy if exists profiles_same_group on profiles;
 create policy profiles_same_group on profiles for select using (shares_group_with(id));
 
 -- books: อ่านได้ตั้งแต่ระดับ appointments; แก้ได้เฉพาะเจ้าของ
+drop policy if exists books_select on books;
 create policy books_select on books for select using (can_access_book(id, 'appointments'));
-create policy books_owner  on books for all
+drop policy if exists books_owner on books;
+create policy books_owner on books for all
   using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
 -- ตารางลูกของ book ที่ต้องแชร์ระดับ full ถึงจะเห็น/แก้ได้
+drop policy if exists doctors_rw on doctors;
 create policy doctors_rw on doctors for all
   using (can_access_book(book_id, 'full')) with check (can_access_book(book_id, 'full'));
+drop policy if exists meds_rw on medications;
 create policy meds_rw on medications for all
   using (can_access_book(book_id, 'full')) with check (can_access_book(book_id, 'full'));
+drop policy if exists med_logs_rw on med_logs;
 create policy med_logs_rw on med_logs for all
   using (can_access_book(book_id, 'full')) with check (can_access_book(book_id, 'full'));
+drop policy if exists records_rw on records;
 create policy records_rw on records for all
   using (can_access_book(book_id, 'full')) with check (can_access_book(book_id, 'full'));
+drop policy if exists watch_rules_rw on watch_rules;
 create policy watch_rules_rw on watch_rules for all
   using (can_access_book(book_id, 'full')) with check (can_access_book(book_id, 'full'));
 
 -- appointments: อ่านได้ตั้งแต่ระดับ appointments, เขียนได้ระดับ full
+drop policy if exists appt_read on appointments;
 create policy appt_read on appointments for select
   using (can_access_book(book_id, 'appointments'));
+drop policy if exists appt_insert on appointments;
 create policy appt_insert on appointments for insert
   with check (can_access_book(book_id, 'full'));
+drop policy if exists appt_update on appointments;
 create policy appt_update on appointments for update
   using (can_access_book(book_id, 'full')) with check (can_access_book(book_id, 'full'));
+drop policy if exists appt_delete on appointments;
 create policy appt_delete on appointments for delete
   using (can_access_book(book_id, 'full'));
 
 -- groups: สมาชิกเห็นเฉพาะกลุ่มตัวเอง — กลุ่มอื่นล่องหนสนิท
+drop policy if exists groups_member on groups;
 create policy groups_member on groups for select using (is_group_member(id));
+drop policy if exists groups_owner on groups;
 create policy groups_owner on groups for all
   using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
 -- group_members: เห็นสมาชิกกลุ่มที่ตัวเองอยู่; เพิ่ม/ลบได้เฉพาะแถวของตัวเอง (เข้า/ออกกลุ่มเอง)
+drop policy if exists group_members_read on group_members;
 create policy group_members_read on group_members for select using (is_group_member(group_id));
+drop policy if exists group_members_self on group_members;
 create policy group_members_self on group_members for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- book_shares: เจ้าของสมุดเป็นคนกำหนดการยินยอม; สมาชิกกลุ่มอ่านได้เพื่อรู้ว่าเห็นอะไรได้บ้าง
+drop policy if exists book_shares_owner on book_shares;
 create policy book_shares_owner on book_shares for all using (
   exists (select 1 from books b where b.id = book_shares.book_id and b.owner_id = auth.uid())
 ) with check (
   exists (select 1 from books b where b.id = book_shares.book_id and b.owner_id = auth.uid())
 );
+drop policy if exists book_shares_read on book_shares;
 create policy book_shares_read on book_shares for select using (is_group_member(group_id));
 
 -- ของส่วนตัวล้วน
+drop policy if exists push_self on push_subscriptions;
 create policy push_self on push_subscriptions for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists notified_self on notified_log;
 create policy notified_self on notified_log for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
@@ -305,6 +347,7 @@ insert into storage.buckets (id, name, public)
 values ('scans', 'scans', false), ('med-photos', 'med-photos', false)
 on conflict (id) do nothing;
 
+drop policy if exists scans_rw on storage.objects;
 create policy scans_rw on storage.objects for all
   using (bucket_id in ('scans', 'med-photos')
     and can_access_book((storage.foldername(name))[1]::uuid, 'full'))
@@ -313,7 +356,15 @@ create policy scans_rw on storage.objects for all
 
 -- ─────────────────────────── Realtime ───────────────────────────
 -- ให้ทุกเครื่องในบ้านเห็นการบันทึกทันทีโดยไม่ต้องรีเฟรช
-alter publication supabase_realtime add table med_logs;
-alter publication supabase_realtime add table records;
-alter publication supabase_realtime add table appointments;
-alter publication supabase_realtime add table medications;
+do $$
+declare t text;
+begin
+  foreach t in array array['med_logs', 'records', 'appointments', 'medications'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
