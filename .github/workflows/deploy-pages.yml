@@ -32,6 +32,28 @@ jobs:
 
       - run: npm ci
 
+      # ไม่มี secret แล้ว build ผ่านได้เหมือนกัน แต่จะได้แอปโหมดเครื่องเดียวที่ต่อคลาวด์ไม่ได้
+      # ถ้าปล่อยไป ผู้ใช้จะเจอหน้า onboarding แทนหน้าเข้าสู่ระบบโดยไม่รู้สาเหตุ — หยุดตรงนี้ดีกว่า
+      - name: ตรวจว่าใส่ secret ครบ
+        env:
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          missing=0
+          if [ -z "$URL" ]; then
+            echo "::error::ไม่พบ secret NEXT_PUBLIC_SUPABASE_URL"
+            missing=1
+          fi
+          if [ -z "$KEY" ]; then
+            echo "::error::ไม่พบ secret NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            missing=1
+          fi
+          if [ "$missing" = "1" ]; then
+            echo "::error::เพิ่มที่ Settings → Secrets and variables → Actions → New repository secret แล้วสั่งรันใหม่"
+            exit 1
+          fi
+          echo "secret ครบ (คีย์ยาว ${#KEY} ตัวอักษร)"
+
       - name: Build
         env:
           # GitHub Pages เสิร์ฟที่ /<ชื่อ repo>/ ไม่ใช่ราก

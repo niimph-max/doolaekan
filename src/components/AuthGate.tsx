@@ -60,7 +60,7 @@ export function AuthGate() {
       <div className="full-inner">
         <div style={{ margin: '32px 0 24px' }}>
           <Logo size={104} />
-          <p className="subtle" style={{ textAlign: 'center', marginTop: 10 }}>สมุดสุขภาพของครอบครัว</p>
+          <p className="subtle" style={{ textAlign: 'center', marginTop: 10 }}>สมุดสุขภาพ</p>
         </div>
 
         {step === 'email' ? (

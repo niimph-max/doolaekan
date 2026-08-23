@@ -57,7 +57,7 @@ export function Onboarding() {
             <div style={{ margin: '24px 0 20px' }}>
               <Logo size={100} />
               <p className="subtle" style={{ textAlign: 'center', marginTop: 10 }}>
-                สมุดสุขภาพของครอบครัว — ของใครของมัน แชร์เมื่อยินยอม
+                สมุดสุขภาพ — ของใครของมัน แชร์เมื่อยินยอม
               </p>
             </div>
 

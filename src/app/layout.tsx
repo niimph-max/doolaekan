@@ -7,7 +7,7 @@ import { StoreProvider } from '@/lib/store';
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 export const metadata: Metadata = {
-  title: 'Doolaekan — สมุดสุขภาพครอบครัว',
+  title: 'Doolaekan — สมุดสุขภาพ',
   description: 'บันทึกยา นัดหมอ ความดัน และอาการของคนที่บ้าน แชร์กันในครอบครัวเมื่อยินยอม',
   manifest: `${base}/manifest.webmanifest`,
   icons: {
