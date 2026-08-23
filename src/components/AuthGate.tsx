@@ -5,6 +5,10 @@ import { Icon } from './Icon';
 import { getSupabase } from '@/lib/supabase';
 
 /** เข้าสู่ระบบด้วยรหัส 6 หลักทางอีเมล — ไม่ต้องจำรหัสผ่าน เหมาะกับเครื่องกลางที่บ้าน */
+// ความยาวรหัสตั้งได้ที่ Supabase (Auth → Sessions) ค่าเริ่มต้น 6 แต่บางโปรเจกต์เป็น 8
+const OTP_MIN = 6;
+const OTP_MAX = 10;
+
 /** ข้อความ error จาก Supabase เป็นอังกฤษ — แปลเคสที่เจอบ่อยให้คนที่บ้านอ่านออก */
 function friendly(message: string): string {
   if (/failed to fetch|network/i.test(message)) return 'ต่ออินเทอร์เน็ตไม่ได้ ลองใหม่อีกครั้ง';
@@ -39,7 +43,7 @@ export function AuthGate() {
 
   const verify = async () => {
     const sb = getSupabase();
-    if (!sb || code.trim().length < 6) return;
+    if (!sb || code.trim().length < OTP_MIN) return;
     setBusy(true);
     setError('');
     const { error: err } = await sb.auth.verifyOtp({
@@ -71,7 +75,7 @@ export function AuthGate() {
               autoComplete="email" placeholder="you@example.com"
               value={email} onChange={(e) => setEmail(e.target.value)} />
             <p className="subtle" style={{ marginTop: 8 }}>
-              เราจะส่งรหัส 6 หลักไปที่อีเมลนี้ ไม่ต้องตั้งรหัสผ่าน
+              เราจะส่งรหัสไปที่อีเมลนี้ ไม่ต้องตั้งรหัสผ่าน
             </p>
             <button type="button" className="o-btn primary block" style={{ marginTop: 18 }}
               disabled={busy || !email.trim()} onClick={sendCode}>
@@ -82,12 +86,13 @@ export function AuthGate() {
           <>
             <p className="subtle" style={{ marginBottom: 4 }}>ส่งรหัสไปที่</p>
             <strong>{email}</strong>
-            <label className="o-label" htmlFor="auth-code">รหัส 6 หลัก</label>
+            <label className="o-label" htmlFor="auth-code">รหัสจากอีเมล</label>
             <input id="auth-code" className="o-input" inputMode="numeric" autoComplete="one-time-code"
-              maxLength={6} placeholder="123456" style={{ textAlign: 'center', letterSpacing: '.3em' }}
-              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+              maxLength={OTP_MAX} placeholder="กรอกรหัสที่ได้รับ"
+              style={{ textAlign: 'center', letterSpacing: '.25em' }}
+              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, OTP_MAX))} />
             <button type="button" className="o-btn primary block" style={{ marginTop: 18 }}
-              disabled={busy || code.length < 6} onClick={verify}>
+              disabled={busy || code.length < OTP_MIN} onClick={verify}>
               {busy ? 'กำลังตรวจ…' : 'เข้าใช้สมุด'}
             </button>
             <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }}
