@@ -1,4 +1,4 @@
-import type { AppState, Appointment, Book, DoseSlot, Medication, MedLog, RecordItem, WatchRule } from './types';
+import type { AppState, Appointment, Book, DoseSlot, Medication, MedLog, RecordItem, ShareLevel, WatchRule } from './types';
 import { SLOT_ORDER, daysUntil, todayKey } from './format';
 
 export interface Dose {
@@ -93,11 +93,14 @@ export function matchWatchRules(state: AppState, bookId: string, symptoms: strin
   );
 }
 
+/** ระดับที่สมุดเล่มนี้ยินยอมแชร์เข้ากลุ่มหนึ่ง (ค่าเริ่มต้น = ยังไม่แชร์) */
+export function shareLevel(state: AppState, bookId: string, groupId = state.activeGroupId): ShareLevel {
+  return state.shares.find((s) => s.book_id === bookId && s.group_id === groupId)?.level ?? 'none';
+}
+
 /** สมุดที่มองเห็นในกลุ่มปัจจุบัน (ของตัวเองเห็นเสมอ) */
 export function visibleBooks(state: AppState): Book[] {
-  const group = state.groups.find((g) => g.id === state.activeGroupId);
-  if (!group) return state.books.filter((b) => b.is_mine);
-  return state.books.filter((b) => b.is_mine || (group.book_ids.includes(b.id) && b.share_level !== 'none'));
+  return state.books.filter((b) => b.is_mine || shareLevel(state, b.id) !== 'none');
 }
 
 export function activeBook(state: AppState): Book | undefined {

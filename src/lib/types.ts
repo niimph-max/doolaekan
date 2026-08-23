@@ -23,8 +23,15 @@ export interface Book {
   blood_type: string;
   age: string;
   emergency_contact: string;
-  share_level: ShareLevel; // ระดับที่ยินยอมแชร์เข้ากลุ่มปัจจุบัน
+  owner_id: string;        // profiles.id ของเจ้าของสมุด
   is_mine: boolean;        // สมุดของผู้ใช้เครื่องนี้เอง
+}
+
+/** การยินยอมแชร์ = สมุดเล่มหนึ่ง เข้ากลุ่มหนึ่ง ที่ระดับหนึ่ง (ตาราง book_shares) */
+export interface BookShare {
+  book_id: string;
+  group_id: string;
+  level: ShareLevel;
 }
 
 export interface Medication {
@@ -71,7 +78,8 @@ export interface RecordItem {
   title: string;
   body: string;
   data?: { sys?: number; dia?: number; pulse?: number; tags?: string[] };
-  file?: string;         // data URL ของเอกสารสแกน
+  file?: string;         // ลิงก์สำหรับแสดงผล: data URL (โหมดเครื่องเดียว) หรือ signed URL (คลาวด์)
+  file_path?: string;    // path ใน Supabase Storage bucket 'scans'
   at: string;            // ISO
   actor_name: string;
   important: boolean;    // เข้าข้อเฝ้าระวัง / เป็นเอกสารสำคัญ → จุดส้ม
@@ -95,14 +103,19 @@ export interface Group {
   id: string;
   name: string;
   invite_code: string;
+  owner_id: string;
   members: GroupMember[];
-  book_ids: string[];    // สมุดที่ถูกแชร์เข้ากลุ่มนี้
 }
 
 export type Tab = 'home' | 'meds' | 'appts' | 'book';
 
+/** local = เก็บในเครื่องอย่างเดียว, cloud = ต่อ Supabase (auth + realtime + storage) */
+export type StoreMode = 'local' | 'cloud';
+
 export interface AppState {
   ready: boolean;
+  mode: StoreMode;
+  userId: string;
   onboarded: boolean;
   tab: Tab;
   actorName: string;
@@ -117,4 +130,5 @@ export interface AppState {
   records: RecordItem[];
   watchRules: WatchRule[];
   groups: Group[];
+  shares: BookShare[];
 }

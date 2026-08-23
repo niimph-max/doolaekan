@@ -8,39 +8,62 @@
 
 ## สถานะตอนนี้ — มีแอปจริงแล้ว
 `src/` คือแอปจริง (Next.js App Router + TypeScript, PWA ติดตั้งลงหน้าจอได้) ที่สร้างตามต้นแบบในไฟล์นี้
-ตอนนี้ทำงานแบบ **เครื่องเดียว**: ข้อมูลเก็บใน `localStorage` ยังไม่ได้ต่อ Supabase
+
+แอปทำงานได้ **2 โหมด** ตัดสินจากตัวแปรใน `.env.local`:
+- **เครื่องเดียว** (ไม่ใส่ค่า) — เก็บทุกอย่างใน `localStorage` ใช้คนเดียวได้เลย ไม่ต้องล็อกอิน
+- **คลาวด์** (ใส่ค่า Supabase) — ล็อกอินด้วยรหัส 6 หลักทางอีเมล ข้อมูลอยู่บน Supabase
+  ซิงก์สดข้ามเครื่องด้วย Realtime รูปเก็บใน Storage และ RLS บังคับสิทธิ์การเห็นจริงที่ฐานข้อมูล
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm run build      # ตรวจ type + build จริง
+cp .env.example .env.local   # ใส่ค่าถ้าจะใช้โหมดคลาวด์
+npm run dev                  # http://localhost:3000
+npm run build                # ตรวจ type + build จริง
 ```
 
-เปิดครั้งแรกจะเข้า onboarding 5 ขั้น หรือกด **"ดูโหมดตัวอย่างก่อน"** เพื่อดูหน้าตาแอปตอนมีข้อมูลครอบครัวสมมติ
+### ตั้งค่า Supabase (ทำครั้งเดียว)
+1. **รัน migration** — SQL Editor รัน `supabase/migrations/0001_init.sql` แล้วตามด้วย `0002_join_group.sql`
+   (สร้างตาราง + RLS + bucket `scans`/`med-photos` + เปิด Realtime ให้ครบในตัว)
+2. **คีย์** — Project Settings → API Keys → ก๊อป `anon` key ใส่ `.env.local`:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+   ```
+3. **Auth** — Authentication → Sign In / Providers → Email ต้อง Enabled (ค่าเริ่มต้นเปิดอยู่)
+4. **อีเมลรหัส 6 หลัก** — Authentication → Emails → เทมเพลต **Magic Link**
+   ใส่ `{{ .Token }}` ลงในเนื้อเมล (แทน/เพิ่มจาก `{{ .ConfirmationURL }}`)
+   เพราะหน้าล็อกอินในแอปรับเป็นรหัส 6 หลัก
+5. **URL Configuration → Site URL** — ตั้งเป็น `http://localhost:3000` ตอนพัฒนา และโดเมนจริงตอน deploy
+
+เปิดครั้งแรกในโหมดเครื่องเดียวจะเข้า onboarding 5 ขั้น หรือกด **"ดูโหมดตัวอย่างก่อน"** เพื่อดูหน้าตาแอปตอนมีข้อมูลครอบครัวสมมติ
+ถ้าเคยใช้โหมดเครื่องเดียวมาก่อนแล้วมาต่อคลาวด์ทีหลัง จะมีปุ่ม **"ยกข้อมูลในเครื่องขึ้นคลาวด์"** ให้ย้ายของเดิมขึ้นไป (id เป็น uuid อยู่แล้วจึงยกขึ้นตรงๆ ได้)
 
 ทำได้แล้ว:
 - onboarding 5 ขั้น (ชื่อ/ที่อยู่ → โรคประจำตัว+แพ้ยา → หมอ+HN+เวลาออกตรวจ → ครอบครัว → ระดับแชร์)
 - แท็บ **วันนี้**: นัดถัดไป, ยาวันนี้จัดเป็นมื้อ (กินแล้ว / ไม่ยอมกิน + เหตุผล), จดอาการ, วัดความดัน, บัตรฉุกเฉิน
 - แท็บ **ยา**: รายการยา + "ช่วยอะไร", เช็คยาซ้ำอัตโนมัติ + ติดธง, สแกนถุงยา (ถ่ายรูป+ยืนยันข้อความ), พิมพ์เพิ่มเอง
 - แท็บ **นัดหมอ**: 3 ขั้น (ตรวจเลือด ≤7 วันก่อนนัด → พบหมอ → กลับบ้านสแกนถุงยา), มอบหมายคนพาไป, เพิ่มนัดใหม่
-- แท็บ **สมุด**: สลับกลุ่ม/สร้าง/เข้ากลุ่ม, ตั้งสิทธิ์รายสมุด, ข้อเฝ้าระวัง, กราฟความดัน, ไทม์ไลน์ + สแกนเอกสาร
+- แท็บ **สมุด**: สลับกลุ่ม/สร้าง/เข้ากลุ่มด้วยรหัส, ตั้งสิทธิ์รายสมุด, ข้อเฝ้าระวัง, กราฟความดัน, ไทม์ไลน์ + สแกนเอกสาร
 - "คนกดตอนนี้" — ทุกบันทึกติดชื่อคนกด + เวลา
 - ข้อเฝ้าระวัง: จดอาการที่ตรงกติกา → เตือนด่วน + ปุ่มโทร รพ. + ติดจุดส้มในไทม์ไลน์
 - PWA: manifest + service worker + ไอคอน (ติดตั้งลงหน้าจอเครื่องเตี่ย/แม่ได้)
+- **โหมดคลาวด์**: ล็อกอินอีเมล OTP, เขียนแบบ optimistic (จอตอบทันที เขียนขึ้นคลาวด์ตามหลัง พลาดแล้วดึงของจริงกลับมา),
+  Realtime บน `med_logs`/`records`/`appointments`/`medications`, อัปโหลดรูปเข้า Storage + signed URL
 
 ยังไม่ได้ทำ (ขั้นต่อไป):
-1. **ต่อ Supabase** — `supabase/migrations/0001_init.sql` พร้อมใช้แล้ว (ทดสอบ RLS ผ่านครบ ดู `supabase/tests/`)
-   เหลือทำ auth, แทน `localStorage` ด้วยตาราง, เปิด Realtime, ย้ายรูปไป Storage
-2. **แจ้งเตือน** ตาม `notifications.md` — Web Push (VAPID) + Edge Function `notify` + pg_cron แล้วค่อย LINE
-3. **OCR ถุงยา** — ตอนนี้ถ่ายรูปได้ แต่ต้องพิมพ์ข้อความเอง
-4. QR จริงสำหรับเข้ากลุ่ม (ตอนนี้ใช้รหัส `DLK-xxxx`)
+1. **แจ้งเตือน** ตาม `notifications.md` — Web Push (VAPID) + Edge Function `notify` + pg_cron แล้วค่อย LINE
+   (`sw.js` ยังไม่มี push handler, ตาราง `push_subscriptions`/`notified_log` เตรียมไว้แล้ว)
+2. **OCR ถุงยา** — ตอนนี้ถ่ายรูปได้ แต่ต้องพิมพ์ข้อความเอง
+3. **QR จริง** สำหรับเข้ากลุ่ม (ตอนนี้ใช้รหัส `DLK-xxxx` พิมพ์เอา — ฝั่งหลังบ้านพร้อมแล้วผ่าน `join_group_by_code`)
+4. **แก้/ลบ** ยา นัด และบันทึกในไทม์ไลน์ (ตอนนี้เพิ่มได้อย่างเดียว ยกเว้นหมอที่ลบได้)
 
 ### โครงไฟล์
 ```
 src/app/          layout, globals.css (ต่อยอด organic.css)
-src/lib/          types, store (state + persistence), selectors, format, seed, supabase client
-src/components/   AppShell, TabBar, Sheet, Onboarding, screens/, sheets/
-supabase/         migrations/0001_init.sql, tests/ (ทดสอบ RLS บน Postgres เปล่า)
+src/lib/          types, store (state + โหมดเครื่องเดียว/คลาวด์), remote (Supabase),
+                  selectors, format, seed, storage, supabase client
+src/components/   AppShell, AuthGate, TabBar, Sheet, Onboarding, screens/, sheets/
+supabase/         migrations/ (0001 schema+RLS, 0002 เข้ากลุ่มด้วยรหัส), tests/
 public/           manifest.webmanifest, sw.js, ไอคอน
 ```
 

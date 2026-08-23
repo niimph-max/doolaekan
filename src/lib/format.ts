@@ -62,6 +62,12 @@ export function daysLabel(date: string): string {
   return n > 0 ? `อีก ${n} วัน` : 'ผ่านไปแล้ว';
 }
 
-export function uid(prefix = 'id'): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36).slice(-4)}`;
+/** id เป็น uuid เสมอ เพื่อให้แถวที่สร้างในเครื่องยกขึ้น Postgres ได้ตรงๆ */
+export function uid(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  // เบราว์เซอร์เก่า / บริบทที่ไม่ใช่ secure context
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }

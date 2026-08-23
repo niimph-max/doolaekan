@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { AuthGate } from './AuthGate';
 import { Onboarding } from './Onboarding';
 import { TabBar } from './TabBar';
 import { EmergencyCard } from './EmergencyCard';
@@ -21,21 +22,37 @@ import { useStore } from '@/lib/store';
 type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | null;
 
 export function AppShell() {
-  const { state, actions, toastMsg } = useStore();
+  const { state, actions, toastMsg, hasLocalToUpload } = useStore();
   const [sheet, setSheet] = useState<SheetName>(null);
   const [emergency, setEmergency] = useState(false);
 
   if (!state.ready) return <div className="app" aria-busy="true" />;
 
+  // ต่อคลาวด์แล้วแต่ยังไม่ได้เข้าระบบ
+  if (state.mode === 'cloud' && !state.userId) {
+    return <div className="app"><AuthGate /></div>;
+  }
+
   if (!state.onboarded) {
     return (
       <div className="app">
         <Onboarding />
-        <button type="button" className="o-btn ghost"
-          style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 55 }}
-          onClick={actions.loadDemo}>
-          ดูโหมดตัวอย่างก่อน
-        </button>
+        <div style={{
+          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 55, display: 'flex', gap: 8,
+        }}>
+          {hasLocalToUpload && (
+            <button type="button" className="o-btn secondary"
+              onClick={() => { void actions.uploadLocalData(); }}>
+              ยกข้อมูลในเครื่องขึ้นคลาวด์
+            </button>
+          )}
+          {state.mode === 'local' && (
+            <button type="button" className="o-btn ghost" onClick={actions.loadDemo}>
+              ดูโหมดตัวอย่างก่อน
+            </button>
+          )}
+        </div>
       </div>
     );
   }

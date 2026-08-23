@@ -82,14 +82,17 @@ export function GroupSheet({ open, onClose }: { open: boolean; onClose: () => vo
             <button type="button" className="o-btn ghost" onClick={() => setMode('list')}>ย้อนกลับ</button>
             <button type="button" className="o-btn primary"
               disabled={mode === 'create' ? !name.trim() : !code.trim()}
-              onClick={() => {
+              onClick={async () => {
                 if (mode === 'create') {
                   actions.createGroup(name.trim(), share);
                   actions.toast('สร้างกลุ่มแล้ว — ส่งรหัสให้พี่น้องเข้าร่วมได้เลย');
-                } else if (actions.joinGroup(code, share)) {
-                  actions.toast('เข้ากลุ่มแล้ว');
+                  close();
+                  return;
                 }
-                close();
+                if (await actions.joinGroup(code, share)) {
+                  actions.toast('เข้ากลุ่มแล้ว');
+                  close();
+                }
               }}>
               {mode === 'create' ? 'สร้างกลุ่ม' : 'เข้ากลุ่ม'}
             </button>

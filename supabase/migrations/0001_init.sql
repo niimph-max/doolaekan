@@ -32,6 +32,7 @@ create table books (
   address text,
   blood_group text,
   birth_date date,
+  age text,                              -- ผู้สูงอายุหลายคนจำปีเกิดไม่แน่ แต่บอกอายุได้
   allergy text,
   conditions text[] not null default '{}',
   emergency_contact text,                -- เบอร์ลูก

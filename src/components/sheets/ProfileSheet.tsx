@@ -87,6 +87,18 @@ export function ProfileSheet({ open, book, onClose }: {
       <button type="button" className="o-btn primary block" style={{ marginTop: 18 }} onClick={onClose}>
         เสร็จแล้ว
       </button>
+
+      {state.mode === 'cloud' && (
+        <>
+          <p className="subtle" style={{ marginTop: 18, textAlign: 'center' }}>
+            ข้อมูลซิงก์กับครอบครัวผ่านคลาวด์อยู่
+          </p>
+          <button type="button" className="o-btn ghost block" style={{ marginTop: 8 }}
+            onClick={() => { void actions.signOut(); }}>
+            ออกจากระบบ
+          </button>
+        </>
+      )}
     </Sheet>
   );
 }

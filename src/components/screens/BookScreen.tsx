@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import { fmtShortDate, fmtTime } from '@/lib/format';
 import {
-  SHARE_LABEL, bookRecords, bookSummary, bookWatchRules, bpHistory, visibleBooks,
+  SHARE_LABEL, bookRecords, bookSummary, bookWatchRules, bpHistory, shareLevel, visibleBooks,
 } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Book, RecordKind, ShareLevel } from '@/lib/types';
@@ -37,6 +37,7 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
   const records = bookRecords(state, book.id)
     .filter((r) => (filter === 'all' ? true : r.kind === filter));
   const maxSys = Math.max(160, ...bps.map((r) => r.data?.sys ?? 0));
+  const myLevel = shareLevel(state, book.id);
 
   const onScanDoc = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -81,7 +82,7 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
             <strong style={{ display: 'block' }}>{b.owner_name}{b.is_mine ? ' (ฉัน)' : ''}</strong>
             <span className="subtle">{bookSummary(state, b.id)}</span>
           </span>
-          <span className="o-tag">{SHARE_LABEL[b.share_level]}</span>
+          <span className="o-tag">{SHARE_LABEL[shareLevel(state, b.id)]}</span>
         </button>
       ))}
 
@@ -89,11 +90,11 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
       <div className="o-card">
         <h3>สิทธิ์การเห็นในกลุ่มนี้</h3>
         <p className="subtle" style={{ marginTop: 2 }}>
-          สมุดของ{book.owner_name}ตอนนี้: <strong>{SHARE_LABEL[book.share_level]}</strong>
+          สมุดของ{book.owner_name}ตอนนี้: <strong>{SHARE_LABEL[myLevel]}</strong>
         </p>
         <div className="o-chips" style={{ marginTop: 10 }}>
           {(['full', 'appointments', 'none'] as ShareLevel[]).map((lv) => (
-            <button key={lv} type="button" className="o-chip" aria-pressed={book.share_level === lv}
+            <button key={lv} type="button" className="o-chip" aria-pressed={myLevel === lv}
               onClick={() => {
                 actions.setShareLevel(book.id, lv);
                 actions.toast(`ตั้งสิทธิ์เป็น "${SHARE_LABEL[lv]}" แล้ว`);

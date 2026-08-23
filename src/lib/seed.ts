@@ -1,4 +1,4 @@
-import type { AppState, Appointment, Book, Doctor, Group, Medication, RecordItem, WatchRule } from './types';
+import type { AppState, Appointment, Book, BookShare, Doctor, Group, Medication, RecordItem, WatchRule } from './types';
 import { todayKey } from './format';
 
 /** ข้อมูล "โหมดตัวอย่าง" — ครอบครัวสมมติชุดเดียวกับต้นแบบ ใช้ดูหน้าตาแอปตอนมีข้อมูลจริง */
@@ -22,7 +22,7 @@ export function demoState(): Omit<AppState, 'ready'> {
       allergy: 'เพนิซิลลิน (ผื่นทั้งตัว)',
       conditions: ['หัวใจขาดเลือด', 'ต้อกระจก', 'กระดูกพรุน'],
       blood_type: 'O', age: '74', emergency_contact: '081-234-5678 (พี่หนึ่ง)',
-      share_level: 'full', is_mine: false,
+      owner_id: 'u1', is_mine: false,
     },
     {
       id: 'b_mom', owner_name: 'แม่', full_name: 'นางสมศรี ใจดี',
@@ -30,14 +30,14 @@ export function demoState(): Omit<AppState, 'ready'> {
       allergy: 'ไม่มีที่ทราบ',
       conditions: ['ความดันสูง', 'หัวใจเต้นผิดจังหวะ'],
       blood_type: 'B', age: '70', emergency_contact: '081-234-5678 (พี่หนึ่ง)',
-      share_level: 'full', is_mine: false,
+      owner_id: 'u1', is_mine: false,
     },
     {
       id: 'b_me', owner_name: 'พี่หนึ่ง', full_name: 'นางสาวหนึ่ง ใจดี',
       address: '45 ซ.ลาดพร้าว 71 กรุงเทพฯ',
       allergy: 'ไม่มีที่ทราบ', conditions: ['ภูมิแพ้อากาศ'],
       blood_type: 'O', age: '45', emergency_contact: '089-999-1111 (น้องสอง)',
-      share_level: 'appointments', is_mine: true,
+      owner_id: 'u1', is_mine: true,
     },
   ];
 
@@ -94,19 +94,25 @@ export function demoState(): Omit<AppState, 'ready'> {
 
   const groups: Group[] = [
     {
-      id: 'g1', name: 'บ้านเตี่ย–แม่', invite_code: 'DLK-4821',
+      id: 'g1', name: 'บ้านเตี่ย–แม่', invite_code: 'DLK-4821', owner_id: 'u1',
       members: [
         { id: 'u1', name: 'พี่หนึ่ง' }, { id: 'u2', name: 'น้องสอง' },
         { id: 'u3', name: 'น้องสาม' }, { id: 'u4', name: 'พี่แจ๋ว (คนดูแล)' },
       ],
-      book_ids: ['b_dad', 'b_mom', 'b_me'],
     },
   ];
 
+  const shares: BookShare[] = [
+    { book_id: 'b_dad', group_id: 'g1', level: 'full' },
+    { book_id: 'b_mom', group_id: 'g1', level: 'full' },
+    { book_id: 'b_me', group_id: 'g1', level: 'appointments' },
+  ];
+
   return {
-    onboarded: true, tab: 'home', actorName: 'พี่แจ๋ว', bigText: false,
+    mode: 'local', userId: '', onboarded: true, tab: 'home',
+    actorName: 'พี่แจ๋ว', bigText: false,
     activeBookId: 'b_dad', activeGroupId: 'g1',
-    books, doctors, medications, medLogs: [], appointments, records, watchRules, groups,
+    books, doctors, medications, medLogs: [], appointments, records, watchRules, groups, shares,
   };
 }
 
