@@ -20,7 +20,20 @@ function db(): SupabaseClient {
   return client;
 }
 
-/** โยน error ของ supabase ต่อ เพื่อให้ชั้นบนตัดสินใจ (toast + โหลดใหม่) */
+/** ข้อมูล error ที่ postgrest ส่งกลับมา — message อย่างเดียวมักไม่พอหาสาเหตุ */
+type PgError = { message: string; code?: string; details?: string | null; hint?: string | null } | null;
+
+/** โยนต่อพร้อมบอกว่าพังตอนเขียนตารางไหน เพื่อให้ข้อความบนจอชี้จุดได้เลย */
+function check(where: string, error: PgError): void {
+  if (!error) return;
+  const parts = [error.message];
+  if (error.details) parts.push(String(error.details));
+  if (error.hint) parts.push(`แนะนำ: ${error.hint}`);
+  if (typeof console !== 'undefined') console.error(`[Supabase] ${where}`, error);
+  throw new Error(`${where}: ${parts.join(' — ')}${error.code ? ` (code ${error.code})` : ''}`);
+}
+
+/** โยน error ของ supabase ต่อ เพื่อให้ชั้นบนตัดสินใจ (แจ้งผู้ใช้ + โหลดใหม่) */
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return (res.data ?? []) as T;
@@ -38,6 +51,7 @@ const toBook = (r: any, userId: string): Book => ({
   allergy: r.allergy ?? '',
   conditions: r.conditions ?? [],
   blood_type: r.blood_group ?? '',
+  birth_date: r.birth_date ?? '',
   age: r.age ?? '',
   emergency_contact: r.emergency_contact ?? '',
   is_mine: r.owner_id === userId,
@@ -88,7 +102,8 @@ const toWatchRule = (r: any): WatchRule => ({
 export const bookRow = (b: Book) => ({
   id: b.id, owner_id: b.owner_id, display_name: b.owner_name,
   full_name: b.full_name, address: b.address, allergy: b.allergy,
-  conditions: b.conditions, blood_group: b.blood_type, age: b.age,
+  conditions: b.conditions, blood_group: b.blood_type,
+  birth_date: b.birth_date || null, age: b.age,
   emergency_contact: b.emergency_contact,
 });
 
@@ -189,72 +204,72 @@ async function attachSignedUrls(records: RecordItem[]): Promise<void> {
 /** ชื่อในโปรไฟล์คือชื่อที่คนอื่นในกลุ่มเห็น — ตั้งให้ตรงกับชื่อในสมุดตอน onboarding */
 export async function upsertProfile(userId: string, displayName: string): Promise<void> {
   const { error } = await db().from('profiles').upsert({ id: userId, display_name: displayName });
-  if (error) throw new Error(error.message);
+  check('upsertProfile', error);
 }
 
 export async function upsertBook(b: Book): Promise<void> {
   const { error } = await db().from('books').upsert(bookRow(b));
-  if (error) throw new Error(error.message);
+  check('upsertBook', error);
 }
 
 export async function insertDoctor(d: Doctor): Promise<void> {
   const { error } = await db().from('doctors').insert(doctorRow(d));
-  if (error) throw new Error(error.message);
+  check('insertDoctor', error);
 }
 
 export async function deleteDoctor(id: string): Promise<void> {
   const { error } = await db().from('doctors').delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  check('deleteDoctor', error);
 }
 
 /** ยาซ้ำคำนวณฝั่งแอป แล้วอัปเดตธงกลับทั้งเล่มในทีเดียว */
 export async function upsertMedications(meds: Medication[]): Promise<void> {
   if (!meds.length) return;
   const { error } = await db().from('medications').upsert(meds.map(medicationRow));
-  if (error) throw new Error(error.message);
+  check('upsertMedications', error);
 }
 
 export async function upsertMedLog(l: MedLog): Promise<void> {
   const { error } = await db()
     .from('med_logs')
     .upsert(medLogRow(l), { onConflict: 'medication_id,dose_day,slot' });
-  if (error) throw new Error(error.message);
+  check('upsertMedLog', error);
 }
 
 export async function upsertAppointment(a: Appointment): Promise<void> {
   const { error } = await db().from('appointments').upsert(appointmentRow(a));
-  if (error) throw new Error(error.message);
+  check('upsertAppointment', error);
 }
 
 export async function insertRecord(r: RecordItem): Promise<void> {
   const { error } = await db().from('records').insert(recordRow(r));
-  if (error) throw new Error(error.message);
+  check('insertRecord', error);
 }
 
 export async function insertWatchRule(w: WatchRule): Promise<void> {
   const { error } = await db().from('watch_rules').insert(watchRuleRow(w));
-  if (error) throw new Error(error.message);
+  check('insertWatchRule', error);
 }
 
 export async function insertGroup(g: Group): Promise<void> {
   const c = db();
   const { error } = await c.from('groups')
     .insert({ id: g.id, name: g.name, owner_id: g.owner_id, invite_code: g.invite_code });
-  if (error) throw new Error(error.message);
+  check('insertGroup', error);
   const { error: memberError } = await c.from('group_members')
     .insert({ group_id: g.id, user_id: g.owner_id });
-  if (memberError) throw new Error(memberError.message);
+  check('insertGroup.group_members', memberError);
 }
 
 export async function upsertShare(s: BookShare): Promise<void> {
   const { error } = await db().from('book_shares').upsert(s, { onConflict: 'book_id,group_id' });
-  if (error) throw new Error(error.message);
+  check('upsertShare', error);
 }
 
 /** เข้ากลุ่มด้วยรหัส — ต้องผ่าน RPC เพราะ policy ซ่อนกลุ่มที่ยังไม่ได้เป็นสมาชิก */
 export async function joinGroupByCode(code: string): Promise<Group> {
   const { data, error } = await db().rpc('join_group_by_code', { p_code: code });
-  if (error) throw new Error(error.message);
+  check('joinGroupByCode', error);
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const g = data as any;
   return { id: g.id, name: g.name, invite_code: g.invite_code, owner_id: g.owner_id, members: [] };
@@ -278,13 +293,14 @@ export async function uploadImage(
   const { blob, ext } = dataUrlToBlob(dataUrl);
   const path = `${bookId}/${id}.${ext}`;
   const { error } = await db().storage.from(bucket).upload(path, blob, { upsert: true });
-  if (error) throw new Error(error.message);
+  check('uploadImage', error);
   return path;
 }
 
 export async function signedUrl(bucket: 'scans' | 'med-photos', path: string): Promise<string> {
   const { data, error } = await db().storage.from(bucket).createSignedUrl(path, 60 * 60);
-  if (error) throw new Error(error.message);
+  check('signedUrl', error);
+  if (!data) throw new Error(`signedUrl: ไม่ได้ลิงก์สำหรับ ${path}`);
   return data.signedUrl;
 }
 
@@ -316,7 +332,7 @@ export async function uploadLocalData(local: CloudData, userId: string): Promise
   for (const step of steps) {
     if (!step.rows.length) continue;
     const { error } = await c.from(step.table).upsert(step.rows);
-    if (error) throw new Error(`${step.table}: ${error.message}`);
+    check(`uploadLocalData.${step.table}`, error);
   }
 
   for (const g of local.groups) {

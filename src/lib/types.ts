@@ -21,7 +21,8 @@ export interface Book {
   allergy: string;
   conditions: string[];
   blood_type: string;
-  age: string;
+  birth_date: string;    // 'YYYY-MM-DD' — ว่างได้ ผู้สูงอายุบางคนจำไม่แน่
+  age: string;           // กรอกเองเมื่อไม่รู้วันเกิดชัดเจน
   emergency_contact: string;
   owner_id: string;        // profiles.id ของเจ้าของสมุด
   is_mine: boolean;        // สมุดของผู้ใช้เครื่องนี้เอง

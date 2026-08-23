@@ -223,7 +223,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const book: Book = {
           id: bookId, owner_id: s.userId, owner_name: input.displayName || 'ฉัน',
           full_name: input.fullName, address: input.address, allergy: input.allergy,
-          conditions: input.conditions, blood_type: '', age: '', emergency_contact: '',
+          conditions: input.conditions, blood_type: '', birth_date: '', age: '', emergency_contact: '',
           is_mine: true,
         };
         const doctors: Doctor[] = input.doctors.map((d) => ({ ...d, id: uid(), book_id: bookId }));

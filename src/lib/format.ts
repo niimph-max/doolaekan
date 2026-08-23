@@ -62,6 +62,31 @@ export function daysLabel(date: string): string {
   return n > 0 ? `อีก ${n} วัน` : 'ผ่านไปแล้ว';
 }
 
+/** อายุจากวันเกิด — คืน '' ถ้าไม่ได้กรอกหรือวันที่ไม่สมเหตุสมผล */
+export function ageFromBirthDate(birthDate: string): string {
+  if (!birthDate) return '';
+  const born = new Date(`${birthDate}T00:00`);
+  if (Number.isNaN(born.getTime())) return '';
+  const today = new Date();
+  let age = today.getFullYear() - born.getFullYear();
+  const beforeBirthday = today.getMonth() < born.getMonth()
+    || (today.getMonth() === born.getMonth() && today.getDate() < born.getDate());
+  if (beforeBirthday) age -= 1;
+  return age >= 0 && age < 130 ? String(age) : '';
+}
+
+/** วันเกิดแบบไทย เช่น "12 มีนาคม 2495" (พ.ศ. ตามระบบวันที่ไทย) */
+export function fmtBirthDate(birthDate: string): string {
+  if (!birthDate) return '';
+  try {
+    return new Date(`${birthDate}T00:00`).toLocaleDateString('th-TH', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+  } catch {
+    return birthDate;
+  }
+}
+
 /** id เป็น uuid เสมอ เพื่อให้แถวที่สร้างในเครื่องยกขึ้น Postgres ได้ตรงๆ */
 export function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();

@@ -340,6 +340,20 @@ drop policy if exists notified_self on notified_log;
 create policy notified_self on notified_log for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- ─────────────────────────── สิทธิ์ระดับตาราง ───────────────────────────
+-- RLS คุมว่า "แถวไหน" เห็นได้ ส่วน GRANT คุมว่า role แตะ "ตาราง" ได้ไหม — ต้องมีทั้งคู่
+-- ปกติ Supabase ตั้ง default privileges ของ schema public ไว้ให้แล้ว
+-- แต่ถ้าเคย drop schema public แล้วสร้างใหม่ สิทธิ์ชุดนั้นหายไปด้วย
+-- ตารางใหม่จะขึ้น "permission denied for table ..." แม้ policy จะถูกทุกอย่าง
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+
+alter default privileges in schema public
+  grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public
+  grant all on sequences to anon, authenticated, service_role;
+
 -- ─────────────────────────── Storage ───────────────────────────
 -- 'scans' = เอกสารจากหมอ, 'med-photos' = รูปถุงยา
 -- ตั้งชื่อไฟล์เป็น <book_id>/<uuid>.<ext> เพื่อให้ policy เช็คสิทธิ์จากโฟลเดอร์แรกได้

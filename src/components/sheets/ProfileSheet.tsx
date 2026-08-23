@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
+import { ageFromBirthDate, todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { Book } from '@/lib/types';
 
@@ -12,6 +13,7 @@ export function ProfileSheet({ open, book, onClose }: {
   const { state, actions } = useStore();
   const [dr, setDr] = useState({ name: '', hospital: '', hn: '', clinic_hours: '' });
   const doctors = state.doctors.filter((d) => d.book_id === book.id);
+  const computedAge = ageFromBirthDate(book.birth_date);
 
   const set = (patch: Partial<Book>) => actions.updateBook(book.id, patch);
 
@@ -25,10 +27,24 @@ export function ProfileSheet({ open, book, onClose }: {
       <input id="pf-full" className="o-input" value={book.full_name}
         onChange={(e) => set({ full_name: e.target.value })} />
 
+      <label className="o-label" htmlFor="pf-birth">วันเดือนปีเกิด</label>
+      <input id="pf-birth" className="o-input" type="date" max={todayKey()}
+        value={book.birth_date} onChange={(e) => set({ birth_date: e.target.value })} />
+      {computedAge && (
+        <p className="subtle" style={{ margin: '6px 0 0' }}>
+          อายุ {computedAge} ปี — แอปคำนวณให้เอง ไม่ต้องมาแก้ทุกปี
+        </p>
+      )}
+
       <div className="o-row">
         <div>
-          <label className="o-label" htmlFor="pf-age">อายุ</label>
-          <input id="pf-age" className="o-input" inputMode="numeric" value={book.age}
+          <label className="o-label" htmlFor="pf-age">
+            {computedAge ? 'อายุ (คำนวณแล้ว)' : 'อายุ (ถ้าจำวันเกิดไม่ได้)'}
+          </label>
+          <input id="pf-age" className="o-input" inputMode="numeric"
+            value={computedAge || book.age}
+            disabled={Boolean(computedAge)}
+            placeholder="เช่น 74"
             onChange={(e) => set({ age: e.target.value })} />
         </div>
         <div>

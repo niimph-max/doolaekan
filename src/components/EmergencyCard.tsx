@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Icon } from './Icon';
+import { ageFromBirthDate, fmtBirthDate } from '@/lib/format';
 import { bookWatchRules } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Book } from '@/lib/types';
@@ -13,6 +14,7 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
   const meds = state.medications.filter((m) => m.book_id === book.id);
   const docs = state.doctors.filter((d) => d.book_id === book.id);
   const rules = bookWatchRules(state, book.id);
+  const age = ageFromBirthDate(book.birth_date) || book.age;
 
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div style={{ marginBottom: 14 }}>
@@ -35,8 +37,11 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
 
         <h2 style={{ fontSize: 27 }}>{book.full_name || book.owner_name}</h2>
         <p className="subtle" style={{ marginTop: 2 }}>
-          {[book.age && `อายุ ${book.age} ปี`, book.blood_type && `กรุ๊ปเลือด ${book.blood_type}`]
-            .filter(Boolean).join(' · ') || 'ยังไม่ได้กรอกอายุ/กรุ๊ปเลือด'}
+          {[
+            age && `อายุ ${age} ปี`,
+            book.birth_date && `เกิด ${fmtBirthDate(book.birth_date)}`,
+            book.blood_type && `กรุ๊ปเลือด ${book.blood_type}`,
+          ].filter(Boolean).join(' · ') || 'ยังไม่ได้กรอกวันเกิด/กรุ๊ปเลือด'}
         </p>
 
         <div className="o-card" style={{ border: '2px solid var(--color-accent-500)', marginTop: 16 }}>

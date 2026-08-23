@@ -21,7 +21,7 @@ export function demoState(): Omit<AppState, 'ready'> {
       address: '12/3 ถ.เบญจมราชูทิศ ต.วัดใหม่ อ.เมือง จ.จันทบุรี',
       allergy: 'เพนิซิลลิน (ผื่นทั้งตัว)',
       conditions: ['หัวใจขาดเลือด', 'ต้อกระจก', 'กระดูกพรุน'],
-      blood_type: 'O', age: '74', emergency_contact: '081-234-5678 (พี่หนึ่ง)',
+      blood_type: 'O', birth_date: '1952-03-12', age: '', emergency_contact: '081-234-5678 (พี่หนึ่ง)',
       owner_id: 'u1', is_mine: false,
     },
     {
@@ -29,14 +29,14 @@ export function demoState(): Omit<AppState, 'ready'> {
       address: '12/3 ถ.เบญจมราชูทิศ ต.วัดใหม่ อ.เมือง จ.จันทบุรี',
       allergy: 'ไม่มีที่ทราบ',
       conditions: ['ความดันสูง', 'หัวใจเต้นผิดจังหวะ'],
-      blood_type: 'B', age: '70', emergency_contact: '081-234-5678 (พี่หนึ่ง)',
+      blood_type: 'B', birth_date: '1956-08-04', age: '', emergency_contact: '081-234-5678 (พี่หนึ่ง)',
       owner_id: 'u1', is_mine: false,
     },
     {
       id: 'b_me', owner_name: 'พี่หนึ่ง', full_name: 'นางสาวหนึ่ง ใจดี',
       address: '45 ซ.ลาดพร้าว 71 กรุงเทพฯ',
       allergy: 'ไม่มีที่ทราบ', conditions: ['ภูมิแพ้อากาศ'],
-      blood_type: 'O', age: '45', emergency_contact: '089-999-1111 (น้องสอง)',
+      blood_type: 'O', birth_date: '1981-01-27', age: '', emergency_contact: '089-999-1111 (น้องสอง)',
       owner_id: 'u1', is_mine: true,
     },
   ];
