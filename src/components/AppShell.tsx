@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { AuthGate } from './AuthGate';
+import { ConfigError } from './ConfigError';
 import { Onboarding } from './Onboarding';
 import { TabBar } from './TabBar';
 import { EmergencyCard } from './EmergencyCard';
@@ -18,6 +19,7 @@ import { ScanSheet } from './sheets/ScanSheet';
 import { SymptomSheet } from './sheets/SymptomSheet';
 import { activeBook } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
+import { hasBrokenConfig } from '@/lib/supabase';
 
 type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | null;
 
@@ -25,6 +27,9 @@ export function AppShell() {
   const { state, actions, toastMsg, hasLocalToUpload } = useStore();
   const [sheet, setSheet] = useState<SheetName>(null);
   const [emergency, setEmergency] = useState(false);
+
+  // ใส่ค่า Supabase ไว้แล้วแต่ค่าผิด — ห้ามเงียบๆ ถอยไปโหมดเครื่องเดียว เพราะผู้ใช้ตั้งใจจะต่อคลาวด์
+  if (hasBrokenConfig) return <div className="app"><ConfigError /></div>;
 
   if (!state.ready) return <div className="app" aria-busy="true" />;
 
