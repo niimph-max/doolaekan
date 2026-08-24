@@ -120,6 +120,9 @@ export interface AppState {
   ready: boolean;
   mode: StoreMode;
   userId: string;
+  userEmail: string;
+  /** โหลดข้อมูลจากคลาวด์ไม่สำเร็จ — ต่างจาก "โหลดได้แต่ยังไม่มีสมุด" คนละเรื่องกัน */
+  loadError: string;
   onboarded: boolean;
   tab: Tab;
   actorName: string;

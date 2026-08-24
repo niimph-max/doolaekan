@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { AuthGate } from './AuthGate';
 import { ConfigError } from './ConfigError';
+import { LoadError } from './LoadError';
 import { Onboarding } from './Onboarding';
 import { TabBar } from './TabBar';
 import { EmergencyCard } from './EmergencyCard';
@@ -38,6 +39,11 @@ export function AppShell() {
     return <div className="app"><AuthGate /></div>;
   }
 
+  // ดึงข้อมูลไม่สำเร็จ ≠ ยังไม่มีสมุด — ห้ามพาไปหน้ากรอกข้อมูลใหม่
+  if (state.mode === 'cloud' && state.userId && state.loadError) {
+    return <div className="app"><LoadError /></div>;
+  }
+
   if (!state.onboarded) {
     return (
       <div className="app">
@@ -55,6 +61,13 @@ export function AppShell() {
           {state.mode === 'local' && (
             <button type="button" className="o-btn ghost" onClick={actions.loadDemo}>
               ดูโหมดตัวอย่างก่อน
+            </button>
+          )}
+          {state.mode === 'cloud' && state.userEmail && (
+            <button type="button" className="o-btn ghost"
+              title={state.userEmail}
+              onClick={() => { void actions.signOut(); }}>
+              {state.userEmail} · ออกจากระบบ
             </button>
           )}
         </div>

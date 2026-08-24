@@ -15,6 +15,8 @@ const emptyState: AppState = {
   ready: false,
   mode: isSupabaseConfigured ? 'cloud' : 'local',
   userId: '',
+  userEmail: '',
+  loadError: '',
   onboarded: false, tab: 'home', actorName: '', bigText: false,
   activeBookId: '', activeGroupId: '',
   books: [], doctors: [], medications: [], medLogs: [],
@@ -31,6 +33,7 @@ interface Actions {
   loadDemo: () => void;
   resetAll: () => void;
   signOut: () => Promise<void>;
+  retryLoad: () => Promise<void>;
   uploadLocalData: () => Promise<void>;
   updateBook: (id: string, patch: Partial<Book>) => void;
   addDoctor: (bookId: string, doc: Omit<Doctor, 'id' | 'book_id'>) => void;
@@ -107,7 +110,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const myBook = data.books.find((b) => b.is_mine);
       return {
         ...s, ...data,
-        ready: true, userId,
+        ready: true, userId, loadError: '',
         onboarded: Boolean(myBook),
         activeBookId: data.books.some((b) => b.id === s.activeBookId)
           ? s.activeBookId
@@ -135,23 +138,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setHasLocalToUpload(Boolean(loadLocal()?.books?.some((b) => b.is_mine)));
 
     let cancelled = false;
-    const load = async (userId: string | undefined) => {
+    const load = async (userId: string | undefined, email = '') => {
       if (cancelled) return;
       if (!userId) {
-        setState((s) => ({ ...s, ready: true, userId: '', onboarded: false }));
+        setState((s) => ({ ...s, ready: true, userId: '', userEmail: '', loadError: '', onboarded: false }));
         return;
       }
+      setState((s) => ({ ...s, userEmail: email || s.userEmail }));
       try {
         await refresh(userId);
       } catch (e) {
-        toast(`โหลดข้อมูลไม่สำเร็จ: ${(e as Error).message}`);
-        setState((s) => ({ ...s, ready: true, userId }));
+        // ห้ามปล่อยให้ตกไปหน้า onboarding — ผู้ใช้ที่มีสมุดอยู่แล้วจะนึกว่าข้อมูลหาย
+        // แล้วกรอกใหม่จนได้สมุดซ้ำสองเล่ม
+        setState((s) => ({ ...s, ready: true, userId, loadError: (e as Error).message }));
       }
     };
 
-    sb.auth.getSession().then(({ data }) => load(data.session?.user.id));
+    sb.auth.getSession().then(({ data }) => load(data.session?.user.id, data.session?.user.email ?? ''));
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
-      load(session?.user.id);
+      load(session?.user.id, session?.user.email ?? '');
     });
 
     return () => {
@@ -269,6 +274,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       resetAll: () => {
         clearLocal();
         setState({ ...emptyState, ready: true, mode: stateRef.current.mode, userId: stateRef.current.userId });
+      },
+
+      retryLoad: async () => {
+        const userId = stateRef.current.userId;
+        if (!userId) return;
+        setState((s) => ({ ...s, loadError: '' }));
+        try {
+          await refresh(userId);
+        } catch (e) {
+          setState((s) => ({ ...s, loadError: (e as Error).message }));
+        }
       },
 
       signOut: async () => {

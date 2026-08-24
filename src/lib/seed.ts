@@ -109,7 +109,7 @@ export function demoState(): Omit<AppState, 'ready'> {
   ];
 
   return {
-    mode: 'local', userId: '', onboarded: true, tab: 'home',
+    mode: 'local', userId: '', userEmail: '', loadError: '', onboarded: true, tab: 'home',
     actorName: 'พี่แจ๋ว', bigText: false,
     activeBookId: 'b_dad', activeGroupId: 'g1',
     books, doctors, medications, medLogs: [], appointments, records, watchRules, groups, shares,
