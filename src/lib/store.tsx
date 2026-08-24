@@ -111,6 +111,9 @@ interface Ctx {
   /** สาเหตุจริงที่บันทึกไม่ผ่าน — ข้อความจากฐานข้อมูล/เครือข่ายตรงๆ */
   unsavedReason: string;
   retryUnsaved: () => void;
+  /** เลิกพยายามกับรายการที่บันทึกไม่ได้ — บางอย่างลองอีกกี่ครั้งก็ไม่ผ่าน
+   *  (สิทธิ์ไม่ถึง / ข้อมูลชี้ไปที่สมุดที่ไม่มีอยู่แล้ว) ต้องมีทางออกให้ผู้ใช้ */
+  discardUnsaved: () => void;
   /** มีข้อมูลค้างจากโหมดเครื่องเดียวรอยกขึ้นคลาวด์ */
   hasLocalToUpload: boolean;
 }
@@ -782,13 +785,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // finishOnboarding ต้องเรียก joinGroup ของตัวเอง จึงต้องอ้างผ่าน ref
   const retryUnsaved = useCallback(() => { void flushRef.current?.(); }, []);
+  const discardUnsaved = useCallback(() => {
+    failedWrites.current = [];
+    setUnsavedCount(0);
+    setUnsavedReason('');
+  }, []);
 
   const actionsRef = useRef<Actions | null>(null);
   actionsRef.current = actions;
 
   const value = useMemo(
-    () => ({ state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, hasLocalToUpload }),
-    [state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, hasLocalToUpload],
+    () => ({
+      state, actions, toastMsg,
+      unsavedCount, unsavedReason, retryUnsaved, discardUnsaved, hasLocalToUpload,
+    }),
+    [state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, discardUnsaved, hasLocalToUpload],
   );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

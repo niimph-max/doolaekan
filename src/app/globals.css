@@ -240,6 +240,10 @@ button { font-family: inherit; font-size: inherit; }
   padding: 12px 12px 12px 18px; border-radius: 22px;
   box-shadow: var(--shadow-md);
 }
+.unsaved-bar button.ghost {
+  background: transparent; color: var(--color-accent-100);
+  border: 1.5px solid var(--color-accent-300);
+}
 .unsaved-bar button {
   flex: 0 0 auto; border: none; cursor: pointer;
   background: var(--color-accent-100); color: var(--color-accent-700);

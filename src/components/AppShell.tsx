@@ -27,7 +27,10 @@ import { hasBrokenConfig } from '@/lib/supabase';
 type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | null;
 
 export function AppShell() {
-  const { state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, hasLocalToUpload } = useStore();
+  const {
+    state, actions, toastMsg,
+    unsavedCount, unsavedReason, retryUnsaved, discardUnsaved, hasLocalToUpload,
+  } = useStore();
   const [sheet, setSheet] = useState<SheetName>(null);
   const [emergency, setEmergency] = useState(false);
 
@@ -128,7 +131,10 @@ export function AppShell() {
               </span>
             )}
           </span>
-          <button type="button" onClick={retryUnsaved}>ลองใหม่</button>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '0 0 auto' }}>
+            <button type="button" onClick={retryUnsaved}>ลองใหม่</button>
+            <button type="button" className="ghost" onClick={discardUnsaved}>เลิกลอง</button>
+          </span>
         </div>
       )}
     </div>
