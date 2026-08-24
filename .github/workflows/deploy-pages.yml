@@ -58,6 +58,8 @@ jobs:
         env:
           # GitHub Pages เสิร์ฟที่ /<ชื่อ repo>/ ไม่ใช่ราก
           NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          # ประทับเลขรุ่นไว้ในตัวแอป จะได้ตอบได้ว่าเครื่องนี้กำลังรันของรอบไหน
+          NEXT_PUBLIC_BUILD: ${{ github.run_number }}·${{ github.sha }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: npm run build

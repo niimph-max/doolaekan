@@ -6,6 +6,7 @@ import { DraftInput } from '../DraftInput';
 import { WatchRuleEditor } from '../WatchRuleEditor';
 import { Icon } from '../Icon';
 import { ageFromBirthDate, todayKey } from '@/lib/format';
+import { buildLabel } from '@/lib/build';
 import { useStore } from '@/lib/store';
 import type { Book, Doctor } from '@/lib/types';
 
@@ -230,6 +231,10 @@ export function ProfileSheet({ open, book, onClose }: {
       <button type="button" className="o-btn primary block" style={{ marginTop: 22 }} onClick={onClose}>
         เสร็จแล้ว
       </button>
+
+      <p className="subtle" style={{ marginTop: 14, textAlign: 'center', fontSize: 14 }}>
+        {buildLabel}
+      </p>
 
       {state.mode === 'cloud' && (
         <>
