@@ -268,7 +268,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       saveLastUserId(userId);
       setState((s) => ({ ...s, userEmail: email || s.userEmail }));
       try {
-        await refresh(userId);
+        // ── การโหลดครั้งแรกต้องมีเส้นตายเหมือนกัน ──
+        // เดิมมีแต่ปุ่มลองใหม่ที่มีเส้นตาย ส่วนรอบแรกรอไม่จำกัด ถ้าคำขอค้าง
+        // (เน็ตเงียบ หรือฐานข้อมูลตอบช้าจนโดนตัด) แอปจะค้างที่ ready = false
+        // ตลอดกาล ผู้ใช้เห็นแต่โลโก้กับคำว่า "ใช้เวลานานกว่าปกติ" แล้วกดโหลดใหม่
+        // ซ้ำๆ ไปเรื่อยๆ โดยไม่มีอะไรบอกว่าเกิดอะไรขึ้นและต้องทำยังไงต่อ
+        await Promise.race([
+          refresh(userId),
+          new Promise((_, reject) => setTimeout(
+            () => reject(new Error('ดึงข้อมูลนานเกินไป — เน็ตช้าหรือเซิร์ฟเวอร์ไม่ตอบ')),
+            FETCH_TIMEOUT_MS,
+          )),
+        ]);
         showingCache = true;
       } catch (e) {
         // ห้ามปล่อยให้ตกไปหน้า onboarding — ผู้ใช้ที่มีสมุดอยู่แล้วจะนึกว่าข้อมูลหาย
