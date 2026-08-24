@@ -62,6 +62,9 @@ interface Actions {
   retryLoad: () => Promise<void>;
   uploadLocalData: () => Promise<void>;
   updateBook: (id: string, patch: Partial<Book>) => void;
+  /** เปิดสมุดเล่มใหม่ให้คนที่ไม่ได้ใช้แอปเอง (พ่อแม่ที่ไม่ถนัดมือถือ)
+   *  เจ้าของสมุดคือบัญชีที่กดสร้าง จึงไม่ต้องมีอีเมลของคนนั้น */
+  addBook: (displayName: string) => void;
   addDoctor: (bookId: string, doc: Omit<Doctor, 'id' | 'book_id'>) => void;
   updateDoctor: (id: string, patch: Partial<Doctor>) => void;
   removeDoctor: (id: string) => void;
@@ -522,6 +525,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         clearLocal();
         await refresh(userId);
         toast('ยกข้อมูลในเครื่องขึ้นคลาวด์แล้ว');
+      },
+
+      addBook: (displayName) => {
+        const s = stateRef.current;
+        const created: Book = {
+          id: uid(), owner_id: s.userId, owner_name: displayName.trim() || 'สมุดใหม่',
+          full_name: '', address: '', allergy: '', conditions: [],
+          blood_type: '', birth_date: '', age: '', emergency_contact: '',
+          is_mine: true,
+        };
+        // แชร์เข้ากลุ่มที่เปิดอยู่ให้เลย ไม่งั้นคนอื่นในบ้านจะไม่เห็นสมุดเล่มใหม่
+        const share: BookShare | null = s.activeGroupId
+          ? { book_id: created.id, group_id: s.activeGroupId, level: 'full' }
+          : null;
+        patch((st) => ({
+          books: [...st.books, created],
+          shares: share ? [...st.shares, share] : st.shares,
+          activeBookId: created.id,
+        }));
+        push(async () => {
+          await remote.upsertBook(created);
+          if (share) await remote.upsertShare(share);
+        });
       },
 
       updateBook: (id, p) => {
