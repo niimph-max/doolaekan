@@ -16,6 +16,7 @@ export function ScanSheet({ open, bookId, onClose }: {
 }) {
   const { state, actions } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
+  const pickRef = useRef<HTMLInputElement>(null);
   const [photo, setPhoto] = useState('');
   const [name, setName] = useState('');
   const [how, setHow] = useState('');
@@ -78,6 +79,16 @@ export function ScanSheet({ open, bookId, onClose }: {
             <span className="subtle">วางถุงยาให้เห็นฉลากชัดๆ</span>
           </button>
           <input ref={fileRef} type="file" accept="image/*" capture="environment"
+            onChange={onFile} style={{ display: 'none' }} />
+
+          {/* รูปถุงยาไม่ได้มาจากกล้องเสมอไป — ผู้ช่วยหรือลูกหลานถ่ายส่งมาทางแชท
+              แล้วอีกคนมานั่งกรอกให้ก็เป็นเรื่องปกติ ถ้าบังคับให้ถ่ายสดอย่างเดียว
+              ต้องเอามือถือไปจ่อถุงยาจริงเท่านั้น ซึ่งบางทีของอยู่คนละบ้านกัน */}
+          <button type="button" className="o-btn ghost block" style={{ marginTop: 12 }}
+            onClick={() => pickRef.current?.click()}>
+            <Icon name="camera" size={19} /> เลือกรูปที่ถ่ายไว้แล้ว
+          </button>
+          <input ref={pickRef} type="file" accept="image/*"
             onChange={onFile} style={{ display: 'none' }} />
         </>
       ) : (

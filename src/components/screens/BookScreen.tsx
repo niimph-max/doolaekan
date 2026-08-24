@@ -182,10 +182,14 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
 
       <button type="button" className="o-btn primary block" style={{ marginTop: 10 }}
         onClick={() => fileRef.current?.click()}>
-        <Icon name="camera" size={20} /> สแกนเอกสารจากหมอ
+        <Icon name="camera" size={20} /> เก็บเอกสารจากหมอ
       </button>
-      <input ref={fileRef} type="file" accept="image/*" capture="environment"
+      {/* ไม่ล็อกไว้ที่กล้องอย่างเดียว — เอกสารบางใบถ่ายไว้ก่อนแล้ว หรือคนอื่นส่งมาให้ */}
+      <input ref={fileRef} type="file" accept="image/*"
         onChange={onScanDoc} style={{ display: 'none' }} />
+      <p className="subtle" style={{ margin: '8px 0 0', textAlign: 'center' }}>
+        ถ่ายใหม่หรือเลือกรูปที่มีอยู่แล้วก็ได้
+      </p>
     </div>
   );
 }

@@ -81,6 +81,8 @@ export interface Appointment {
   escort: string;
   blood_test_before: boolean;
   blood_test_done: boolean;
+  photo?: string;        // ลิงก์สำหรับแสดงผล (data URL ในเครื่อง / signed URL บนคลาวด์)
+  photo_path?: string;   // path ใน Storage bucket 'scans'
 }
 
 export interface RecordItem {

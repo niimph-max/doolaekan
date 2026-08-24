@@ -35,6 +35,16 @@ const emptyCloudData: remote.CloudData = {
 /** วางข้อมูลชุดใหม่ลง state โดยพยายามคงสมุด/กลุ่มที่เปิดค้างไว้เดิม
  *  ใช้ร่วมกันทั้งตอนหยิบสำเนาจากเครื่องและตอนโหลดจากคลาวด์จริง */
 function applyData(s: AppState, data: remote.CloudData, userId: string): AppState {
+  // ── กันสมุดซ้ำ ──
+  // token ที่ใช้ไม่ได้ทำให้ฐานข้อมูลมองไม่เห็นว่าเราคือใคร คำขออ่านจึงคืน "ไม่มีอะไรเลย"
+  // กลับมาแบบไม่มี error ถ้าเชื่อตามนั้นตรงๆ แอปจะสรุปว่าเป็นผู้ใช้ใหม่แล้วพาไป
+  // หน้ากรอกข้อมูลเริ่มต้น ผู้ใช้ที่มีสมุดอยู่แล้วกรอกต่อ = ได้สมุดซ้ำสองเล่มทันที
+  //
+  // เมื่อกี้ยังเห็นสมุดอยู่ แต่รอบนี้ไม่เห็นสักเล่ม — ไม่ใช่เรื่องปกติ อย่าเพิ่งเชื่อ
+  if (s.books.length > 0 && data.books.length === 0) {
+    return { ...s, ready: true, userId, loadError: '' };
+  }
+
   const myBook = data.books.find((b) => b.is_mine);
   return {
     ...s, ...data,
@@ -82,6 +92,9 @@ interface Actions {
   addAppointment: (bookId: string, appt: Omit<Appointment, 'id' | 'book_id' | 'blood_test_done'>) => void;
   updateAppointment: (id: string, patch: Partial<Appointment>) => void;
   removeAppointment: (id: string) => void;
+  /** เก็บภาพใบนัดไว้กับนัดนั้น — ใบกระดาษหายง่าย และมีข้อมูลที่แอปไม่ได้เก็บ
+   *  (เลขคิว ชั้น ห้องตรวจ ข้อความที่หมอเขียนมือ) */
+  setAppointmentPhoto: (id: string, dataUrl: string) => void;
   addRecord: (bookId: string, rec: Omit<RecordItem, 'id' | 'book_id' | 'at' | 'actor_name'>) => void;
   addWatchRule: (bookId: string, rule: Omit<WatchRule, 'id' | 'book_id'>) => void;
   updateWatchRule: (id: string, patch: Partial<WatchRule>) => void;
@@ -448,6 +461,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       finishOnboarding: (input) => {
         const s = stateRef.current;
+        // ด่านสุดท้ายกันสมุดซ้ำ — ถ้ามีสมุดของตัวเองอยู่แล้ว แปลว่าหน้านี้ไม่ควรโผล่มา
+        // ตั้งแต่แรก อย่าสร้างเล่มใหม่ทับของเดิม
+        if (s.books.some((b) => b.is_mine)) {
+          patch(() => ({ onboarded: true, tab: 'home' }));
+          toast('มีสมุดของคุณอยู่แล้ว — พากลับเข้าสมุดเดิมให้');
+          return;
+        }
         const bookId = uid();
         const book: Book = {
           id: bookId, owner_id: s.userId, owner_name: input.displayName || 'ฉัน',
@@ -716,6 +736,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const updated: Appointment = { ...before, ...p };
         patch((s) => ({ appointments: s.appointments.map((a) => (a.id === id ? updated : a)) }));
         push(() => remote.upsertAppointment(updated));
+      },
+
+      setAppointmentPhoto: (id, dataUrl) => {
+        const before = stateRef.current.appointments.find((a) => a.id === id);
+        if (!before) return;
+        const updated: Appointment = { ...before, photo: dataUrl };
+        patch((st) => ({ appointments: st.appointments.map((a) => (a.id === id ? updated : a)) }));
+        push(async () => {
+          let row = updated;
+          if (dataUrl.startsWith('data:')) {
+            const path = await remote.uploadImage('scans', before.book_id, `appt-${id}`, dataUrl);
+            row = { ...updated, photo_path: path };
+            setState((st) => ({
+              ...st,
+              appointments: st.appointments.map((a) => (a.id === id ? { ...a, photo_path: path } : a)),
+            }));
+          }
+          await remote.upsertAppointment(row);
+        });
       },
 
       removeAppointment: (id) => {

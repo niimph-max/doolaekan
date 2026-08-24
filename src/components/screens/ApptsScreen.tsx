@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ComboField } from '../ComboField';
 import { EscortPicker } from '../EscortPicker';
 import { Icon } from '../Icon';
@@ -217,6 +217,8 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
               {editingId === a.id
                 ? <EditAppt appt={a} book={book} onDone={() => setEditingId(null)} />
                 : !past && renderSteps(a)}
+
+              <ApptPhoto appt={a} />
             </div>
           );
         })}
@@ -225,6 +227,48 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
       <button type="button" className="o-btn primary block" onClick={onAdd}>
         <Icon name="plus" size={20} /> เพิ่มนัดใหม่
       </button>
+    </div>
+  );
+}
+
+/** ภาพใบนัด — ใบกระดาษหายง่าย และมีข้อมูลที่แอปไม่ได้เก็บ เช่น เลขคิว ชั้น ห้องตรวจ
+ *  หรือข้อความที่หมอเขียนมือไว้ ถ่ายเก็บไว้แล้วเปิดดูตอนไปถึงโรงพยาบาลได้เลย */
+function ApptPhoto({ appt }: { appt: Appointment }) {
+  const { actions } = useStore();
+  const camRef = useRef<HTMLInputElement>(null);
+  const pickRef = useRef<HTMLInputElement>(null);
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      actions.setAppointmentPhoto(appt.id, String(reader.result));
+      actions.toast('เก็บภาพใบนัดแล้ว');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {appt.photo && (
+        <a href={appt.photo} target="_blank" rel="noreferrer">
+          <img src={appt.photo} alt={`ใบนัด ${appt.title}`} className="scan-img" />
+        </a>
+      )}
+      <div className="o-row" style={{ marginTop: appt.photo ? 10 : 0 }}>
+        <button type="button" className="o-btn ghost" onClick={() => camRef.current?.click()}>
+          <Icon name="camera" size={18} /> {appt.photo ? 'ถ่ายใหม่' : 'ถ่ายใบนัด'}
+        </button>
+        <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>
+          เลือกรูปที่มีอยู่
+        </button>
+      </div>
+      <input ref={camRef} type="file" accept="image/*" capture="environment"
+        onChange={onFile} style={{ display: 'none' }} />
+      <input ref={pickRef} type="file" accept="image/*"
+        onChange={onFile} style={{ display: 'none' }} />
     </div>
   );
 }

@@ -84,6 +84,7 @@ const toAppointment = (r: any): Appointment => ({
   place: r.place ?? '', escort: r.escort_name ?? '',
   blood_test_before: r.blood_test_before ?? false,
   blood_test_done: Boolean(r.blood_test_done_at),
+  photo_path: r.photo_path ?? undefined,
 });
 
 const toRecord = (r: any): RecordItem => ({
@@ -133,6 +134,7 @@ export const appointmentRow = (a: Appointment) => ({
   appt_time: a.time || null, place: a.place, escort_name: a.escort || null,
   blood_test_before: a.blood_test_before,
   blood_test_done_at: a.blood_test_done ? a.date : null,
+  photo_path: a.photo_path ?? null,
 });
 
 export const recordRow = (r: RecordItem) => ({
@@ -173,14 +175,15 @@ export async function fetchAll(userId: string): Promise<CloudData> {
   }));
 
   const records = (recs as any[]).map(toRecord);
-  await attachSignedUrls(records);
+  const appointments = (appts as any[]).map(toAppointment);
+  await Promise.all([attachSignedUrls(records), attachApptUrls(appointments)]);
 
   return {
     books: (books as any[]).map((b) => toBook(b, userId)),
     doctors: (doctors as any[]).map(toDoctor),
     medications: (meds as any[]).map(toMedication),
     medLogs: (logs as any[]).map(toMedLog),
-    appointments: (appts as any[]).map(toAppointment),
+    appointments,
     records,
     watchRules: (rules as any[]).map(toWatchRule),
     groups: groupList,
@@ -192,6 +195,17 @@ export async function fetchAll(userId: string): Promise<CloudData> {
 }
 
 /** เติมลิงก์ชั่วคราวให้รูปในไทม์ไลน์ (bucket เป็น private) */
+/** ใบนัดที่ถ่ายเก็บไว้ต้องได้ลิงก์ชั่วคราวเหมือนเอกสารสแกน ไม่งั้นเปิดดูไม่ได้ */
+async function attachApptUrls(appts: Appointment[]): Promise<void> {
+  const paths = appts.map((a) => a.photo_path).filter((p): p is string => Boolean(p));
+  if (!paths.length) return;
+  const { data } = await db().storage.from(SCANS).createSignedUrls(paths, 60 * 60);
+  const byPath = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
+  for (const a of appts) {
+    if (a.photo_path) a.photo = byPath.get(a.photo_path) ?? undefined;
+  }
+}
+
 async function attachSignedUrls(records: RecordItem[]): Promise<void> {
   const paths = records.map((r) => r.file_path).filter((p): p is string => Boolean(p));
   if (!paths.length) return;
