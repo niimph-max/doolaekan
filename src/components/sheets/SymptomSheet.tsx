@@ -65,7 +65,9 @@ export function SymptomSheet({ open, bookId, onClose }: {
           {hits.map((w) => (
             <p key={w.id} style={{ margin: '4px 0' }}>
               {w.triggers.join(' / ')} → {w.action}
-              <span className="subtle" style={{ color: 'var(--color-accent-300)' }}> ({w.source})</span>
+              {w.source && (
+                <span className="subtle" style={{ color: 'var(--color-accent-300)' }}> ({w.source})</span>
+              )}
             </p>
           ))}
           <div className="o-row" style={{ marginTop: 12 }}>
