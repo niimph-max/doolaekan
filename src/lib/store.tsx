@@ -71,6 +71,9 @@ interface Actions {
   signOut: () => Promise<void>;
   retryLoad: () => Promise<void>;
   uploadLocalData: () => Promise<void>;
+  /** ส่งทุกอย่างที่อยู่ในเครื่องขึ้นคลาวด์อีกครั้ง — ใช้ตอนที่เคยบันทึกไม่สำเร็จ
+   *  แล้วข้อมูลค้างอยู่ในเครื่องเครื่องเดียว */
+  resyncToCloud: () => Promise<void>;
   updateBook: (id: string, patch: Partial<Book>) => void;
   /** เปิดสมุดเล่มใหม่ให้คนที่ไม่ได้ใช้แอปเอง (พ่อแม่ที่ไม่ถนัดมือถือ)
    *  เจ้าของสมุดคือบัญชีที่กดสร้าง จึงไม่ต้องมีอีเมลของคนนั้น */
@@ -545,6 +548,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         saveLastUserId('');
         await getSupabase()?.auth.signOut();
         setState({ ...emptyState, ready: true });
+      },
+
+      resyncToCloud: async () => {
+        const s = stateRef.current;
+        if (s.mode !== 'cloud' || !s.userId) { toast('ยังไม่ได้เข้าระบบ'); return; }
+        const mine = s.books.filter((b) => b.owner_id === s.userId).map((b) => b.id);
+        if (!mine.length) { toast('ไม่มีสมุดของคุณในเครื่อง'); return; }
+        const inMine = <T extends { book_id: string }>(rows: T[]) => rows.filter((r) => mine.includes(r.book_id));
+        try {
+          await remote.upsertProfile(s.userId, s.books.find((b) => mine.includes(b.id))?.owner_name ?? 'ฉัน');
+          for (const b of s.books.filter((b) => mine.includes(b.id))) await remote.upsertBook(b);
+          for (const d of inMine(s.doctors)) await remote.upsertDoctor(d);
+          const meds = inMine(s.medications);
+          if (meds.length) await remote.upsertMedications(meds);
+          for (const a of inMine(s.appointments)) await remote.upsertAppointment(a);
+          for (const w of inMine(s.watchRules)) await remote.upsertWatchRule(w);
+          for (const g of s.groups.filter((g) => g.owner_id === s.userId)) await remote.insertGroup(g);
+          for (const sh of inMine(s.shares)) await remote.upsertShare(sh);
+          await refresh(s.userId);
+          toast('ส่งข้อมูลขึ้นคลาวด์เรียบร้อยแล้ว');
+        } catch (e) {
+          toast(`ส่งไม่สำเร็จ: ${(e as Error).message}`);
+        }
       },
 
       uploadLocalData: async () => {

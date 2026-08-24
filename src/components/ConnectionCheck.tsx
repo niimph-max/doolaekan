@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { diagnose, type Diagnosis } from '@/lib/remote';
+import { useStore } from '@/lib/store';
 import type { Book } from '@/lib/types';
 
 /** ตรวจการเชื่อมต่อในเครื่องนั้นเลย — บอกว่าเข้าระบบด้วยบัญชีไหน เห็นสมุดกี่เล่ม
@@ -10,8 +11,10 @@ import type { Book } from '@/lib/types';
  *  มีไว้เพราะเวลาบันทึกไม่ขึ้น สาเหตุอยู่คนละที่กับที่ผู้ใช้เห็น การไล่ทีละอย่าง
  *  ผ่านการถามตอบใช้เวลาหลายรอบมาก ปุ่มนี้ตอบได้ครบในกดครั้งเดียว */
 export function ConnectionCheck({ book }: { book?: Book }) {
+  const { actions } = useStore();
   const [result, setResult] = useState<Diagnosis | null>(null);
   const [running, setRunning] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const run = async () => {
     setRunning(true);
@@ -60,11 +63,24 @@ export function ConnectionCheck({ book }: { book?: Book }) {
             !result.writeOk,
           )}
 
-          {book && !result.writeOk && !result.activeBookReadable && (
-            <p className="subtle" style={{ margin: '10px 0 0' }}>
-              สมุดที่เปิดอยู่ไม่มีในฐานข้อมูล ทุกอย่างที่บันทึกลงเล่มนี้จึงค้างอยู่ในเครื่อง
-              ออกจากระบบแล้วเข้าใหม่จะดึงสมุดของจริงลงมา
-            </p>
+          {book && !result.activeBookReadable && (
+            <>
+              <p className="subtle" style={{ margin: '10px 0 0' }}>
+                {result.writeOk
+                  ? 'เขียนขึ้นคลาวด์ได้ แต่สมุดเล่มนี้ยังไม่เคยขึ้นไป — กดปุ่มข้างล่างส่งขึ้นได้เลย'
+                  : 'สมุดเล่มนี้ยังอยู่แค่ในเครื่อง และตอนนี้เขียนขึ้นคลาวด์ไม่ได้ ลองใหม่อีกครั้งเมื่อสัญญาณดีขึ้น'}
+              </p>
+              <button type="button" className="o-btn primary block" style={{ marginTop: 12 }}
+                disabled={sending}
+                onClick={async () => {
+                  setSending(true);
+                  await actions.resyncToCloud();
+                  setResult(null);
+                  setSending(false);
+                }}>
+                {sending ? 'กำลังส่ง…' : 'ส่งข้อมูลในเครื่องขึ้นคลาวด์'}
+              </button>
+            </>
           )}
         </div>
       )}

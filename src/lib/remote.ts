@@ -472,9 +472,11 @@ export async function diagnose(activeBookId: string): Promise<Diagnosis> {
   out.readableBooks = (books as any[]).map((b) => ({ id: b.id, name: b.display_name }));
   out.activeBookReadable = out.readableBooks.some((b) => b.id === activeBookId);
 
-  // ยังไม่มีสมุด (อยู่หน้ากรอกข้อมูลเริ่มต้น) — ทดสอบเขียนที่โปรไฟล์ของตัวเองแทน
-  // จะได้รู้ว่าเขียนอะไรขึ้นคลาวด์ได้บ้างไหม ไม่ใช่ไม่รู้อะไรเลย
-  if (!activeBookId) {
+  // ทดสอบเขียนที่โปรไฟล์ของตัวเองเมื่อยังไม่มีสมุดในฐานข้อมูล
+  // (ยังไม่ได้กรอกข้อมูล หรือกรอกแล้วแต่สมุดไม่เคยขึ้นคลาวด์)
+  // เดิมเคสหลังจะเลิกทดสอบไปเลย แล้วบอกแค่ว่า "ยังไม่ได้ลองเขียน"
+  // ซึ่งเป็นข้อมูลที่ไม่ช่วยอะไร ทั้งที่เป็นคำถามสำคัญที่สุดว่าเขียนได้ไหม
+  if (!activeBookId || !out.activeBookReadable) {
     if (!user) { out.writeError = 'ไม่มี session — ต่อคลาวด์ในนามผู้ใช้ไม่ได้'; return out; }
     const { data: prof, error: profError } = await c
       .from('profiles').upsert({ id: user.id, display_name: 'ตรวจการเชื่อมต่อ' }).select('id');
