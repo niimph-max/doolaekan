@@ -72,6 +72,9 @@ interface Actions {
   removeMedication: (id: string) => void;
   /** เปลี่ยนค่าในช่องเดียวกันของยาทุกตัวที่ใช้ค่านั้นอยู่ (รวมชื่อที่สะกดเพี้ยน / ล้างค่าที่ไม่ใช้) */
   renameMedField: (bookId: string, field: 'prescriber' | 'tag' | 'hospital', from: string, to: string) => number;
+  /** เปลี่ยนชื่อหมอ/โรงพยาบาลในรายชื่อหมอที่โปรไฟล์ ใช้คู่กับ renameMedField
+   *  เพราะ dropdown ดึงชื่อมาจากทั้งสองที่ แก้ที่เดียวชื่อเก่าจะยังค้างอยู่ */
+  renameDoctorField: (bookId: string, field: 'name' | 'hospital', from: string, to: string) => number;
   logDose: (log: Omit<MedLog, 'id' | 'at' | 'actor_name'>) => void;
   addAppointment: (bookId: string, appt: Omit<Appointment, 'id' | 'book_id' | 'blood_test_done'>) => void;
   updateAppointment: (id: string, patch: Partial<Appointment>) => void;
@@ -520,9 +523,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
       },
 
+      renameDoctorField: (bookId, field, from, to) => {
+        const before = stateRef.current.doctors;
+        const hits = before.filter((d) => d.book_id === bookId && d[field].trim() === from);
+        if (!hits.length) return 0;
+        const changed = hits.map((d) => ({ ...d, [field]: to }));
+        setState((s) => ({
+          ...s,
+          doctors: s.doctors.map((d) => changed.find((c) => c.id === d.id) ?? d),
+        }));
+        push(async () => {
+          for (const d of changed) await remote.upsertDoctor(d);
+        });
+        return hits.length;
+      },
+
       renameMedField: (bookId, field, from, to) => {
         const before = stateRef.current.medications;
-        const hits = before.filter((m) => m.book_id === bookId && m[field] === from);
+        const hits = before.filter((m) => m.book_id === bookId && m[field].trim() === from);
         if (!hits.length) return 0;
         const changed = hits.map((m) => ({ ...m, [field]: to }));
         setState((s) => ({
