@@ -13,8 +13,14 @@ export function MedsScreen({ book, onScan, onAddMed }: {
   const { state, actions } = useStore();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const meds = state.medications.filter((m) => m.book_id === book.id);
-  const dupes = meds.filter((m) => m.duplicate_flag);
+  const [filter, setFilter] = useState('');
+
+  const allMeds = state.medications.filter((m) => m.book_id === book.id);
+  // แท็กที่กรอกไว้เอง ถ้าไม่ได้กรอกก็ใช้ชื่อหมอที่สั่งแทน
+  const groupOf = (m: { tag: string; prescriber: string }) => m.tag || m.prescriber || 'ไม่ระบุ';
+  const groups = Array.from(new Set(allMeds.map(groupOf))).sort();
+  const meds = filter ? allMeds.filter((m) => groupOf(m) === filter) : allMeds;
+  const dupes = allMeds.filter((m) => m.duplicate_flag);
 
   // จัดกลุ่มยาซ้ำตามตัวยาหลัก เพื่อบอกเป็นคู่ว่าอะไรซ้ำกับอะไร
   const dupePairs = Array.from(
@@ -29,7 +35,25 @@ export function MedsScreen({ book, onScan, onAddMed }: {
     <div className="screen">
       <p className="kicker">Doolaekan</p>
       <h2>ยาของ{book.owner_name}</h2>
-      <p className="subtle">{meds.length} รายการ</p>
+      <p className="subtle">
+        {filter ? `${meds.length} จาก ${allMeds.length} รายการ · ${filter}` : `${allMeds.length} รายการ`}
+      </p>
+
+      {/* กรองตามหมอ/แผนก — เตรียมไปหาหมอคนไหน ก็ดูเฉพาะยาของหมอคนนั้น */}
+      {groups.length > 1 && (
+        <div className="o-chips" style={{ marginTop: 12 }}>
+          <button type="button" className="o-chip" aria-pressed={!filter}
+            onClick={() => setFilter('')}>
+            ทั้งหมด {allMeds.length}
+          </button>
+          {groups.map((g) => (
+            <button key={g} type="button" className="o-chip" aria-pressed={filter === g}
+              onClick={() => { setFilter(filter === g ? '' : g); setEditingId(null); }}>
+              {g} {allMeds.filter((m) => groupOf(m) === g).length}
+            </button>
+          ))}
+        </div>
+      )}
 
       {dupePairs.length > 0 && (
         <div className="o-card warn" style={{ marginTop: 16 }}>
@@ -48,9 +72,15 @@ export function MedsScreen({ book, onScan, onAddMed }: {
 
       <div style={{ marginTop: 16 }}>
         {meds.length === 0 && (
-          <button type="button" className="o-empty" onClick={onScan}>
-            ยังไม่มียาในสมุด — แตะเพื่อสแกนถุงยา
-          </button>
+          filter ? (
+            <button type="button" className="o-empty" onClick={() => setFilter('')}>
+              ไม่มียาของ {filter} — แตะเพื่อดูทั้งหมด
+            </button>
+          ) : (
+            <button type="button" className="o-empty" onClick={onScan}>
+              ยังไม่มียาในสมุด — แตะเพื่อสแกนถุงยา
+            </button>
+          )
         )}
         {meds.map((m) => {
           const isEditing = editingId === m.id;
@@ -62,7 +92,14 @@ export function MedsScreen({ book, onScan, onAddMed }: {
             <div key={m.id} className="o-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                 <h3>{m.name}</h3>
-                {m.tag && <span className="o-tag sage" style={{ height: 'fit-content' }}>{m.tag}</span>}
+                {m.tag && (
+                  <button type="button" className="o-tag sage"
+                    style={{ height: 'fit-content', border: 0, cursor: 'pointer', font: 'inherit', fontSize: 12.5, fontWeight: 600 }}
+                    title={`ดูเฉพาะยาของ ${m.tag}`}
+                    onClick={() => { setFilter(filter === m.tag ? '' : m.tag); setEditingId(null); }}>
+                    {m.tag}
+                  </button>
+                )}
               </div>
               {m.helps && (
                 <p style={{ margin: '6px 0' }}>
