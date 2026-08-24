@@ -225,7 +225,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // 2) เคยเข้าระบบอยู่ แต่ต่ออายุ token ไม่สำเร็จตอนกลับมาเปิดแอป
         //    → ห้ามล้าง ห้ามลืมว่าใครเข้าค้างไว้ ไม่งั้นผู้ใช้โดนเด้งไปหน้าใส่อีเมล
         //    ทั้งที่ไม่ได้ทำอะไรผิด แล้วต้องกดโหลดซ้ำจนกว่าจะมีรอบที่ต่ออายุทัน
-        if (showingCache && !intentionalSignOut.current) {
+        // มีข้อมูลอยู่บนจอแล้ว (จากสำเนาในเครื่อง หรือเพิ่งกรอกเสร็จหมาดๆ)
+        // ห้ามล้างทิ้งเพราะคำขอเบื้องหลังอันเดียวตอบว่าไม่มี session
+        // ผู้ใช้ใหม่ที่ยังไม่ทันซิงก์จะเสียสิ่งที่เพิ่งกรอกไปทั้งหมด
+        const hasDataOnScreen = showingCache || stateRef.current.books.length > 0;
+        if (hasDataOnScreen && !intentionalSignOut.current) {
           setState((s) => ({ ...s, ready: true }));
           toast('ต่อคลาวด์ไม่ได้ชั่วคราว — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
           return;

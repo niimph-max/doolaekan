@@ -9,18 +9,18 @@ import type { Book } from '@/lib/types';
  *
  *  มีไว้เพราะเวลาบันทึกไม่ขึ้น สาเหตุอยู่คนละที่กับที่ผู้ใช้เห็น การไล่ทีละอย่าง
  *  ผ่านการถามตอบใช้เวลาหลายรอบมาก ปุ่มนี้ตอบได้ครบในกดครั้งเดียว */
-export function ConnectionCheck({ book }: { book: Book }) {
+export function ConnectionCheck({ book }: { book?: Book }) {
   const [result, setResult] = useState<Diagnosis | null>(null);
   const [running, setRunning] = useState(false);
 
   const run = async () => {
     setRunning(true);
     try {
-      setResult(await diagnose(book.id));
+      setResult(await diagnose(book?.id ?? ''));
     } catch (e) {
       setResult({
         email: '(ตรวจไม่สำเร็จ)', userId: '', readableBooks: [],
-        activeBookId: book.id, activeBookReadable: false,
+        activeBookId: book?.id ?? '', activeBookReadable: false,
         writeOk: false, writeError: (e as Error).message,
       });
     }
@@ -43,8 +43,10 @@ export function ConnectionCheck({ book }: { book: Book }) {
       {result && (
         <div className="o-card" style={{ marginTop: 10, padding: 16, fontSize: 15 }}>
           {line('เข้าระบบด้วย', result.email)}
-          {line('สมุดที่เปิดอยู่', `${book.owner_name} · ${result.activeBookId}`)}
-          {line(
+          {line('สมุดที่เปิดอยู่', book
+            ? `${book.owner_name} · ${result.activeBookId}`
+            : 'ยังไม่มีสมุด (อยู่หน้ากรอกข้อมูลเริ่มต้น)')}
+          {book && line(
             'สมุดเล่มนี้ในฐานข้อมูล',
             result.activeBookReadable ? 'เจอ' : 'ไม่เจอ — เป็นสมุดที่ค้างอยู่ในเครื่องเท่านั้น',
             !result.activeBookReadable,
@@ -58,7 +60,7 @@ export function ConnectionCheck({ book }: { book: Book }) {
             !result.writeOk,
           )}
 
-          {!result.writeOk && !result.activeBookReadable && (
+          {book && !result.writeOk && !result.activeBookReadable && (
             <p className="subtle" style={{ margin: '10px 0 0' }}>
               สมุดที่เปิดอยู่ไม่มีในฐานข้อมูล ทุกอย่างที่บันทึกลงเล่มนี้จึงค้างอยู่ในเครื่อง
               ออกจากระบบแล้วเข้าใหม่จะดึงสมุดของจริงลงมา

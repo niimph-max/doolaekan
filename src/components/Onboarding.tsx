@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Chips } from './Chips';
 import { Icon } from './Icon';
+import { ConnectionCheck } from './ConnectionCheck';
 import { Logo } from './Logo';
 import { CONDITION_CHIPS } from '@/lib/seed';
 import { useStore, type OnboardingInput } from '@/lib/store';
@@ -17,7 +18,7 @@ const SHARE_OPTIONS: { value: ShareLevel; label: string; desc: string }[] = [
 ];
 
 export function Onboarding() {
-  const { actions } = useStore();
+  const { state, actions } = useStore();
   const [step, setStep] = useState(1);
 
   const [displayName, setDisplayName] = useState('');
@@ -226,6 +227,10 @@ export function Onboarding() {
             </button>
           </>
         )}
+
+        {/* ติดอยู่หน้านี้เพราะข้อมูลไม่ขึ้นคลาวด์ก็เป็นไปได้ ต้องตรวจได้จากตรงนี้เลย
+            ไม่ใช่ต้องเข้าไปให้ถึงหน้าโปรไฟล์ก่อน ซึ่งเข้าไม่ได้อยู่แล้ว */}
+        {state.mode === 'cloud' && state.userEmail && <ConnectionCheck />}
 
         {step > 1 && step < 5 && (
           <button type="button" className="o-btn ghost block" style={{ marginTop: 12 }}
