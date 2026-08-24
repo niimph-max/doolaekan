@@ -232,8 +232,12 @@ export function ProfileSheet({ open, book, onClose }: {
         เสร็จแล้ว
       </button>
 
+      {/* เลขรุ่น + อีเมลที่เข้าระบบอยู่ + สมุดที่เปิดค้าง — สามอย่างนี้ตอบได้เกือบทุกคำถาม
+          เวลาบันทึกไม่ผ่าน ว่าเป็นเพราะรันของเก่า เข้าคนละบัญชี หรือสมุดไม่ตรง */}
       <p className="subtle" style={{ marginTop: 14, textAlign: 'center', fontSize: 14 }}>
         {buildLabel}
+        {state.userEmail && <><br />เข้าระบบ: {state.userEmail}</>}
+        <br />รหัสสมุดนี้: {book.id}
       </p>
 
       {state.mode === 'cloud' && (
