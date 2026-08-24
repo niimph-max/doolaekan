@@ -3,11 +3,9 @@
 import React from 'react';
 import { Icon } from '../Icon';
 import { daysLabel, daysUntil, fmtDate } from '@/lib/format';
-import { bookAppointments } from '@/lib/selectors';
+import { bookAppointments, escortOptions } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Appointment, Book } from '@/lib/types';
-
-const ESCORTS = ['พี่หนึ่ง', 'น้องสอง', 'น้องสาม', 'ไปเอง'];
 
 function Step({ n, title, body, done, children }: {
   n: string; title: string; body: string; done?: boolean; children?: React.ReactNode;
@@ -71,7 +69,7 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
           <div style={{ marginTop: 8 }}>
             <div className="o-label" style={{ marginTop: 0 }}>ใครพาไป</div>
             <div className="o-chips">
-              {ESCORTS.map((n) => (
+              {escortOptions(state).map((n) => (
                 <button key={n} type="button" className="o-chip" aria-pressed={a.escort === n}
                   onClick={() => {
                     actions.updateAppointment(a.id, { escort: a.escort === n ? '' : n });

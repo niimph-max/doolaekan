@@ -101,6 +101,31 @@ button { font-family: inherit; font-size: inherit; }
   font-family: inherit; font-size: inherit;
 }
 .o-textarea { border-radius: 22px; min-height: 88px; resize: vertical; }
+
+/* iOS ให้ช่องวันที่/เวลามีความกว้างในตัวของมันเอง ไม่ฟังคำสั่ง width จนล้นออกนอกการ์ด
+   และแสดงเป็นกล่องว่างเปล่าจนกว่าจะแตะ ต้องปิด appearance ของระบบก่อน */
+.o-input[type='date'],
+.o-input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+.o-hint { font-size: 13.5px; color: var(--color-neutral-700); margin: 6px 0 0 18px; }
+
+/* dropdown ให้หน้าตาเหมือนช่องกรอกอื่น พร้อมลูกศรวาดเอง (ของระบบหน้าตาต่างกันทุกเครื่อง) */
+.o-select {
+  width: 100%; min-height: var(--tap); padding: 12px 44px 12px 18px;
+  border-radius: var(--radius-pill); border: 1.5px solid var(--color-neutral-300);
+  background: var(--color-neutral-100); color: var(--color-text);
+  font-family: inherit; font-size: inherit;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23645c50' stroke-width='2.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 20px;
+}
 .o-label { display: block; font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: var(--color-neutral-800); }
 .o-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .o-chip {
