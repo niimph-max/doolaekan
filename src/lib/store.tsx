@@ -106,6 +106,9 @@ interface Ctx {
   state: AppState;
   actions: Actions;
   toastMsg: string;
+  /** จำนวนรายการที่ยังบันทึกขึ้นคลาวด์ไม่สำเร็จ — ค้างรอกดลองใหม่ */
+  unsavedCount: number;
+  retryUnsaved: () => void;
   /** มีข้อมูลค้างจากโหมดเครื่องเดียวรอยกขึ้นคลาวด์ */
   hasLocalToUpload: boolean;
 }
@@ -130,6 +133,14 @@ function markDuplicates(meds: Medication[], bookId: string): Medication[] {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(emptyState);
   const [toastMsg, setToastMsg] = useState('');
+  const [unsavedCount, setUnsavedCount] = useState(0);
+  // งานเขียนที่ล้มเหลว เก็บไว้ยิงซ้ำ — ห้ามทิ้งสิ่งที่ผู้ใช้พิมพ์ไปเฉยๆ
+  const failedWrites = useRef<(() => Promise<void>)[]>([]);
+  // งานเขียนที่ยังไม่เสร็จ ระหว่างนี้ห้ามดึงข้อมูลใหม่มาทับ ไม่งั้นของเก่าจากเซิร์ฟเวอร์
+  // จะทับสิ่งที่เพิ่งบันทึกไป แล้วดูเหมือนบันทึกไม่ติด
+  const inFlight = useRef(0);
+  // ตัวยิงคิวซ้ำ ตั้งค่าไว้ตอนสร้าง actions — ปุ่ม "ลองบันทึกใหม่" เรียกผ่านตัวนี้
+  const flushRef = useRef<(() => Promise<void>) | null>(null);
   const [hasLocalToUpload, setHasLocalToUpload] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
@@ -274,6 +285,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const bump = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
+        // ยังเขียนไม่เสร็จ = ของบนเซิร์ฟเวอร์ยังเป็นของเก่า ดึงมาตอนนี้จะทับ
+        // สิ่งที่เพิ่งกรอกไป รอให้เขียนเสร็จก่อนแล้วค่อยว่ากันใหม่
+        if (inFlight.current > 0) { bump(); return; }
         refresh(stateRef.current.userId).catch(() => { /* เดี๋ยวรอบหน้าค่อยว่ากัน */ });
       }, 400);
     };
@@ -323,13 +337,58 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const actions = useMemo<Actions>(() => {
     const patch = (fn: (s: AppState) => Partial<AppState>) => setState((s) => ({ ...s, ...fn(s) }));
 
-    /** ยิงคำสั่งเขียนขึ้นคลาวด์ — ล้มเหลวก็บอกผู้ใช้แล้วดึงของจริงกลับมาแสดง */
+    /** ยิงคำสั่งเขียนขึ้นคลาวด์
+     *
+     *  เน็ตมือถือสะดุดเป็นเรื่องปกติ (สลับเสา เข้าลิฟต์ ล็อกจอ) ลองใหม่ให้เองก่อน
+     *  ยังไม่ผ่านจริงๆ ค่อยเก็บงานไว้ในคิวแล้วขึ้นแถบบอก — ห้ามทิ้งสิ่งที่ผู้ใช้พิมพ์
+     *
+     *  เดิมพลาดครั้งเดียวก็สั่งโหลดข้อมูลใหม่ทั้งชุดทับทันที ทุกอย่างที่กรอกไว้
+     *  ตั้งแต่ครั้งที่ซิงก์สำเร็จล่าสุดหายเกลี้ยง โดยเห็นแค่ toast 2.8 วินาที
+     *  ที่เลื่อนผ่านไปแล้วก็ไม่รู้ตัว */
+    const RETRY_DELAYS = [600, 1800, 4000];
+
+    const runWrite = async (fn: () => Promise<void>) => {
+      inFlight.current += 1;
+      try {
+        for (let attempt = 0; ; attempt += 1) {
+          try {
+            await fn();
+            // ยิงผ่านแล้ว = เน็ตกลับมา ลองส่งงานที่ค้างอยู่ต่อให้เลย
+            if (failedWrites.current.length) void flushFailed();
+            return;
+          } catch (e) {
+            const err = e as Error;
+            // ผิดกติกาฐานข้อมูล (สิทธิ์ไม่พอ / ข้อมูลไม่ถูกรูปแบบ) ลองอีกกี่ครั้งก็ไม่ผ่าน
+            const permanent = /42501|23\d{3}|22\d{3}|PGRST/.test(err.message);
+            if (permanent || attempt >= RETRY_DELAYS.length) {
+              failedWrites.current.push(fn);
+              setUnsavedCount(failedWrites.current.length);
+              toast(permanent
+                ? `บันทึกไม่สำเร็จ: ${err.message}`
+                : 'ยังบันทึกขึ้นคลาวด์ไม่สำเร็จ — ข้อมูลที่กรอกยังอยู่ในเครื่อง');
+              return;
+            }
+            await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
+          }
+        }
+      } finally {
+        inFlight.current -= 1;
+      }
+    };
+
+    // เผื่อผู้ใช้กดปุ่มลองใหม่เอง
+    flushRef.current = () => flushFailed();
+
+    const flushFailed = async () => {
+      const queued = failedWrites.current;
+      failedWrites.current = [];
+      setUnsavedCount(0);
+      for (const fn of queued) await runWrite(fn);
+    };
+
     const push = (fn: () => Promise<void>) => {
       if (stateRef.current.mode !== 'cloud' || !stateRef.current.userId) return;
-      fn().catch((e: Error) => {
-        toast(`บันทึกขึ้นคลาวด์ไม่สำเร็จ: ${e.message}`);
-        refresh(stateRef.current.userId).catch(() => { /* แสดงของเดิมไปก่อน */ });
-      });
+      void runWrite(fn);
     };
 
     return {
@@ -709,12 +768,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [toast, refresh]);
 
   // finishOnboarding ต้องเรียก joinGroup ของตัวเอง จึงต้องอ้างผ่าน ref
+  const retryUnsaved = useCallback(() => { void flushRef.current?.(); }, []);
+
   const actionsRef = useRef<Actions | null>(null);
   actionsRef.current = actions;
 
   const value = useMemo(
-    () => ({ state, actions, toastMsg, hasLocalToUpload }),
-    [state, actions, toastMsg, hasLocalToUpload],
+    () => ({ state, actions, toastMsg, unsavedCount, retryUnsaved, hasLocalToUpload }),
+    [state, actions, toastMsg, unsavedCount, retryUnsaved, hasLocalToUpload],
   );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
