@@ -33,9 +33,12 @@ function check(where: string, error: PgError): void {
   throw new Error(`${where}: ${parts.join(' — ')}${error.code ? ` (code ${error.code})` : ''}`);
 }
 
-/** โยน error ของ supabase ต่อ เพื่อให้ชั้นบนตัดสินใจ (แจ้งผู้ใช้ + โหลดใหม่) */
-function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
-  if (res.error) throw new Error(res.error.message);
+/** โยน error ของ supabase ต่อ เพื่อให้ชั้นบนตัดสินใจ (แจ้งผู้ใช้ + โหลดใหม่)
+ *
+ *  ต้องติดชื่อตารางไปด้วยเสมอ ตอนโหลดยิงพร้อมกันสิบคำสั่ง ถ้าเหลือแต่ข้อความ
+ *  อย่าง "statement timeout" ลอยๆ จะไม่มีทางรู้เลยว่าคำสั่งไหนพัง แล้วต้องเดา */
+function unwrap<T>(where: string, res: { data: T | null; error: { message: string } | null }): T {
+  if (res.error) throw new Error(`${where}: ${res.error.message}`);
   return (res.data ?? []) as T;
 }
 
@@ -154,16 +157,16 @@ export const watchRuleRow = (w: WatchRule) => ({
 export async function fetchAll(userId: string): Promise<CloudData> {
   const c = db();
   const [books, doctors, meds, logs, appts, recs, rules, groups, members, shares] = await Promise.all([
-    c.from('books').select('*').then(unwrap),
-    c.from('doctors').select('*').then(unwrap),
-    c.from('medications').select('*').eq('active', true).then(unwrap),
-    c.from('med_logs').select('*').then(unwrap),
-    c.from('appointments').select('*').then(unwrap),
-    c.from('records').select('*').order('created_at', { ascending: false }).then(unwrap),
-    c.from('watch_rules').select('*').then(unwrap),
-    c.from('groups').select('*').then(unwrap),
-    c.from('group_members').select('group_id, user_id, profiles(display_name)').then(unwrap),
-    c.from('book_shares').select('*').then(unwrap),
+    c.from('books').select('*').then((r) => unwrap('อ่านสมุด', r)),
+    c.from('doctors').select('*').then((r) => unwrap('อ่านรายชื่อหมอ', r)),
+    c.from('medications').select('*').eq('active', true).then((r) => unwrap('อ่านรายการยา', r)),
+    c.from('med_logs').select('*').then((r) => unwrap('อ่านประวัติกินยา', r)),
+    c.from('appointments').select('*').then((r) => unwrap('อ่านนัดหมอ', r)),
+    c.from('records').select('*').order('created_at', { ascending: false }).then((r) => unwrap('อ่านไทม์ไลน์', r)),
+    c.from('watch_rules').select('*').then((r) => unwrap('อ่านข้อเฝ้าระวัง', r)),
+    c.from('groups').select('*').then((r) => unwrap('อ่านกลุ่ม', r)),
+    c.from('group_members').select('group_id, user_id, profiles(display_name)').then((r) => unwrap('อ่านสมาชิกกลุ่ม', r)),
+    c.from('book_shares').select('*').then((r) => unwrap('อ่านการแชร์', r)),
   ]);
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
