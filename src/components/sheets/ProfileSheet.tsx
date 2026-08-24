@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
 import { DraftInput } from '../DraftInput';
 import { WatchRuleEditor } from '../WatchRuleEditor';
+import { ConnectionCheck } from '../ConnectionCheck';
 import { Icon } from '../Icon';
 import { ageFromBirthDate, todayKey } from '@/lib/format';
 import { buildLabel } from '@/lib/build';
@@ -239,6 +240,8 @@ export function ProfileSheet({ open, book, onClose }: {
         {state.userEmail && <><br />เข้าระบบ: {state.userEmail}</>}
         <br />รหัสสมุดนี้: {book.id}
       </p>
+
+      {state.mode === 'cloud' && <ConnectionCheck book={book} />}
 
       {state.mode === 'cloud' && (
         <>

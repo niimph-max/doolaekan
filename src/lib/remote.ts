@@ -420,3 +420,54 @@ export async function uploadLocalData(local: CloudData, userId: string): Promise
     if (bookIds.has(s.book_id)) await upsertShare(s);
   }
 }
+
+/** ผลตรวจการเชื่อมต่อ — ตอบให้ได้ว่า "ทำไมบันทึกไม่ขึ้น" ในหน้าจอเดียว
+ *  โดยไม่ต้องให้ผู้ใช้ไปเปิด SQL editor เทียบรหัสเอง */
+export interface Diagnosis {
+  email: string;
+  userId: string;
+  readableBooks: { id: string; name: string }[];
+  activeBookId: string;
+  activeBookReadable: boolean;
+  writeOk: boolean;
+  writeError: string;
+}
+
+export async function diagnose(activeBookId: string): Promise<Diagnosis> {
+  const c = db();
+  const sb = getSupabase();
+  const { data: userData } = await (sb ? sb.auth.getUser() : Promise.resolve({ data: { user: null } }));
+  const user = userData?.user ?? null;
+
+  const out: Diagnosis = {
+    email: user?.email ?? '(ไม่พบ — ยังไม่ได้เข้าระบบ)',
+    userId: user?.id ?? '',
+    readableBooks: [],
+    activeBookId,
+    activeBookReadable: false,
+    writeOk: false,
+    writeError: '',
+  };
+
+  const { data: books, error: readError } = await c.from('books').select('id, display_name');
+  if (readError) {
+    out.writeError = `อ่านรายชื่อสมุดไม่ได้: ${readError.message}`;
+    return out;
+  }
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  out.readableBooks = (books as any[]).map((b) => ({ id: b.id, name: b.display_name }));
+  out.activeBookReadable = out.readableBooks.some((b) => b.id === activeBookId);
+
+  // เขียนทดสอบแบบไม่เปลี่ยนข้อมูลจริง: เขียนชื่อเดิมทับตัวเอง
+  const current = out.readableBooks.find((b) => b.id === activeBookId);
+  if (!current) {
+    out.writeError = 'สมุดที่เปิดอยู่ไม่มีในฐานข้อมูล จึงยังไม่ได้ลองเขียน';
+    return out;
+  }
+  const { data: wrote, error: writeError } = await c
+    .from('books').update({ display_name: current.name }).eq('id', activeBookId).select('id');
+  if (writeError) out.writeError = writeError.message;
+  else if (!wrote?.length) out.writeError = 'เขียนแล้วไม่โดนแถวไหนเลย — สิทธิ์ไม่ถึง';
+  else out.writeOk = true;
+  return out;
+}
