@@ -222,10 +222,28 @@ export async function deleteDoctor(id: string): Promise<void> {
   check('deleteDoctor', error);
 }
 
+/** ฐานข้อมูลที่ยังไม่ได้รัน migration ล่าสุดจะไม่มีคอลัมน์ที่โค้ดใหม่ส่งไป
+ *  PostgREST ตอบ PGRST204 พร้อมชื่อคอลัมน์ที่หาไม่เจอ */
+function isMissingColumn(error: PgError, column: string): boolean {
+  if (!error) return false;
+  return error.code === 'PGRST204' && error.message.includes(column);
+}
+
 /** ยาซ้ำคำนวณฝั่งแอป แล้วอัปเดตธงกลับทั้งเล่มในทีเดียว */
 export async function upsertMedications(meds: Medication[]): Promise<void> {
   if (!meds.length) return;
-  const { error } = await db().from('medications').upsert(meds.map(medicationRow));
+  const rows = meds.map(medicationRow);
+  const { error } = await db().from('medications').upsert(rows);
+  if (!error) return;
+
+  // ยังไม่ได้รัน 0003 — บันทึกส่วนที่เหลือให้ก่อน ดีกว่าให้ทั้งรายการบันทึกไม่ได้เลย
+  // จังหวะก่อน/หลังอาหารยังอ่านจากข้อความวิธีกินได้อยู่ จึงไม่เสียอะไรที่จอ
+  if (isMissingColumn(error, 'timing')) {
+    const withoutTiming = rows.map(({ timing: _timing, ...rest }) => rest);
+    const retry = await db().from('medications').upsert(withoutTiming);
+    check('upsertMedications', retry.error);
+    return;
+  }
   check('upsertMedications', error);
 }
 
