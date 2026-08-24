@@ -147,6 +147,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const inFlight = useRef(0);
   // ตัวยิงคิวซ้ำ ตั้งค่าไว้ตอนสร้าง actions — ปุ่ม "ลองบันทึกใหม่" เรียกผ่านตัวนี้
   const flushRef = useRef<(() => Promise<void>) | null>(null);
+  // แยกให้ออกว่า "ผู้ใช้กดออกจากระบบเอง" กับ "token ต่ออายุไม่สำเร็จ"
+  // supabase ยิงเหตุการณ์เดียวกัน (SIGNED_OUT) ทั้งสองกรณี
+  const intentionalSignOut = useRef(false);
   const [hasLocalToUpload, setHasLocalToUpload] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
@@ -200,7 +203,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const load = async (userId: string | undefined, email = '') => {
       if (cancelled) return;
       if (!userId) {
-        // ออกจากระบบไปแล้ว (หรือหมดอายุ) — สำเนาบนจอต้องหายไปด้วย
+        // ไม่มี session — แยกสองกรณีให้ขาดจากกัน
+        //
+        // 1) กดออกจากระบบเอง หรือเครื่องนี้ยังไม่เคยเข้าระบบ → ล้างของบนจอถูกแล้ว
+        // 2) เคยเข้าระบบอยู่ แต่ต่ออายุ token ไม่สำเร็จตอนกลับมาเปิดแอป
+        //    → ห้ามล้าง ห้ามลืมว่าใครเข้าค้างไว้ ไม่งั้นผู้ใช้โดนเด้งไปหน้าใส่อีเมล
+        //    ทั้งที่ไม่ได้ทำอะไรผิด แล้วต้องกดโหลดซ้ำจนกว่าจะมีรอบที่ต่ออายุทัน
+        if (showingCache && !intentionalSignOut.current) {
+          setState((s) => ({ ...s, ready: true }));
+          toast('ต่อคลาวด์ไม่ได้ชั่วคราว — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+          return;
+        }
         showingCache = false;
         saveLastUserId('');
         setState((s) => ({
@@ -238,7 +251,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       authResolved = true;
       void load(userId, email);
     };
-    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = sb.auth.onAuthStateChange((event, session) => {
+      // ── จุดที่ทำให้ต้องกดโหลดซ้ำ 2-3 ครั้งตอนไม่ได้เข้าสักพัก ──
+      // token ของ supabase หมดอายุทุกชั่วโมง กลับมาเปิดแอปทีต้องต่ออายุก่อน
+      // ถ้าจังหวะนั้นเน็ตสะดุด (เพิ่งปลดล็อกจอ ยังไม่จับสัญญาณ) การต่ออายุล้ม
+      // แล้ว supabase ยิง SIGNED_OUT ออกมา — เหมือนกับตอนกดออกจากระบบเองเป๊ะ
+      //
+      // เดิมไม่ได้ดูเลยว่าเป็นเหตุการณ์อะไร เหมารวมว่าออกจากระบบแล้ว
+      // จึงล้างข้อมูลบนจอทิ้งและลืมว่าใครเข้าระบบค้างไว้ ผู้ใช้เลยโดนเด้งออก
+      // ต้องโหลดใหม่จนกว่าจะมีรอบที่ต่ออายุทัน
+      if (event === 'SIGNED_OUT' && !intentionalSignOut.current) {
+        setState((st) => ({ ...st, ready: true }));
+        toast('ต่อคลาวด์ไม่ได้ชั่วคราว — กำลังลองเชื่อมต่อใหม่');
+        // ลองต่ออายุให้เองเลย ดีกว่าให้ผู้ใช้ไปนั่งกดโหลดหน้าเอง
+        sb.auth.refreshSession().then(({ data, error }) => {
+          if (cancelled || error || !data.session) return;
+          onAuth(data.session.user.id, data.session.user.email ?? '');
+        }).catch(() => { /* ยังไม่ได้ก็แสดงสำเนาในเครื่องไปก่อน */ });
+        return;
+      }
+      intentionalSignOut.current = false;
       onAuth(session?.user.id, session?.user.email ?? '');
     });
 
@@ -474,6 +506,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       signOut: async () => {
+        intentionalSignOut.current = true;
         clearCloudCache(stateRef.current.userId);
         saveLastUserId('');
         await getSupabase()?.auth.signOut();
