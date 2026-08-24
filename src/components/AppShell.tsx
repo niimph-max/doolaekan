@@ -6,6 +6,7 @@ import { ConfigError } from './ConfigError';
 import { LoadError } from './LoadError';
 import { Splash } from './Splash';
 import { Onboarding } from './Onboarding';
+import { NoBook } from './NoBook';
 import { TabBar } from './TabBar';
 import { EmergencyCard } from './EmergencyCard';
 import { TodayScreen } from './screens/TodayScreen';
@@ -51,9 +52,12 @@ export function AppShell() {
   }
 
   if (!state.onboarded) {
+    // เข้าระบบแล้วแต่ไม่เห็นสมุด = แยกไม่ออกว่าเป็นผู้ใช้ใหม่ หรืออ่านข้อมูลไม่ติด
+    // ห้ามพาไปหน้ากรอกข้อมูลตรงๆ ให้ไปที่ที่รอได้ก่อน แล้วค่อยเลือกเองว่าจะสร้างใหม่
+    const signedIn = state.mode === 'cloud' && Boolean(state.userId);
     return (
       <div className="app">
-        <Onboarding />
+        {signedIn ? <NoBook /> : <Onboarding />}
         <div style={{
           position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
           zIndex: 55, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',

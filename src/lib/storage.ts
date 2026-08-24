@@ -119,3 +119,27 @@ export function savePrefs(state: AppState): void {
     activeGroupId: state.activeGroupId,
   } satisfies Prefs);
 }
+
+/** บัญชีที่ "เครื่องนี้เคยเปิดสมุดได้จริง" มาก่อน
+ *
+ *  ใช้แยกสองกรณีที่หน้าตาเหมือนกันเป๊ะ คือได้สมุดกลับมา 0 เล่ม:
+ *  ผู้ใช้ใหม่ที่ยังไม่มีสมุดจริงๆ กับผู้ใช้เดิมที่อ่านข้อมูลไม่ติดชั่วคราว
+ *  (token หมดอายุแล้วต่อไม่ทัน ฐานข้อมูลจึงมองไม่เห็นว่าเราคือใคร แล้วตอบว่าว่าง
+ *  โดยไม่นับเป็น error) ถ้าแยกไม่ออกจะพาผู้ใช้เดิมไปหน้ากรอกข้อมูลใหม่
+ *  แล้วได้สมุดซ้ำสองเล่ม */
+const HAD_BOOK_KEY = 'doolaekan_had_book';
+
+export function hadBookBefore(userId: string): boolean {
+  if (!userId) return false;
+  return (read<string[]>(HAD_BOOK_KEY) ?? []).includes(userId);
+}
+
+export function markHadBook(userId: string): void {
+  if (!userId || hadBookBefore(userId)) return;
+  write(HAD_BOOK_KEY, [...(read<string[]>(HAD_BOOK_KEY) ?? []), userId]);
+}
+
+export function forgetHadBook(userId: string): void {
+  if (!userId) return;
+  write(HAD_BOOK_KEY, (read<string[]>(HAD_BOOK_KEY) ?? []).filter((id) => id !== userId));
+}

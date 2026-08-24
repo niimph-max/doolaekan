@@ -9,10 +9,14 @@ import { uid } from './format';
 import { demoState } from './seed';
 import {
   clearCloudCache, clearLocal, loadCloudCache, loadLastUserId, loadLocal, loadPrefs,
+  markHadBook,
   saveCloudCache, saveLastUserId, savePrefs, saveLocal,
 } from './storage';
 import * as remote from './remote';
 import { getSupabase, isSupabaseConfigured } from './supabase';
+
+/** เวลาสูงสุดที่ยอมรอการต่ออายุ token ก่อนจะลองดึงข้อมูลด้วยใบเดิมไปเลย */
+const REFRESH_TIMEOUT_MS = 2500;
 
 const emptyState: AppState = {
   ready: false,
@@ -46,6 +50,9 @@ function applyData(s: AppState, data: remote.CloudData, userId: string): AppStat
   }
 
   const myBook = data.books.find((b) => b.is_mine);
+  // เปิดสมุดของบัญชีนี้ได้จริงในเครื่องนี้ — จำไว้ ครั้งหน้าถ้าอ่านกลับมาว่าง
+  // จะได้รู้ว่าเป็นอาการอ่านไม่ติด ไม่ใช่ผู้ใช้ใหม่ แล้วพาไปหน้ารอแทนหน้ากรอก
+  if (myBook) markHadBook(userId);
   return {
     ...s, ...data,
     ready: true, userId, loadError: '',
@@ -547,6 +554,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const userId = stateRef.current.userId;
         if (!userId) return;
         setState((s) => ({ ...s, loadError: '' }));
+        // ต่ออายุ token ก่อนเสมอ — สาเหตุที่พบบ่อยที่สุดของการอ่านไม่ติดคือ token
+        // หมดอายุ ซึ่งดึงข้อมูลซ้ำเฉยๆ ไม่ช่วย เพราะยังใช้ใบเดิมที่หมดอายุอยู่ดี
+        //
+        // ต้องมีเวลาจำกัดเสมอ: ถ้าเน็ตตายสนิท คำขอนี้ค้างได้ยาวมากโดยไม่เด้ง error
+        // ผู้ใช้จะติดอยู่กับข้อความ "กำลังดึงสมุด…" ไม่จบสักที ซึ่งแย่กว่าบอกไปตรงๆ
+        // ว่าดึงไม่ได้แล้วให้กดลองเอง
+        const sb = getSupabase();
+        if (sb) {
+          await Promise.race([
+            sb.auth.refreshSession().catch(() => { /* ต่อไม่ได้ก็ลองด้วยใบเดิม */ }),
+            new Promise((resolve) => setTimeout(resolve, REFRESH_TIMEOUT_MS)),
+          ]);
+        }
         try {
           await refresh(userId);
         } catch (e) {
