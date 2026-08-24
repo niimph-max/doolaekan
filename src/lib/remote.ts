@@ -478,8 +478,28 @@ export async function diagnose(activeBookId: string): Promise<Diagnosis> {
   // ซึ่งเป็นข้อมูลที่ไม่ช่วยอะไร ทั้งที่เป็นคำถามสำคัญที่สุดว่าเขียนได้ไหม
   if (!activeBookId || !out.activeBookReadable) {
     if (!user) { out.writeError = 'ไม่มี session — ต่อคลาวด์ในนามผู้ใช้ไม่ได้'; return out; }
+
+    // ห้ามยัดข้อความสำหรับดีบักลงไป: ชื่อโปรไฟล์คือชื่อที่คนอื่นในกลุ่มเห็น
+    // และไปโผล่เป็นตัวเลือก "ใครพาไป" ด้วย การตรวจต้องไม่เปลี่ยนข้อมูลจริง
+    // จึงอ่านชื่อเดิมมาเขียนทับตัวเอง แบบเดียวกับที่ฝั่งสมุดทำข้างล่าง
+    const { data: mine, error: readMineError } = await c
+      .from('profiles').select('display_name').eq('id', user.id).maybeSingle();
+    if (readMineError) { out.writeError = readMineError.message; return out; }
+
+    if (mine) {
+      const { data: prof, error: profError } = await c
+        .from('profiles').update({ display_name: mine.display_name }).eq('id', user.id).select('id');
+      if (profError) out.writeError = profError.message;
+      else if (!prof?.length) out.writeError = 'เขียนแล้วไม่โดนแถวไหนเลย — สิทธิ์ไม่ถึง';
+      else out.writeOk = true;
+      return out;
+    }
+
+    // ยังไม่มีแถวโปรไฟล์เลย จำเป็นต้องสร้างจริงถึงจะรู้ว่าเขียนได้ไหม
+    // ตั้งชื่อจากอีเมลไว้ก่อน เดี๋ยวตอนกรอกข้อมูลเสร็จจะถูกเขียนทับด้วยชื่อที่ผู้ใช้ตั้งเอง
+    const fallback = (user.email ?? '').split('@')[0] || 'สมาชิก';
     const { data: prof, error: profError } = await c
-      .from('profiles').upsert({ id: user.id, display_name: 'ตรวจการเชื่อมต่อ' }).select('id');
+      .from('profiles').insert({ id: user.id, display_name: fallback }).select('id');
     if (profError) out.writeError = profError.message;
     else if (!prof?.length) out.writeError = 'เขียนแล้วไม่โดนแถวไหนเลย — สิทธิ์ไม่ถึง';
     else out.writeOk = true;
