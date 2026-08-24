@@ -51,12 +51,18 @@ function applyData(s: AppState, data: remote.CloudData, userId: string): AppStat
     return { ...s, ready: true, userId, loadError: '' };
   }
 
+  // ของหนักดึงไม่สำเร็จ = ได้อาร์เรย์ว่างกลับมา ห้ามเอาไปทับของเดิมที่ยังดีอยู่
+  // ไม่งั้นไทม์ไลน์กับประวัติกินยาจะหายวูบทุกครั้งที่เน็ตไม่ดี ทั้งที่ยังอยู่บนคลาวด์
+  const kept = data.partial
+    ? { ...data, records: s.records, medLogs: s.medLogs }
+    : data;
+
   const myBook = data.books.find((b) => b.is_mine);
   // เปิดสมุดของบัญชีนี้ได้จริงในเครื่องนี้ — จำไว้ ครั้งหน้าถ้าอ่านกลับมาว่าง
   // จะได้รู้ว่าเป็นอาการอ่านไม่ติด ไม่ใช่ผู้ใช้ใหม่ แล้วพาไปหน้ารอแทนหน้ากรอก
   if (myBook) markHadBook(userId);
   return {
-    ...s, ...data,
+    ...s, ...kept,
     ready: true, userId, loadError: '',
     onboarded: Boolean(myBook),
     activeBookId: data.books.some((b) => b.id === s.activeBookId)
@@ -195,10 +201,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async (userId: string) => {
     const data = await remote.fetchAll(userId);
     setState((s) => applyData(s, data, userId));
+    // เปิดแอปได้แล้วแต่ได้มาไม่ครบ ต้องบอก ไม่ใช่ให้ผู้ใช้ไปเจอไทม์ไลน์ว่างแล้วงงเอง
+    if (data.partial) toast('ยากับนัดพร้อมแล้ว — ไทม์ไลน์ย้อนหลังยังดึงไม่ครบ');
     // จำไว้ว่าใครเข้าระบบค้างอยู่ เปิดแอปครั้งหน้าจะได้หยิบสำเนาของคนนี้ขึ้นมาทันที
     // (ตัวสำเนาเองมี effect คอยเขียนตามทุกครั้งที่ข้อมูลเปลี่ยน)
     saveLastUserId(userId);
-  }, []);
+  }, [toast]);
 
   // ── โหลดครั้งแรก ──
   useEffect(() => {

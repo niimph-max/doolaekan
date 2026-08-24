@@ -9,7 +9,16 @@ export type CloudData = Pick<
   AppState,
   'books' | 'doctors' | 'medications' | 'medLogs' | 'appointments'
   | 'records' | 'watchRules' | 'groups' | 'shares'
->;
+> & {
+  /** ของหนัก (ไทม์ไลน์ / ประวัติกินยา) ดึงไม่สำเร็จ — ที่เหลือใช้ได้ตามปกติ */
+  partial?: boolean;
+};
+
+/** ไทม์ไลน์ย้อนหลังแค่ไหนถึงพอใช้จริง — หน้าจอแสดงรายการล่าสุดกับกราฟความดัน 7 ครั้ง
+ *  ดึงมาทั้งตารางไม่มีประโยชน์ และยิ่งใช้ไปนานวันยิ่งหนักจนเปิดแอปไม่ได้ */
+const RECORDS_LIMIT = 300;
+/** ประวัติกินยาใช้แค่เช็คว่าวันนี้กินมื้อไหนไปแล้ว ย้อนหลังเดือนเดียวเหลือเฟือ */
+const MED_LOG_DAYS = 30;
 
 const SCANS = 'scans';
 const MED_PHOTOS = 'med-photos';
@@ -156,17 +165,41 @@ export const watchRuleRow = (w: WatchRule) => ({
 /** ดึงทุกอย่างที่ผู้ใช้คนนี้มีสิทธิ์เห็น — RLS เป็นคนตัดสินว่าเห็นอะไรได้บ้าง */
 export async function fetchAll(userId: string): Promise<CloudData> {
   const c = db();
-  const [books, doctors, meds, logs, appts, recs, rules, groups, members, shares] = await Promise.all([
+
+  // ── ของจำเป็น ต้องได้ครบถึงจะเปิดแอปได้ ──
+  // ทั้งหมดนี้เล็กและโตช้า: สมุด หมอ ยาที่ยังกินอยู่ นัด ข้อเฝ้าระวัง กลุ่ม
+  const [books, doctors, meds, appts, rules, groups, members, shares] = await Promise.all([
     c.from('books').select('*').then((r) => unwrap('อ่านสมุด', r)),
     c.from('doctors').select('*').then((r) => unwrap('อ่านรายชื่อหมอ', r)),
     c.from('medications').select('*').eq('active', true).then((r) => unwrap('อ่านรายการยา', r)),
-    c.from('med_logs').select('*').then((r) => unwrap('อ่านประวัติกินยา', r)),
     c.from('appointments').select('*').then((r) => unwrap('อ่านนัดหมอ', r)),
-    c.from('records').select('*').order('created_at', { ascending: false }).then((r) => unwrap('อ่านไทม์ไลน์', r)),
     c.from('watch_rules').select('*').then((r) => unwrap('อ่านข้อเฝ้าระวัง', r)),
     c.from('groups').select('*').then((r) => unwrap('อ่านกลุ่ม', r)),
     c.from('group_members').select('group_id, user_id, profiles(display_name)').then((r) => unwrap('อ่านสมาชิกกลุ่ม', r)),
     c.from('book_shares').select('*').then((r) => unwrap('อ่านการแชร์', r)),
+  ]);
+
+  // ── ของหนัก แยกออกมาและยอมให้พลาดได้ ──
+  // ไทม์ไลน์กับประวัติกินยาโตทุกวันไม่มีเพดาน เดิมรวมอยู่ในชุดเดียวกับของจำเป็น
+  // ตัวใดตัวหนึ่งช้าเกินเส้นตายจึงทำให้เปิดแอปไม่ได้เลย ทั้งที่ยากับนัดพร้อมอยู่แล้ว
+  // ตอนนี้จำกัดปริมาณและปล่อยให้พลาดได้ ยาวันนี้กับนัดหมอสำคัญกว่าไทม์ไลน์ย้อนหลัง
+  const sinceDay = new Date(Date.now() - MED_LOG_DAYS * 86400000).toISOString().slice(0, 10);
+  let partial = false;
+  const optional = async (
+    label: string,
+    q: PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
+  ): Promise<unknown[]> => {
+    try {
+      return unwrap(label, await q);
+    } catch {
+      partial = true;
+      return [];
+    }
+  };
+  const [logs, recs] = await Promise.all([
+    optional('อ่านประวัติกินยา', c.from('med_logs').select('*').gte('dose_day', sinceDay)),
+    optional('อ่านไทม์ไลน์', c.from('records').select('*')
+      .order('created_at', { ascending: false }).limit(RECORDS_LIMIT)),
   ]);
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -182,6 +215,7 @@ export async function fetchAll(userId: string): Promise<CloudData> {
   await Promise.all([attachSignedUrls(records), attachApptUrls(appointments)]);
 
   return {
+    partial,
     books: (books as any[]).map((b) => toBook(b, userId)),
     doctors: (doctors as any[]).map(toDoctor),
     medications: (meds as any[]).map(toMedication),
