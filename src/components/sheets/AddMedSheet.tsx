@@ -1,25 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ComboField } from '../ComboField';
 import { Sheet } from '../Sheet';
 import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
+import { hospitalOfDoctor, medFieldOptions } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { DoseSlot, MealTiming } from '@/lib/types';
 
 export function AddMedSheet({ open, bookId, onClose }: {
   open: boolean; bookId: string; onClose: () => void;
 }) {
-  const { actions } = useStore();
+  const { state, actions } = useStore();
   const [name, setName] = useState('');
   const [how, setHow] = useState('');
   const [prescriber, setPrescriber] = useState('');
   const [helps, setHelps] = useState('');
   const [tag, setTag] = useState('');
+  const [hospital, setHospital] = useState('');
   const [slots, setSlots] = useState<DoseSlot[]>(['morning']);
   const [timing, setTiming] = useState<MealTiming>('');
 
   const close = () => {
-    setName(''); setHow(''); setPrescriber(''); setHelps(''); setTag(''); setSlots(['morning']); setTiming('');
+    setName(''); setHow(''); setPrescriber(''); setHelps(''); setTag(''); setHospital(''); setSlots(['morning']); setTiming('');
     onClose();
   };
 
@@ -27,7 +30,7 @@ export function AddMedSheet({ open, bookId, onClose }: {
     if (!name.trim()) return;
     actions.addMedication(bookId, {
       name: name.trim(), how_to_take: how.trim(), prescriber: prescriber.trim(),
-      helps: helps.trim(), tag: tag.trim(), slots, timing,
+      helps: helps.trim(), tag: tag.trim(), hospital: hospital.trim(), slots, timing,
     });
     actions.toast('เพิ่มยาแล้ว');
     close();
@@ -43,17 +46,24 @@ export function AddMedSheet({ open, bookId, onClose }: {
       <input id="md-how" className="o-input" placeholder="เช่น เช้า 1 เม็ด หลังอาหาร"
         value={how} onChange={(e) => setHow(e.target.value)} />
 
-      <label className="o-label" htmlFor="md-doc">หมอที่สั่ง</label>
-      <input id="md-doc" className="o-input" placeholder="เช่น หมอหัวใจ"
-        value={prescriber} onChange={(e) => setPrescriber(e.target.value)} />
+      <ComboField id="md-doc" label="ชื่อหมอ" value={prescriber}
+        options={medFieldOptions(state, bookId).prescribers} placeholder="เลือกหมอ…"
+        onChange={(name) => {
+          setPrescriber(name);
+          const h = hospitalOfDoctor(state, bookId, name);
+          if (h) setHospital(h);
+        }} />
 
       <label className="o-label" htmlFor="md-helps">ช่วยอะไร (ภาษาบ้านๆ)</label>
       <input id="md-helps" className="o-input" placeholder="เช่น ลดความดัน ขยายหลอดเลือด"
         value={helps} onChange={(e) => setHelps(e.target.value)} />
 
-      <label className="o-label" htmlFor="md-tag">แผนก</label>
-      <input id="md-tag" className="o-input" placeholder="เช่น หัวใจ / ตา / กระดูก"
-        value={tag} onChange={(e) => setTag(e.target.value)} />
+      <ComboField id="md-tag" label="แผนก" value={tag}
+        options={medFieldOptions(state, bookId).tags} placeholder="เลือกแผนก…" onChange={setTag} />
+
+      <ComboField id="md-hosp" label="โรงพยาบาล / คลินิก" value={hospital}
+        options={medFieldOptions(state, bookId).hospitals} placeholder="เลือกโรงพยาบาล…"
+        onChange={setHospital} />
 
       <label className="o-label">ก่อน / หลังอาหาร</label>
       <div className="o-chips">

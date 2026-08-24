@@ -1,30 +1,177 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ComboField } from '../ComboField';
 import { Icon } from '../Icon';
 import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
-import { mealTimingOf } from '@/lib/selectors';
+import { hospitalOfDoctor, mealTimingOf, medFieldOptions } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
-import type { Book, DoseSlot } from '@/lib/types';
+import type { Book, DoseSlot, MealTiming, Medication } from '@/lib/types';
+
+/** ยาหนึ่งตัว: อ่านอย่างเดียว จนกว่าจะกดแก้ไข
+ *  ตอนแก้ใช้สำเนาในเครื่อง แล้วบันทึกทีเดียวตอนกดเสร็จ — ถ้าบันทึกทุกตัวอักษร
+ *  ข้อมูลจากคลาวด์จะไหลกลับมาทับสิ่งที่กำลังพิมพ์ และการ์ดจะหลุดจากตัวกรองกลางคัน */
+function MedCard({ med, book, onFilterCleared }: {
+  med: Medication; book: Book; onFilterCleared: () => void;
+}) {
+  const { state, actions } = useStore();
+  const [draft, setDraft] = useState<Medication | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const options = medFieldOptions(state, book.id);
+  const timing = mealTimingOf(med);
+  const detail = [med.prescriber, med.tag, med.hospital].filter(Boolean).join(' · ');
+
+  const set = (patch: Partial<Medication>) => setDraft((d) => (d ? { ...d, ...patch } : d));
+
+  const pickDoctor = (name: string) => {
+    const hospital = hospitalOfDoctor(state, book.id, name);
+    set(hospital ? { prescriber: name, hospital } : { prescriber: name });
+  };
+
+  const save = () => {
+    if (!draft) return;
+    actions.updateMedication(med.id, {
+      name: draft.name, helps: draft.helps, how_to_take: draft.how_to_take,
+      prescriber: draft.prescriber, tag: draft.tag, hospital: draft.hospital,
+      timing: draft.timing, slots: draft.slots,
+    });
+    setDraft(null);
+    onFilterCleared();
+  };
+
+  return (
+    <div className="o-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+        <h3>{med.name}</h3>
+        {med.tag && <span className="o-tag sage" style={{ height: 'fit-content' }}>{med.tag}</span>}
+      </div>
+      {med.helps && (
+        <p style={{ margin: '6px 0' }}>
+          <strong style={{ color: 'var(--color-accent-700)' }}>ช่วยอะไร:</strong> {med.helps}
+        </p>
+      )}
+      {med.how_to_take && <p className="subtle" style={{ margin: '2px 0 0' }}>{med.how_to_take}</p>}
+      {detail && <p className="subtle" style={{ margin: '2px 0 0' }}>{detail}</p>}
+      {med.slots.length > 0 && (
+        <p className="subtle" style={{ margin: '2px 0 0' }}>
+          มื้อ: {med.slots.map((s) => SLOT_LABEL[s]).join(' · ')}
+          {timing && ` · ${MEAL_LABEL[timing]}`}
+        </p>
+      )}
+      {med.duplicate_flag && (
+        <p style={{ margin: '8px 0 0', color: 'var(--color-accent-700)', fontWeight: 600 }}>
+          ⚑ ติดธงยาซ้ำ
+        </p>
+      )}
+
+      {!draft && (
+        <button type="button" className="o-btn ghost"
+          style={{ marginTop: 12, padding: '8px 18px', minHeight: 38 }}
+          onClick={() => { setDraft({ ...med }); setConfirmingDelete(false); }}>
+          แก้ไข
+        </button>
+      )}
+
+      {draft && (
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--color-neutral-200)', paddingTop: 4 }}>
+          <label className="o-label" htmlFor={`md-name-${med.id}`}>ชื่อยา</label>
+          <input id={`md-name-${med.id}`} className="o-input" value={draft.name}
+            onChange={(e) => set({ name: e.target.value })} />
+
+          <label className="o-label" htmlFor={`md-helps-${med.id}`}>ช่วยอะไร (ภาษาบ้านๆ)</label>
+          <input id={`md-helps-${med.id}`} className="o-input" placeholder="เช่น ลดความดัน ขยายหลอดเลือด"
+            value={draft.helps} onChange={(e) => set({ helps: e.target.value })} />
+
+          <label className="o-label" htmlFor={`md-how-${med.id}`}>วิธีกิน</label>
+          <input id={`md-how-${med.id}`} className="o-input" value={draft.how_to_take}
+            onChange={(e) => set({ how_to_take: e.target.value })} />
+
+          <ComboField id={`md-doc-${med.id}`} label="ชื่อหมอ" value={draft.prescriber}
+            options={options.prescribers} placeholder="เลือกหมอ…" onChange={pickDoctor} />
+
+          <ComboField id={`md-tag-${med.id}`} label="แผนก" value={draft.tag}
+            options={options.tags} placeholder="เลือกแผนก…" onChange={(tag) => set({ tag })} />
+
+          <ComboField id={`md-hosp-${med.id}`} label="โรงพยาบาล / คลินิก" value={draft.hospital}
+            options={options.hospitals} placeholder="เลือกโรงพยาบาล…"
+            onChange={(hospital) => set({ hospital })} />
+
+          <label className="o-label">ก่อน / หลังอาหาร</label>
+          <div className="o-chips">
+            {MEAL_ORDER.filter((t) => t !== '').map((t) => (
+              <button key={t} type="button" className="o-chip" aria-pressed={draft.timing === t}
+                onClick={() => set({ timing: (draft.timing === t ? '' : t) as MealTiming })}>
+                {MEAL_LABEL[t]}
+              </button>
+            ))}
+          </div>
+
+          <label className="o-label">มื้อที่ต้องกิน</label>
+          <div className="o-chips">
+            {SLOT_ORDER.map((slot: DoseSlot) => (
+              <button key={slot} type="button" className="o-chip" aria-pressed={draft.slots.includes(slot)}
+                onClick={() => set({
+                  slots: draft.slots.includes(slot)
+                    ? draft.slots.filter((x) => x !== slot)
+                    : [...draft.slots, slot],
+                })}>
+                {SLOT_LABEL[slot]}
+              </button>
+            ))}
+          </div>
+
+          <div className="o-row" style={{ marginTop: 18 }}>
+            <button type="button" className="o-btn ghost" onClick={() => setDraft(null)}>ยกเลิก</button>
+            <button type="button" className="o-btn primary" onClick={save}>บันทึก</button>
+          </div>
+
+          {confirmingDelete ? (
+            <>
+              <p className="subtle" style={{ margin: '16px 0 8px' }}>
+                เอา {med.name} ออกจากรายการ · ประวัติกินยาที่บันทึกไว้ยังเก็บอยู่
+              </p>
+              <div className="o-row">
+                <button type="button" className="o-btn ghost" onClick={() => setConfirmingDelete(false)}>
+                  ไม่ลบ
+                </button>
+                <button type="button" className="o-btn danger"
+                  onClick={() => {
+                    actions.removeMedication(med.id);
+                    actions.toast(`เอา ${med.name} ออกแล้ว`);
+                  }}>
+                  ยืนยันลบ
+                </button>
+              </div>
+            </>
+          ) : (
+            <button type="button" className="o-btn ghost block" style={{ marginTop: 12 }}
+              onClick={() => setConfirmingDelete(true)}>
+              <Icon name="x" size={17} /> เอายานี้ออก
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MedsScreen({ book, onScan, onAddMed }: {
   book: Book; onScan: () => void; onAddMed: () => void;
 }) {
-  const { state, actions } = useStore();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { state } = useStore();
   const [filter, setFilter] = useState('');
 
   const allMeds = state.medications.filter((m) => m.book_id === book.id);
-  // แท็กที่กรอกไว้เอง ถ้าไม่ได้กรอกก็ใช้ชื่อหมอที่สั่งแทน
-  const groupOf = (m: { tag: string; prescriber: string }) => m.tag || m.prescriber || 'ไม่ระบุ';
+  // จัดกลุ่มตามหมอที่สั่ง — ถ้าไม่ได้กรอกก็ใช้แผนกแทน
+  const groupOf = (m: Medication) => m.prescriber || m.tag || 'ไม่ระบุ';
   const groups = Array.from(new Set(allMeds.map(groupOf))).sort();
   const meds = filter ? allMeds.filter((m) => groupOf(m) === filter) : allMeds;
-  const dupes = allMeds.filter((m) => m.duplicate_flag);
 
-  // จัดกลุ่มยาซ้ำตามตัวยาหลัก เพื่อบอกเป็นคู่ว่าอะไรซ้ำกับอะไร
+  // เตือนยาซ้ำนับจากยาทั้งเล่มเสมอ ยาซ้ำข้ามหมอคือเคสที่อันตรายที่สุด
+  // ถ้านับเฉพาะที่กรองอยู่ คำเตือนจะถูกตัวกรองบังหายไปพอดี
   const dupePairs = Array.from(
-    dupes.reduce((acc, m) => {
+    allMeds.filter((m) => m.duplicate_flag).reduce((acc, m) => {
       const k = m.name.trim().split(/[\s\d]/)[0];
       acc.set(k, [...(acc.get(k) ?? []), m.name]);
       return acc;
@@ -39,16 +186,14 @@ export function MedsScreen({ book, onScan, onAddMed }: {
         {filter ? `${meds.length} จาก ${allMeds.length} รายการ · ${filter}` : `${allMeds.length} รายการ`}
       </p>
 
-      {/* กรองตามหมอ/แผนก — เตรียมไปหาหมอคนไหน ก็ดูเฉพาะยาของหมอคนนั้น */}
       {groups.length > 1 && (
         <div className="o-chips" style={{ marginTop: 12 }}>
-          <button type="button" className="o-chip" aria-pressed={!filter}
-            onClick={() => setFilter('')}>
+          <button type="button" className="o-chip" aria-pressed={!filter} onClick={() => setFilter('')}>
             ทั้งหมด {allMeds.length}
           </button>
           {groups.map((g) => (
             <button key={g} type="button" className="o-chip" aria-pressed={filter === g}
-              onClick={() => { setFilter(filter === g ? '' : g); setEditingId(null); }}>
+              onClick={() => setFilter(filter === g ? '' : g)}>
               {g} {allMeds.filter((m) => groupOf(m) === g).length}
             </button>
           ))}
@@ -82,128 +227,13 @@ export function MedsScreen({ book, onScan, onAddMed }: {
             </button>
           )
         )}
-        {meds.map((m) => {
-          const isEditing = editingId === m.id;
-          const isConfirmingDelete = deletingId === m.id;
-          const toggleSlot = (slot: DoseSlot) => actions.updateMedication(m.id, {
-            slots: m.slots.includes(slot) ? m.slots.filter((x) => x !== slot) : [...m.slots, slot],
-          });
-          return (
-            <div key={m.id} className="o-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                <h3>{m.name}</h3>
-                {m.tag && (
-                  <button type="button" className="o-tag sage"
-                    style={{ height: 'fit-content', border: 0, cursor: 'pointer', font: 'inherit', fontSize: 12.5, fontWeight: 600 }}
-                    title={`ดูเฉพาะยาของ ${m.tag}`}
-                    onClick={() => { setFilter(filter === m.tag ? '' : m.tag); setEditingId(null); }}>
-                    {m.tag}
-                  </button>
-                )}
-              </div>
-              {m.helps && (
-                <p style={{ margin: '6px 0' }}>
-                  <strong style={{ color: 'var(--color-accent-700)' }}>ช่วยอะไร:</strong> {m.helps}
-                </p>
-              )}
-              <p className="subtle" style={{ margin: '2px 0 0' }}>
-                {[m.how_to_take, m.prescriber].filter(Boolean).join(' · ')}
-              </p>
-              {m.slots.length > 0 && (
-                <p className="subtle" style={{ margin: '2px 0 0' }}>
-                  มื้อ: {m.slots.map((s) => SLOT_LABEL[s]).join(' · ')}
-                  {mealTimingOf(m) && ` · ${MEAL_LABEL[mealTimingOf(m)]}`}
-                </p>
-              )}
-              {m.duplicate_flag && (
-                <p style={{ margin: '8px 0 0', color: 'var(--color-accent-700)', fontWeight: 600 }}>
-                  ⚑ ติดธงยาซ้ำ
-                </p>
-              )}
-
-              <button type="button" className="o-btn ghost" style={{ marginTop: 12, padding: '8px 18px', minHeight: 38 }}
-                onClick={() => { setEditingId(isEditing ? null : m.id); setDeletingId(null); }}>
-                {isEditing ? 'เสร็จ' : 'แก้ไข'}
-              </button>
-
-              {isEditing && (
-                <div style={{ marginTop: 4 }}>
-                  <label className="o-label" htmlFor={`md-name-${m.id}`}>ชื่อยา</label>
-                  <input id={`md-name-${m.id}`} className="o-input" value={m.name}
-                    onChange={(e) => actions.updateMedication(m.id, { name: e.target.value })} />
-
-                  <label className="o-label" htmlFor={`md-helps-${m.id}`}>ช่วยอะไร (ภาษาบ้านๆ)</label>
-                  <input id={`md-helps-${m.id}`} className="o-input" placeholder="เช่น ลดความดัน ขยายหลอดเลือด"
-                    value={m.helps}
-                    onChange={(e) => actions.updateMedication(m.id, { helps: e.target.value })} />
-
-                  <label className="o-label" htmlFor={`md-how-${m.id}`}>วิธีกิน</label>
-                  <input id={`md-how-${m.id}`} className="o-input" value={m.how_to_take}
-                    onChange={(e) => actions.updateMedication(m.id, { how_to_take: e.target.value })} />
-
-                  <label className="o-label" htmlFor={`md-doc-${m.id}`}>หมอที่สั่ง</label>
-                  <input id={`md-doc-${m.id}`} className="o-input" value={m.prescriber}
-                    onChange={(e) => actions.updateMedication(m.id, { prescriber: e.target.value })} />
-
-                  <label className="o-label" htmlFor={`md-tag-${m.id}`}>แผนก</label>
-                  <input id={`md-tag-${m.id}`} className="o-input" placeholder="เช่น หัวใจ / ตา / เบาหวาน"
-                    value={m.tag}
-                    onChange={(e) => actions.updateMedication(m.id, { tag: e.target.value })} />
-
-                  <label className="o-label">ก่อน / หลังอาหาร</label>
-                  <div className="o-chips">
-                    {MEAL_ORDER.filter((t) => t !== '').map((t) => (
-                      <button key={t} type="button" className="o-chip"
-                        aria-pressed={mealTimingOf(m) === t}
-                        onClick={() => actions.updateMedication(m.id, {
-                          timing: mealTimingOf(m) === t ? '' : t,
-                        })}>
-                        {MEAL_LABEL[t]}
-                      </button>
-                    ))}
-                  </div>
-
-                  <label className="o-label">มื้อที่ต้องกิน</label>
-                  <div className="o-chips">
-                    {SLOT_ORDER.map((slot) => (
-                      <button key={slot} type="button" className="o-chip"
-                        aria-pressed={m.slots.includes(slot)} onClick={() => toggleSlot(slot)}>
-                        {SLOT_LABEL[slot]}
-                      </button>
-                    ))}
-                  </div>
-
-                  {isConfirmingDelete ? (
-                    <>
-                      <p className="subtle" style={{ margin: '14px 0 8px' }}>
-                        เอา {m.name} ออกจากรายการ · ประวัติกินยาที่บันทึกไว้ยังเก็บอยู่
-                      </p>
-                      <div className="o-row">
-                        <button type="button" className="o-btn ghost" onClick={() => setDeletingId(null)}>
-                          ไม่ลบ
-                        </button>
-                        <button type="button" className="o-btn danger"
-                          onClick={() => {
-                            actions.removeMedication(m.id);
-                            setDeletingId(null);
-                            setEditingId(null);
-                            actions.toast(`เอา ${m.name} ออกแล้ว`);
-                          }}>
-                          ยืนยันลบ
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <button type="button" className="o-btn ghost block" style={{ marginTop: 14 }}
-                      onClick={() => setDeletingId(m.id)}>
-                      <Icon name="x" size={17} /> เอายานี้ออก
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {meds.map((m) => (
+          <MedCard key={m.id} med={m} book={book}
+            onFilterCleared={() => {
+              // แก้ชื่อหมอแล้วยาอาจหลุดจากตัวกรอง จนดูเหมือนการ์ดหายไปเฉยๆ
+              if (filter) setFilter('');
+            }} />
+        ))}
       </div>
 
       <button type="button" className="o-btn primary block" style={{ marginTop: 6 }} onClick={onScan}>

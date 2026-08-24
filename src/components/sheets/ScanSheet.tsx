@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { ComboField } from '../ComboField';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
 import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER, inferMealTiming } from '@/lib/format';
+import { hospitalOfDoctor, medFieldOptions } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { DoseSlot, MealTiming } from '@/lib/types';
 
@@ -18,12 +20,13 @@ export function ScanSheet({ open, bookId, onClose }: {
   const [name, setName] = useState('');
   const [how, setHow] = useState('');
   const [prescriber, setPrescriber] = useState('');
+  const [hospital, setHospital] = useState('');
   const [helps, setHelps] = useState('');
   const [slots, setSlots] = useState<DoseSlot[]>(['morning']);
   const [timing, setTiming] = useState<MealTiming>('');
 
   const close = () => {
-    setPhoto(''); setName(''); setHow(''); setPrescriber(''); setHelps(''); setSlots(['morning']); setTiming('');
+    setPhoto(''); setName(''); setHow(''); setPrescriber(''); setHelps(''); setHospital(''); setSlots(['morning']); setTiming('');
     onClose();
   };
 
@@ -45,7 +48,8 @@ export function ScanSheet({ open, bookId, onClose }: {
     if (!name.trim()) return;
     const created = actions.addMedication(bookId, {
       name: name.trim(), how_to_take: how.trim(), prescriber: prescriber.trim(),
-      helps: helps.trim(), tag: prescriber.replace('หมอ', '').trim(), slots,
+      helps: helps.trim(), tag: prescriber.replace('หมอ', '').trim(),
+      hospital: hospital.trim(), slots,
       timing: timing || inferMealTiming(how), photo,
     });
     if (photo) {
@@ -90,9 +94,17 @@ export function ScanSheet({ open, bookId, onClose }: {
           <label className="o-label" htmlFor="sc-how">วิธีกิน</label>
           <input id="sc-how" className="o-input" value={how} onChange={(e) => setHow(e.target.value)} />
 
-          <label className="o-label" htmlFor="sc-doc">ได้จาก (หมอ/แผนก)</label>
-          <input id="sc-doc" className="o-input" value={prescriber}
-            onChange={(e) => setPrescriber(e.target.value)} />
+          <ComboField id="sc-doc" label="ชื่อหมอ" value={prescriber}
+            options={medFieldOptions(state, bookId).prescribers} placeholder="เลือกหมอ…"
+            onChange={(name) => {
+              setPrescriber(name);
+              const h = hospitalOfDoctor(state, bookId, name);
+              if (h) setHospital(h);
+            }} />
+
+          <ComboField id="sc-hosp" label="โรงพยาบาล / คลินิก" value={hospital}
+            options={medFieldOptions(state, bookId).hospitals} placeholder="เลือกโรงพยาบาล…"
+            onChange={setHospital} />
 
           <label className="o-label" htmlFor="sc-helps">ช่วยอะไร</label>
           <input id="sc-helps" className="o-input" placeholder="อธิบายภาษาบ้านๆ ให้คนที่บ้านเข้าใจ"

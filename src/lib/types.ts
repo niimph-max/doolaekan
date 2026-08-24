@@ -43,8 +43,9 @@ export interface Medication {
   name: string;
   helps: string;         // "ช่วยอะไร" — ภาษาบ้านๆ
   how_to_take: string;
-  prescriber: string;    // หมอที่สั่ง
+  prescriber: string;    // ชื่อหมอที่สั่ง
   tag: string;           // แผนก เช่น "หัวใจ"
+  hospital: string;      // โรงพยาบาล / คลินิก
   slots: DoseSlot[];
   timing: MealTiming;
   duplicate_flag: boolean;

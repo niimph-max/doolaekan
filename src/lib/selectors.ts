@@ -134,6 +134,29 @@ export function escortOptions(state: AppState): string[] {
   return [...names, 'ไปเอง'];
 }
 
+/** ค่าที่เคยใช้มาก่อนในสมุดเล่มนี้ สำหรับให้เลือกแทนการพิมพ์ใหม่ทุกครั้ง
+ *  รวมจากรายชื่อหมอในโปรไฟล์ และจากยาที่บันทึกไว้แล้ว */
+export function medFieldOptions(state: AppState, bookId: string) {
+  const doctors = state.doctors.filter((d) => d.book_id === bookId);
+  const meds = state.medications.filter((m) => m.book_id === bookId);
+  const uniq = (list: string[]) => Array.from(new Set(list.map((v) => v.trim()).filter(Boolean))).sort();
+  return {
+    prescribers: uniq([...doctors.map((d) => d.name), ...meds.map((m) => m.prescriber)]),
+    tags: uniq(meds.map((m) => m.tag)),
+    hospitals: uniq([...doctors.map((d) => d.hospital), ...meds.map((m) => m.hospital)]),
+  };
+}
+
+/** เลือกชื่อหมอแล้วเติมโรงพยาบาลให้ ถ้าหมอคนนั้นมีอยู่ในโปรไฟล์ */
+export function hospitalOfDoctor(state: AppState, bookId: string, doctorName: string): string {
+  const name = doctorName.trim();
+  if (!name) return '';
+  const doc = state.doctors.find(
+    (d) => d.book_id === bookId && (d.name === name || `หมอ${d.name}` === name),
+  );
+  return doc?.hospital ?? '';
+}
+
 export const SHARE_LABEL: Record<string, string> = {
   full: 'ทุกคนเห็น',
   appointments: 'แชร์บางส่วน',

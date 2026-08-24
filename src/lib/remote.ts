@@ -65,7 +65,7 @@ const toDoctor = (r: any): Doctor => ({
 const toMedication = (r: any): Medication => ({
   id: r.id, book_id: r.book_id, name: r.name,
   helps: r.helps ?? '', how_to_take: r.how_to_take ?? '',
-  prescriber: r.prescriber ?? '', tag: r.tag ?? '',
+  prescriber: r.prescriber ?? '', tag: r.tag ?? '', hospital: r.hospital ?? '',
   slots: r.slots ?? [], timing: r.timing ?? '', duplicate_flag: r.duplicate_flag ?? false,
   photo: r.photo_path ?? undefined,
 });
@@ -114,7 +114,8 @@ export const doctorRow = (d: Doctor) => ({
 
 export const medicationRow = (m: Medication) => ({
   id: m.id, book_id: m.book_id, name: m.name, how_to_take: m.how_to_take,
-  helps: m.helps, tag: m.tag, slots: m.slots, timing: m.timing || null, prescriber: m.prescriber,
+  helps: m.helps, tag: m.tag, slots: m.slots, timing: m.timing || null,
+  hospital: m.hospital || null, prescriber: m.prescriber,
   photo_path: m.photo ?? null, duplicate_flag: m.duplicate_flag,
 });
 
@@ -238,11 +239,17 @@ export async function upsertMedications(meds: Medication[]): Promise<void> {
 
   // ยังไม่ได้รัน 0003 — บันทึกส่วนที่เหลือให้ก่อน ดีกว่าให้ทั้งรายการบันทึกไม่ได้เลย
   // จังหวะก่อน/หลังอาหารยังอ่านจากข้อความวิธีกินได้อยู่ จึงไม่เสียอะไรที่จอ
-  if (isMissingColumn(error, 'timing')) {
-    const withoutTiming = rows.map(({ timing: _timing, ...rest }) => rest);
-    const retry = await db().from('medications').upsert(withoutTiming);
-    check('upsertMedications', retry.error);
-    return;
+  for (const column of ['timing', 'hospital'] as const) {
+    if (isMissingColumn(error, column)) {
+      const trimmed = rows.map((row) => {
+        const copy = { ...row } as Record<string, unknown>;
+        delete copy[column];
+        return copy;
+      });
+      const retry = await db().from('medications').upsert(trimmed);
+      check('upsertMedications', retry.error);
+      return;
+    }
   }
   check('upsertMedications', error);
 }
