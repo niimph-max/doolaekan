@@ -34,6 +34,7 @@ interface Actions {
   uploadLocalData: () => Promise<void>;
   updateBook: (id: string, patch: Partial<Book>) => void;
   addDoctor: (bookId: string, doc: Omit<Doctor, 'id' | 'book_id'>) => void;
+  updateDoctor: (id: string, patch: Partial<Doctor>) => void;
   removeDoctor: (id: string) => void;
   addMedication: (bookId: string, med: Omit<Medication, 'id' | 'book_id' | 'duplicate_flag'>) => Medication;
   logDose: (log: Omit<MedLog, 'id' | 'at' | 'actor_name'>) => void;
@@ -250,7 +251,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         push(async () => {
           await remote.upsertProfile(s.userId, book.owner_name);
           await remote.upsertBook(book);
-          for (const d of doctors) await remote.insertDoctor(d);
+          for (const d of doctors) await remote.upsertDoctor(d);
           for (const g of groups) await remote.insertGroup(g);
           for (const sh of shares) await remote.upsertShare(sh);
         });
@@ -295,7 +296,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addDoctor: (bookId, doc) => {
         const created: Doctor = { ...doc, id: uid(), book_id: bookId };
         patch((s) => ({ doctors: [...s.doctors, created] }));
-        push(() => remote.insertDoctor(created));
+        push(() => remote.upsertDoctor(created));
+      },
+
+      updateDoctor: (id, p) => {
+        patch((s) => ({ doctors: s.doctors.map((d) => (d.id === id ? { ...d, ...p } : d)) }));
+        push(async () => {
+          const doc = stateRef.current.doctors.find((d) => d.id === id);
+          if (doc) await remote.upsertDoctor(doc);
+        });
       },
 
       removeDoctor: (id) => {

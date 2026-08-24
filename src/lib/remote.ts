@@ -212,9 +212,9 @@ export async function upsertBook(b: Book): Promise<void> {
   check('upsertBook', error);
 }
 
-export async function insertDoctor(d: Doctor): Promise<void> {
-  const { error } = await db().from('doctors').insert(doctorRow(d));
-  check('insertDoctor', error);
+export async function upsertDoctor(d: Doctor): Promise<void> {
+  const { error } = await db().from('doctors').upsert(doctorRow(d));
+  check('upsertDoctor', error);
 }
 
 export async function deleteDoctor(id: string): Promise<void> {

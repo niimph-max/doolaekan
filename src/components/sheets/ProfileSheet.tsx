@@ -12,6 +12,8 @@ export function ProfileSheet({ open, book, onClose }: {
 }) {
   const { state, actions } = useStore();
   const [dr, setDr] = useState({ name: '', hospital: '', hn: '', clinic_hours: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const doctors = state.doctors.filter((d) => d.book_id === book.id);
   const computedAge = ageFromBirthDate(book.birth_date);
 
@@ -67,20 +69,69 @@ export function ProfileSheet({ open, book, onClose }: {
         onChange={(e) => set({ emergency_contact: e.target.value })} />
 
       <h3 style={{ fontSize: 19, margin: '22px 0 8px' }}>หมอที่รักษา</h3>
-      {doctors.map((d) => (
-        <div key={d.id} className="o-card" style={{ padding: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
-            <strong>{d.name}</strong>
-            <div className="subtle">
-              {[d.hospital, d.hn && `HN ${d.hn}`, d.clinic_hours].filter(Boolean).join(' · ')}
+      {doctors.map((d) => {
+        const isEditing = editingId === d.id;
+        const isConfirmingDelete = deletingId === d.id;
+        return (
+          <div key={d.id} className="o-card" style={{ padding: 16 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong>{d.name || 'ยังไม่ได้ตั้งชื่อ'}</strong>
+                <div className="subtle">
+                  {[d.hospital, d.hn && `HN ${d.hn}`, d.clinic_hours].filter(Boolean).join(' · ') || '—'}
+                </div>
+              </div>
+              <button type="button" className="o-btn ghost" style={{ padding: '8px 14px', minHeight: 36 }}
+                onClick={() => { setEditingId(isEditing ? null : d.id); setDeletingId(null); }}>
+                {isEditing ? 'เสร็จ' : 'แก้ไข'}
+              </button>
             </div>
+
+            {isEditing && (
+              <div style={{ marginTop: 12 }}>
+                <label className="o-label" htmlFor={`dr-name-${d.id}`}>หมอ / แผนก</label>
+                <input id={`dr-name-${d.id}`} className="o-input" value={d.name}
+                  onChange={(e) => actions.updateDoctor(d.id, { name: e.target.value })} />
+
+                <label className="o-label" htmlFor={`dr-hosp-${d.id}`}>โรงพยาบาล / คลินิก</label>
+                <input id={`dr-hosp-${d.id}`} className="o-input" value={d.hospital}
+                  onChange={(e) => actions.updateDoctor(d.id, { hospital: e.target.value })} />
+
+                <label className="o-label" htmlFor={`dr-hn-${d.id}`}>เลข HN</label>
+                <input id={`dr-hn-${d.id}`} className="o-input" value={d.hn}
+                  onChange={(e) => actions.updateDoctor(d.id, { hn: e.target.value })} />
+
+                <label className="o-label" htmlFor={`dr-hours-${d.id}`}>เวลาออกตรวจ</label>
+                <input id={`dr-hours-${d.id}`} className="o-input" placeholder="เช่น พุธ 09:00–12:00"
+                  value={d.clinic_hours}
+                  onChange={(e) => actions.updateDoctor(d.id, { clinic_hours: e.target.value })} />
+
+                {isConfirmingDelete ? (
+                  <div className="o-row" style={{ marginTop: 14 }}>
+                    <button type="button" className="o-btn ghost" onClick={() => setDeletingId(null)}>
+                      ไม่ลบ
+                    </button>
+                    <button type="button" className="o-btn danger"
+                      onClick={() => {
+                        actions.removeDoctor(d.id);
+                        setDeletingId(null);
+                        setEditingId(null);
+                        actions.toast(`ลบ ${d.name} แล้ว`);
+                      }}>
+                      ยืนยันลบ
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className="o-btn ghost block" style={{ marginTop: 14 }}
+                    onClick={() => setDeletingId(d.id)}>
+                    <Icon name="x" size={17} /> ลบหมอคนนี้
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-          <button type="button" className="o-btn ghost" style={{ padding: 8, minHeight: 36 }}
-            aria-label={`ลบ ${d.name}`} onClick={() => actions.removeDoctor(d.id)}>
-            <Icon name="x" size={18} />
-          </button>
-        </div>
-      ))}
+        );
+      })}
 
       <label className="o-label" htmlFor="pf-dr-name">เพิ่มหมอ</label>
       <input id="pf-dr-name" className="o-input" placeholder="หมอ / แผนก"
