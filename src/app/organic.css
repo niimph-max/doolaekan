@@ -1,5 +1,6 @@
 /* Organic — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
-@import url('https://fonts.googleapis.com/css2?family=Caprasimo:wght@400&family=Figtree:wght@400;600;700&display=swap');
+/* ฟอนต์ละตินของ design system ไม่ได้โหลดในแอปนี้ — แอปไทยทับด้วย Mitr/Sarabun ใน globals.css อยู่แล้ว
+   ถ้าปล่อยให้ @import ไว้ เบราว์เซอร์ต้องรอ fonts.googleapis.com ตอบก่อนถึงจะวาดหน้าจอ */
 
 :root {
   --color-bg: #f5ead8;

@@ -284,9 +284,14 @@ export async function insertRecord(r: RecordItem): Promise<void> {
   check('insertRecord', error);
 }
 
-export async function insertWatchRule(w: WatchRule): Promise<void> {
-  const { error } = await db().from('watch_rules').insert(watchRuleRow(w));
-  check('insertWatchRule', error);
+export async function upsertWatchRule(w: WatchRule): Promise<void> {
+  const { error } = await db().from('watch_rules').upsert(watchRuleRow(w));
+  check('upsertWatchRule', error);
+}
+
+export async function deleteWatchRule(id: string): Promise<void> {
+  const { error } = await db().from('watch_rules').delete().eq('id', id);
+  check('deleteWatchRule', error);
 }
 
 export async function insertGroup(g: Group): Promise<void> {

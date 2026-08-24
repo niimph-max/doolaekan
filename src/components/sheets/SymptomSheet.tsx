@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Chips } from '../Chips';
 import { Icon } from '../Icon';
@@ -14,6 +14,17 @@ export function SymptomSheet({ open, bookId, onClose }: {
   const { state, actions } = useStore();
   const [selected, setSelected] = useState<string[]>([]);
   const [note, setNote] = useState('');
+
+  // อาการที่หมอสั่งให้เฝ้าระวังของสมุดเล่มนี้ ต้องกดได้ด้วย ไม่ใช่มีแต่รายการมาตรฐาน
+  // เอาขึ้นก่อน เพราะเป็นอาการที่ต้องรีบรู้ที่สุด
+  const chips = useMemo(() => {
+    const watched = state.watchRules
+      .filter((w) => w.book_id === bookId)
+      .flatMap((w) => w.triggers)
+      .map((t) => t.trim())
+      .filter(Boolean);
+    return Array.from(new Set([...watched, ...SYMPTOM_CHIPS]));
+  }, [state.watchRules, bookId]);
 
   const hits = matchWatchRules(state, bookId, selected);
 
@@ -35,7 +46,7 @@ export function SymptomSheet({ open, bookId, onClose }: {
   return (
     <Sheet open={open} title="จดอาการวันนี้" onClose={close}>
       <Chips
-        options={SYMPTOM_CHIPS}
+        options={chips}
         selected={selected}
         onToggle={(v) => setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]))}
       />

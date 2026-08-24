@@ -1,8 +1,14 @@
 import type { Metadata, Viewport } from 'next';
+import { Mitr, Sarabun } from 'next/font/google';
 import './globals.css';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RegisterSW } from '@/components/RegisterSW';
 import { StoreProvider } from '@/lib/store';
+
+// โหลดฟอนต์เก็บไว้ในตัวเว็บตอน build — ผู้ใช้ไม่ต้องรอต่อไปที่ fonts.googleapis.com
+// display: 'swap' ให้ตัวหนังสือขึ้นด้วยฟอนต์ระบบไปก่อน ไม่ต้องรอฟอนต์ไทยเสร็จ
+const mitr = Mitr({ subsets: ['thai', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--font-mitr' });
+const sarabun = Sarabun({ subsets: ['thai', 'latin'], weight: ['400', '600', '700'], display: 'swap', variable: '--font-sarabun' });
 
 // Next เติม basePath ให้ asset ของตัวเองอัตโนมัติ แต่ไม่เติมให้ manifest/icons ใน metadata
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
@@ -30,7 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" data-bigtext="0">
+    <html lang="th" data-bigtext="0" className={`${mitr.variable} ${sarabun.variable}`}>
       <body>
         <ErrorBoundary>
           <StoreProvider>{children}</StoreProvider>

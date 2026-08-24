@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
+import { WatchRuleEditor } from '../WatchRuleEditor';
 import { Icon } from '../Icon';
 import { ageFromBirthDate, todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
@@ -151,7 +152,9 @@ export function ProfileSheet({ open, book, onClose }: {
         <Icon name="plus" size={19} /> เพิ่มหมอคนนี้
       </button>
 
-      <button type="button" className="o-btn primary block" style={{ marginTop: 18 }} onClick={onClose}>
+      <WatchRuleEditor book={book} />
+
+      <button type="button" className="o-btn primary block" style={{ marginTop: 22 }} onClick={onClose}>
         เสร็จแล้ว
       </button>
 

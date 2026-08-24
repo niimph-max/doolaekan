@@ -1,7 +1,7 @@
 // Doolaekan service worker — ให้ติดตั้งลงหน้าจอได้ และเปิดแอปได้ตอนเน็ตหลุด
 // (ขั้นถัดไปตาม notifications.md: รับ Web Push ที่นี่ด้วย)
 
-const CACHE = 'doolaekan-shell-v3';
+const CACHE = 'doolaekan-shell-v4';
 
 // scope คือโฟลเดอร์ที่แอปถูกวางไว้ ('/' บนโดเมนของตัวเอง, '/doolaekan/' บน GitHub Pages)
 const BASE = new URL(self.registration.scope).pathname;

@@ -7,7 +7,10 @@ import type {
 } from './types';
 import { uid } from './format';
 import { demoState } from './seed';
-import { clearLocal, loadLocal, loadPrefs, savePrefs, saveLocal } from './storage';
+import {
+  clearCloudCache, clearLocal, loadCloudCache, loadLastUserId, loadLocal, loadPrefs,
+  saveCloudCache, saveLastUserId, savePrefs, saveLocal,
+} from './storage';
 import * as remote from './remote';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 
@@ -22,6 +25,29 @@ const emptyState: AppState = {
   books: [], doctors: [], medications: [], medLogs: [],
   appointments: [], records: [], watchRules: [], groups: [], shares: [],
 };
+
+/** ช่องข้อมูลที่มาจากคลาวด์ล้วนๆ — ใช้ล้างทิ้งตอนออกจากระบบ */
+const emptyCloudData: remote.CloudData = {
+  books: [], doctors: [], medications: [], medLogs: [],
+  appointments: [], records: [], watchRules: [], groups: [], shares: [],
+};
+
+/** วางข้อมูลชุดใหม่ลง state โดยพยายามคงสมุด/กลุ่มที่เปิดค้างไว้เดิม
+ *  ใช้ร่วมกันทั้งตอนหยิบสำเนาจากเครื่องและตอนโหลดจากคลาวด์จริง */
+function applyData(s: AppState, data: remote.CloudData, userId: string): AppState {
+  const myBook = data.books.find((b) => b.is_mine);
+  return {
+    ...s, ...data,
+    ready: true, userId, loadError: '',
+    onboarded: Boolean(myBook),
+    activeBookId: data.books.some((b) => b.id === s.activeBookId)
+      ? s.activeBookId
+      : (myBook?.id ?? data.books[0]?.id ?? ''),
+    activeGroupId: data.groups.some((g) => g.id === s.activeGroupId)
+      ? s.activeGroupId
+      : (data.groups[0]?.id ?? ''),
+  };
+}
 
 interface Actions {
   setTab: (tab: Tab) => void;
@@ -50,6 +76,8 @@ interface Actions {
   removeAppointment: (id: string) => void;
   addRecord: (bookId: string, rec: Omit<RecordItem, 'id' | 'book_id' | 'at' | 'actor_name'>) => void;
   addWatchRule: (bookId: string, rule: Omit<WatchRule, 'id' | 'book_id'>) => void;
+  updateWatchRule: (id: string, patch: Partial<WatchRule>) => void;
+  removeWatchRule: (id: string) => void;
   createGroup: (name: string, share: ShareLevel) => void;
   joinGroup: (code: string, share: ShareLevel) => Promise<boolean>;
   setShareLevel: (bookId: string, level: ShareLevel) => void;
@@ -109,20 +137,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   /** ดึงข้อมูลใหม่ทั้งชุดจากคลาวด์ (ใช้ตอนเข้าระบบ, มีคนอื่นบันทึก, หรือเขียนพลาด) */
   const refresh = useCallback(async (userId: string) => {
     const data = await remote.fetchAll(userId);
-    setState((s) => {
-      const myBook = data.books.find((b) => b.is_mine);
-      return {
-        ...s, ...data,
-        ready: true, userId, loadError: '',
-        onboarded: Boolean(myBook),
-        activeBookId: data.books.some((b) => b.id === s.activeBookId)
-          ? s.activeBookId
-          : (myBook?.id ?? data.books[0]?.id ?? ''),
-        activeGroupId: data.groups.some((g) => g.id === s.activeGroupId)
-          ? s.activeGroupId
-          : (data.groups[0]?.id ?? ''),
-      };
-    });
+    setState((s) => applyData(s, data, userId));
+    // จำไว้ว่าใครเข้าระบบค้างอยู่ เปิดแอปครั้งหน้าจะได้หยิบสำเนาของคนนี้ขึ้นมาทันที
+    // (ตัวสำเนาเองมี effect คอยเขียนตามทุกครั้งที่ข้อมูลเปลี่ยน)
+    saveLastUserId(userId);
   }, []);
 
   // ── โหลดครั้งแรก ──
@@ -141,24 +159,67 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setHasLocalToUpload(Boolean(loadLocal()?.books?.some((b) => b.is_mine)));
 
     let cancelled = false;
+
+    // ── หยิบสำเนาครั้งล่าสุดขึ้นจอก่อนเลย ──
+    // ไม่ต้องรอเช็ค session และไม่ต้องรอโหลดข้อมูล ผู้ใช้เห็นสมุดของตัวเองทันทีที่เปิดแอป
+    // ของจริงจะตามมาอัปเดตทับให้เองอีกไม่กี่วินาที
+    let showingCache = false;
+    const lastUserId = loadLastUserId();
+    if (lastUserId) {
+      const cached = loadCloudCache(lastUserId);
+      if (cached) {
+        showingCache = true;
+        setState((s) => applyData({ ...s, ...prefs }, cached, lastUserId));
+      }
+    }
+
     const load = async (userId: string | undefined, email = '') => {
       if (cancelled) return;
       if (!userId) {
-        setState((s) => ({ ...s, ready: true, userId: '', userEmail: '', loadError: '', onboarded: false }));
+        // ออกจากระบบไปแล้ว (หรือหมดอายุ) — สำเนาบนจอต้องหายไปด้วย
+        showingCache = false;
+        saveLastUserId('');
+        setState((s) => ({
+          ...s, ...emptyCloudData,
+          ready: true, userId: '', userEmail: '', loadError: '', onboarded: false,
+        }));
         return;
+      }
+      // สลับบัญชี: สำเนาที่ค้างบนจอเป็นของคนก่อน ล้างทิ้งก่อนโหลดของคนใหม่
+      if (showingCache && userId !== lastUserId) {
+        showingCache = false;
+        setState((s) => ({ ...s, ...emptyCloudData, ready: false, onboarded: false }));
       }
       setState((s) => ({ ...s, userEmail: email || s.userEmail }));
       try {
         await refresh(userId);
+        showingCache = true;
       } catch (e) {
         // ห้ามปล่อยให้ตกไปหน้า onboarding — ผู้ใช้ที่มีสมุดอยู่แล้วจะนึกว่าข้อมูลหาย
         // แล้วกรอกใหม่จนได้สมุดซ้ำสองเล่ม
-        setState((s) => ({ ...s, ready: true, userId, loadError: (e as Error).message }));
+        if (showingCache) {
+          // มีสำเนาให้ดูอยู่แล้ว ไม่ต้องขึ้นหน้าเต็มจอขวางทาง บอกเบาๆ ก็พอ
+          setState((s) => ({ ...s, ready: true, userId }));
+          toast('อัปเดตข้อมูลล่าสุดไม่สำเร็จ — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+        } else {
+          setState((s) => ({ ...s, ready: true, userId, loadError: (e as Error).message }));
+        }
       }
     };
 
-    // getSession อาจต้องต่ออินเทอร์เน็ตเพื่อต่ออายุ token ถ้าค้างแล้วไม่มี timeout
-    // แอปจะติดอยู่ที่ ready=false ตลอดไป ผลคือจอขาวเปล่าๆ ไม่มีอะไรบอกสาเหตุ
+    // สมัครฟัง onAuthStateChange ก่อน getSession เพราะ supabase จะยิง INITIAL_SESSION
+    // ให้ทันทีจาก token ที่เก็บไว้ในเครื่อง ไม่ต้องรอ round-trip
+    let authResolved = false;
+    const onAuth = (userId: string | undefined, email: string) => {
+      authResolved = true;
+      void load(userId, email);
+    };
+    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+      onAuth(session?.user.id, session?.user.email ?? '');
+    });
+
+    // เผื่อ INITIAL_SESSION ไม่มา ให้ getSession เป็นตัวสำรอง
+    // และถ้าค้างจนไม่มีอะไรตอบเลย ต้องมี timeout ไม่งั้นแอปติดที่ ready=false เป็นจอขาว
     const SESSION_TIMEOUT_MS = 12000;
     const withTimeout = <T,>(promise: Promise<T>): Promise<T | 'timeout'> => Promise.race([
       promise,
@@ -169,6 +230,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       .then((result) => {
         if (cancelled) return;
         if (result === 'timeout') {
+          if (authResolved) return;
+          if (showingCache) {
+            setState((st) => ({ ...st, ready: true }));
+            toast('เช็คสถานะการเข้าระบบไม่สำเร็จ — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+            return;
+          }
           setState((st) => ({
             ...st,
             ready: true,
@@ -176,15 +243,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }));
           return;
         }
-        void load(result.data.session?.user.id, result.data.session?.user.email ?? '');
+        if (authResolved) return;
+        onAuth(result.data.session?.user.id, result.data.session?.user.email ?? '');
       })
       .catch((e: Error) => {
-        if (cancelled) return;
-        setState((st) => ({ ...st, ready: true, loadError: e.message }));
+        if (cancelled || authResolved) return;
+        setState((st) => ({ ...st, ready: true, loadError: showingCache ? '' : e.message }));
       });
-    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
-      load(session?.user.id, session?.user.email ?? '');
-    });
 
     return () => {
       cancelled = true;
@@ -224,6 +289,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (state.mode === 'local') saveLocal(state);
     else savePrefs(state);
   }, [state]);
+
+  // สำเนาข้อมูลคลาวด์ต้องตามการแก้ไขในเครื่องด้วย ไม่งั้นบันทึกยาเสร็จแล้วปิดแอปทันที
+  // เปิดใหม่จะเห็นของเก่าจนกว่าจะโหลดจากคลาวด์เสร็จ
+  useEffect(() => {
+    if (!state.ready || state.mode !== 'cloud' || !state.userId) return;
+    saveCloudCache(state.userId, {
+      books: state.books, doctors: state.doctors, medications: state.medications,
+      medLogs: state.medLogs, appointments: state.appointments, records: state.records,
+      watchRules: state.watchRules, groups: state.groups, shares: state.shares,
+    });
+  }, [
+    state.ready, state.mode, state.userId,
+    state.books, state.doctors, state.medications, state.medLogs,
+    state.appointments, state.records, state.watchRules, state.groups, state.shares,
+  ]);
 
   useEffect(() => {
     document.documentElement.dataset.bigtext = state.bigText ? '1' : '0';
@@ -315,6 +395,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       signOut: async () => {
+        clearCloudCache(stateRef.current.userId);
+        saveLastUserId('');
         await getSupabase()?.auth.signOut();
         setState({ ...emptyState, ready: true });
       },
@@ -482,7 +564,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addWatchRule: (bookId, rule) => {
         const created: WatchRule = { ...rule, id: uid(), book_id: bookId };
         patch((s) => ({ watchRules: [...s.watchRules, created] }));
-        push(() => remote.insertWatchRule(created));
+        push(() => remote.upsertWatchRule(created));
+      },
+
+      updateWatchRule: (id, p) => {
+        patch((s) => ({ watchRules: s.watchRules.map((w) => (w.id === id ? { ...w, ...p } : w)) }));
+        push(async () => {
+          const rule = stateRef.current.watchRules.find((w) => w.id === id);
+          if (rule) await remote.upsertWatchRule(rule);
+        });
+      },
+
+      removeWatchRule: (id) => {
+        patch((s) => ({ watchRules: s.watchRules.filter((w) => w.id !== id) }));
+        push(() => remote.deleteWatchRule(id));
       },
 
       createGroup: (name, share) => {
