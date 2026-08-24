@@ -416,7 +416,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         patch((s) => ({ books: s.books.map((b) => (b.id === id ? { ...b, ...p } : b)) }));
         push(async () => {
           const book = stateRef.current.books.find((b) => b.id === id);
-          if (book) await remote.upsertBook(book);
+          if (book) await remote.updateBook(book);
         });
       },
 

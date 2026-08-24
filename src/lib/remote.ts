@@ -213,6 +213,15 @@ export async function upsertBook(b: Book): Promise<void> {
   check('upsertBook', error);
 }
 
+/** แก้ข้อมูลในสมุดที่มีอยู่แล้ว ต้องเป็น UPDATE ล้วนๆ ห้ามใช้ upsert
+ *  เพราะ upsert = INSERT ... ON CONFLICT ซึ่งโดนตรวจด้วย policy ของ insert ด้วย
+ *  (สร้างสมุดได้เฉพาะในชื่อตัวเอง) ลูกที่ดูแลพ่อแม่จึงแก้สมุดของพ่อแม่ไม่ผ่าน */
+export async function updateBook(b: Book): Promise<void> {
+  const { owner_id: _owner, ...fields } = bookRow(b);
+  const { error } = await db().from('books').update(fields).eq('id', b.id);
+  check('updateBook', error);
+}
+
 export async function upsertDoctor(d: Doctor): Promise<void> {
   const { error } = await db().from('doctors').upsert(doctorRow(d));
   check('upsertDoctor', error);

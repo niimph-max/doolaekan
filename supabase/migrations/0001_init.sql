@@ -270,12 +270,34 @@ create policy profiles_self on profiles for all
 drop policy if exists profiles_same_group on profiles;
 create policy profiles_same_group on profiles for select using (shares_group_with(id));
 
--- books: อ่านได้ตั้งแต่ระดับ appointments; แก้ได้เฉพาะเจ้าของ
+-- books: อ่านได้ตั้งแต่ระดับ appointments; แก้ได้ถ้าได้สิทธิ์ระดับ full
+-- (ข้อมูลในเล่มเป็นชุดเดียวกับยา/หมอ/นัด ที่คนดูแลแก้ได้อยู่แล้ว)
+-- สร้างใหม่ได้เฉพาะในชื่อตัวเอง ลบทั้งเล่มได้เฉพาะเจ้าของ
 drop policy if exists books_select on books;
 create policy books_select on books for select using (can_access_book(id, 'appointments'));
 drop policy if exists books_owner on books;
-create policy books_owner on books for all
-  using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+drop policy if exists books_insert on books;
+create policy books_insert on books for insert with check (owner_id = auth.uid());
+drop policy if exists books_update on books;
+create policy books_update on books for update
+  using (can_access_book(id, 'full')) with check (can_access_book(id, 'full'));
+drop policy if exists books_delete on books;
+create policy books_delete on books for delete using (owner_id = auth.uid());
+
+-- policy ข้างบนตรวจจาก id ของสมุด ไม่ได้ตรวจ owner_id คนในกลุ่มจึงยังยกสมุด
+-- ไปเป็นของคนอื่นได้ถ้าส่ง owner_id ใหม่มา ล็อกไว้ที่ trigger แทน
+create or replace function books_keep_owner() returns trigger
+language plpgsql as $$
+begin
+  if new.owner_id is distinct from old.owner_id then
+    raise exception 'เปลี่ยนเจ้าของสมุดไม่ได้';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists books_keep_owner_trg on books;
+create trigger books_keep_owner_trg before update on books
+  for each row execute function books_keep_owner();
 
 -- ตารางลูกของ book ที่ต้องแชร์ระดับ full ถึงจะเห็น/แก้ได้
 drop policy if exists doctors_rw on doctors;

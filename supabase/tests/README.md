@@ -19,6 +19,7 @@ psql -h /var/tmp -p 55432 -U postgres -v ON_ERROR_STOP=1 -f supabase/migrations/
 psql -h /var/tmp -p 55432 -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/01_rls_test.sql
 psql -h /var/tmp -p 55432 -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/02_join_group_test.sql
 psql -h /var/tmp -p 55432 -U postgres -f supabase/tests/03_grants_test.sql
+psql -h /var/tmp -p 55432 -U postgres -f supabase/tests/04_book_profile_test.sql
 ```
 
 ไฟล์ migration รันซ้ำได้ (idempotent) — รันแล้วพลาดกลางทาง รันใหม่ทับได้เลย ไม่ต้องล้างฐาน
@@ -37,6 +38,11 @@ psql -h /var/tmp -p 55432 -U postgres -f supabase/tests/03_grants_test.sql
 | เข้ากลุ่มด้วยรหัสผิด | error "ไม่พบกลุ่มที่ใช้รหัสนี้" |
 | role ที่ไม่ได้รับ GRANT | `permission denied for table books` (RLS ถูกหมดก็ยังเขียนไม่ได้) |
 | role `authenticated` | เขียนได้ตามปกติ |
+| ลูกกรอกวันเกิดให้พ่อ (สิทธิ์ full) | แก้ได้ |
+| ลูกยกสมุดพ่อไปเป็นของตัวเอง | ถูกปฏิเสธ "เปลี่ยนเจ้าของสมุดไม่ได้" |
+| ลูกลบสมุดพ่อทั้งเล่ม | ลบไม่ได้ สมุดยังอยู่ |
+| คนนอกกลุ่มแก้ข้อมูลในสมุด | แก้ไม่ได้ ค่าเดิมไม่เปลี่ยน |
+| สร้างสมุดในชื่อคนอื่น | ถูกปฏิเสธ |
 
 หมายเหตุ: `00_supabase_stub.sql` ให้ `auth.uid()` อ่านค่าจาก GUC `test.uid`
 เพื่อสวมบทบาทผู้ใช้ระหว่างทดสอบ — ของจริงบน Supabase ใช้ของแพลตฟอร์ม ไม่ต้องลงไฟล์นี้
