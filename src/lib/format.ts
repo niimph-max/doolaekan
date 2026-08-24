@@ -16,6 +16,25 @@ export const SLOT_TIME: Record<string, string> = {
 
 export const SLOT_ORDER = ['morning', 'noon', 'evening', 'bedtime', 'prn'] as const;
 
+export const MEAL_LABEL: Record<string, string> = {
+  '': '',
+  before: 'ก่อนอาหาร',
+  after: 'หลังอาหาร',
+  with: 'พร้อมอาหาร',
+};
+
+export const MEAL_ORDER = ['before', 'with', '', 'after'] as const;
+
+/** ยาที่กรอกไว้ก่อนมีช่องนี้ มักเขียน "ก่อนอาหาร/หลังอาหาร" ไว้ในวิธีกินอยู่แล้ว
+ *  อ่านจากตรงนั้นให้ ผู้ใช้จะได้ไม่ต้องกลับมาแก้ทีละตัว */
+export function inferMealTiming(howToTake: string): '' | 'before' | 'after' | 'with' {
+  const text = howToTake ?? '';
+  if (text.includes('ก่อนอาหาร') || text.includes('ก่อนอ.')) return 'before';
+  if (text.includes('พร้อมอาหาร') || text.includes('กับอาหาร')) return 'with';
+  if (text.includes('หลังอาหาร') || text.includes('หลังอ.')) return 'after';
+  return '';
+}
+
 export function todayKey(d: Date = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;

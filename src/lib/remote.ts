@@ -66,7 +66,7 @@ const toMedication = (r: any): Medication => ({
   id: r.id, book_id: r.book_id, name: r.name,
   helps: r.helps ?? '', how_to_take: r.how_to_take ?? '',
   prescriber: r.prescriber ?? '', tag: r.tag ?? '',
-  slots: r.slots ?? [], duplicate_flag: r.duplicate_flag ?? false,
+  slots: r.slots ?? [], timing: r.timing ?? '', duplicate_flag: r.duplicate_flag ?? false,
   photo: r.photo_path ?? undefined,
 });
 
@@ -114,7 +114,7 @@ export const doctorRow = (d: Doctor) => ({
 
 export const medicationRow = (m: Medication) => ({
   id: m.id, book_id: m.book_id, name: m.name, how_to_take: m.how_to_take,
-  helps: m.helps, tag: m.tag, slots: m.slots, prescriber: m.prescriber,
+  helps: m.helps, tag: m.tag, slots: m.slots, timing: m.timing || null, prescriber: m.prescriber,
   photo_path: m.photo ?? null, duplicate_flag: m.duplicate_flag,
 });
 

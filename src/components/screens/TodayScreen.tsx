@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { Icon } from '../Icon';
 import { REFUSE_REASONS } from '@/lib/seed';
-import { SLOT_LABEL, SLOT_TIME, daysLabel, fmtDate, fmtTime, todayKey } from '@/lib/format';
+import { MEAL_LABEL, SLOT_LABEL, SLOT_TIME, daysLabel, fmtDate, fmtTime, todayKey } from '@/lib/format';
 import { nextAppointment, todayDoseGroups } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
-import type { Book, DoseSlot, Medication } from '@/lib/types';
+import type { Book, DoseSlot, MealTiming, Medication } from '@/lib/types';
 
 export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency, onAddAppt }: {
   book: Book;
@@ -16,7 +16,7 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
   onAddAppt: () => void;
 }) {
   const { state, actions } = useStore();
-  const [asking, setAsking] = useState<DoseSlot | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
   const [bp, setBp] = useState({ sys: '', dia: '', pulse: '' });
 
   const day = todayKey();
@@ -89,15 +89,20 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
       )}
       {groups.map((g) => {
         const log = g.logs[0];
+        const heading = g.timing
+          ? `ยา${MEAL_LABEL[g.timing]}${SLOT_LABEL[g.slot]} — ${book.owner_name}`
+          : `ยา${SLOT_LABEL[g.slot]} — ${book.owner_name}`;
         return (
-          <div key={g.slot} className={`o-card${g.status === 'pending' ? ' due' : ''}`}>
+          <div key={g.key} className={`o-card${g.status === 'pending' ? ' due' : ''}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <h3>ยา{SLOT_LABEL[g.slot]} — {book.owner_name}</h3>
+              <h3>{heading}</h3>
               <span className="o-tag" style={{ height: 'fit-content' }}>{SLOT_TIME[g.slot]}</span>
             </div>
-            <p className="subtle" style={{ margin: '2px 0 10px' }}>
-              {g.meds.map((m) => m.name).join(' · ')}
-            </p>
+            {/* ทีละแถว ไม่ต่อกันเป็นพืด — มื้อหนึ่งมียาได้เกือบสิบตัว ต้องกวาดตาหาให้เจอว่าครบไหม
+                คำอธิบาย "ช่วยอะไร" ไปอ่านที่แท็บยา ใส่ตรงนี้การ์ดจะยาวจนเลื่อนไม่ไหว */}
+            <ul className="med-list">
+              {g.meds.map((m) => <li key={m.id}>{m.name}</li>)}
+            </ul>
 
             {g.status === 'taken' && log && (
               <span className="o-pill-done">
@@ -110,7 +115,7 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
               </span>
             )}
 
-            {g.status === 'pending' && asking !== g.slot && (
+            {g.status === 'pending' && asking !== g.key && (
               <div className="o-row">
                 <button type="button" className="o-btn primary"
                   onClick={() => {
@@ -119,13 +124,13 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
                   }}>
                   กินแล้ว
                 </button>
-                <button type="button" className="o-btn secondary" onClick={() => setAsking(g.slot)}>
+                <button type="button" className="o-btn secondary" onClick={() => setAsking(g.key)}>
                   ไม่ยอมกิน
                 </button>
               </div>
             )}
 
-            {asking === g.slot && (
+            {asking === g.key && (
               <>
                 <p className="o-label" style={{ marginTop: 0 }}>เพราะอะไร</p>
                 <div className="o-chips">
@@ -135,7 +140,7 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
                         logSlot(g.meds, g.slot, 'refused', r);
                         actions.addRecord(book.id, {
                           kind: 'symptom',
-                          title: `ไม่ยอมกินยา${SLOT_LABEL[g.slot]}`,
+                          title: `ไม่ยอมกิน${heading.split(' — ')[0]}`,
                           body: `${r} — ${g.meds.map((m) => m.name).join(' · ')}`,
                           data: { tags: ['ไม่ยอมกินยา'] },
                           important: true,

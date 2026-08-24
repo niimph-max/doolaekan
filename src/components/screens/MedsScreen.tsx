@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Icon } from '../Icon';
-import { SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
+import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
+import { mealTimingOf } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Book, DoseSlot } from '@/lib/types';
 
@@ -74,6 +75,7 @@ export function MedsScreen({ book, onScan, onAddMed }: {
               {m.slots.length > 0 && (
                 <p className="subtle" style={{ margin: '2px 0 0' }}>
                   มื้อ: {m.slots.map((s) => SLOT_LABEL[s]).join(' · ')}
+                  {mealTimingOf(m) && ` · ${MEAL_LABEL[mealTimingOf(m)]}`}
                 </p>
               )}
               {m.duplicate_flag && (
@@ -110,6 +112,19 @@ export function MedsScreen({ book, onScan, onAddMed }: {
                   <input id={`md-tag-${m.id}`} className="o-input" placeholder="เช่น หัวใจ / ตา / เบาหวาน"
                     value={m.tag}
                     onChange={(e) => actions.updateMedication(m.id, { tag: e.target.value })} />
+
+                  <label className="o-label">ก่อน / หลังอาหาร</label>
+                  <div className="o-chips">
+                    {MEAL_ORDER.filter((t) => t !== '').map((t) => (
+                      <button key={t} type="button" className="o-chip"
+                        aria-pressed={mealTimingOf(m) === t}
+                        onClick={() => actions.updateMedication(m.id, {
+                          timing: mealTimingOf(m) === t ? '' : t,
+                        })}>
+                        {MEAL_LABEL[t]}
+                      </button>
+                    ))}
+                  </div>
 
                   <label className="o-label">มื้อที่ต้องกิน</label>
                   <div className="o-chips">

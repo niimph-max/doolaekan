@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
-import { SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
+import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
 import { useStore } from '@/lib/store';
-import type { DoseSlot } from '@/lib/types';
+import type { DoseSlot, MealTiming } from '@/lib/types';
 
 export function AddMedSheet({ open, bookId, onClose }: {
   open: boolean; bookId: string; onClose: () => void;
@@ -16,9 +16,10 @@ export function AddMedSheet({ open, bookId, onClose }: {
   const [helps, setHelps] = useState('');
   const [tag, setTag] = useState('');
   const [slots, setSlots] = useState<DoseSlot[]>(['morning']);
+  const [timing, setTiming] = useState<MealTiming>('');
 
   const close = () => {
-    setName(''); setHow(''); setPrescriber(''); setHelps(''); setTag(''); setSlots(['morning']);
+    setName(''); setHow(''); setPrescriber(''); setHelps(''); setTag(''); setSlots(['morning']); setTiming('');
     onClose();
   };
 
@@ -26,7 +27,7 @@ export function AddMedSheet({ open, bookId, onClose }: {
     if (!name.trim()) return;
     actions.addMedication(bookId, {
       name: name.trim(), how_to_take: how.trim(), prescriber: prescriber.trim(),
-      helps: helps.trim(), tag: tag.trim(), slots,
+      helps: helps.trim(), tag: tag.trim(), slots, timing,
     });
     actions.toast('เพิ่มยาแล้ว');
     close();
@@ -53,6 +54,16 @@ export function AddMedSheet({ open, bookId, onClose }: {
       <label className="o-label" htmlFor="md-tag">แผนก</label>
       <input id="md-tag" className="o-input" placeholder="เช่น หัวใจ / ตา / กระดูก"
         value={tag} onChange={(e) => setTag(e.target.value)} />
+
+      <label className="o-label">ก่อน / หลังอาหาร</label>
+      <div className="o-chips">
+        {MEAL_ORDER.filter((t) => t !== '').map((t) => (
+          <button key={t} type="button" className="o-chip" aria-pressed={timing === t}
+            onClick={() => setTiming(timing === t ? '' : t)}>
+            {MEAL_LABEL[t]}
+          </button>
+        ))}
+      </div>
 
       <label className="o-label">มื้อที่ต้องกิน</label>
       <div className="o-chips">

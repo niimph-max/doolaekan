@@ -1,5 +1,5 @@
-import type { AppState, Appointment, Book, DoseSlot, Medication, MedLog, RecordItem, ShareLevel, WatchRule } from './types';
-import { SLOT_ORDER, daysUntil, todayKey } from './format';
+import type { AppState, Appointment, Book, DoseSlot, MealTiming, Medication, MedLog, RecordItem, ShareLevel, WatchRule } from './types';
+import { MEAL_ORDER, SLOT_ORDER, daysUntil, inferMealTiming, todayKey } from './format';
 
 export interface Dose {
   key: string;
@@ -30,19 +30,29 @@ export function todayDoses(state: AppState, bookId: string, day = todayKey()): D
 }
 
 export interface DoseGroup {
+  key: string;
   slot: DoseSlot;
+  timing: MealTiming;
   meds: Medication[];
   logs: MedLog[];
   status: 'taken' | 'refused' | 'pending';
 }
 
-/** ยาวันนี้จัดเป็น "มื้อ" แบบที่คนที่บ้านคิด — เช้า/เที่ยง/เย็น/ก่อนนอน กดทีเดียวทั้งมื้อ */
+/** จังหวะกินของยาตัวนี้ — ใช้ค่าที่ตั้งไว้ก่อน ถ้าไม่มีค่อยอ่านจากข้อความวิธีกิน */
+export function mealTimingOf(m: Medication): MealTiming {
+  return m.timing || inferMealTiming(m.how_to_take);
+}
+
+/** ยาวันนี้จัดเป็นมื้อแบบที่คนที่บ้านคิด — แยก "ก่อนอาหารเช้า" กับ "หลังอาหารเช้า"
+ *  ออกจากกัน เพราะเป็นคนละเวลาจริงๆ กินพร้อมกันไม่ได้ */
 export function todayDoseGroups(state: AppState, bookId: string, day = todayKey()): DoseGroup[] {
   const groups: DoseGroup[] = [];
   for (const dose of todayDoses(state, bookId, day)) {
-    let g = groups.find((x) => x.slot === dose.slot);
+    const timing = mealTimingOf(dose.medication);
+    const key = `${dose.slot}:${timing}`;
+    let g = groups.find((x) => x.key === key);
     if (!g) {
-      g = { slot: dose.slot, meds: [], logs: [], status: 'pending' };
+      g = { key, slot: dose.slot, timing, meds: [], logs: [], status: 'pending' };
       groups.push(g);
     }
     g.meds.push(dose.medication);
@@ -52,7 +62,11 @@ export function todayDoseGroups(state: AppState, bookId: string, day = todayKey(
     if (g.logs.some((l) => l.status === 'refused')) g.status = 'refused';
     else if (g.logs.length === g.meds.length && g.meds.length > 0) g.status = 'taken';
   }
-  return groups;
+  // เรียงตามมื้อก่อน แล้วค่อย ก่อนอาหาร → พร้อมอาหาร → ไม่ระบุ → หลังอาหาร
+  return groups.sort((a, b) => (
+    SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot)
+    || MEAL_ORDER.indexOf(a.timing) - MEAL_ORDER.indexOf(b.timing)
+  ));
 }
 
 /** นัดถัดไป (วันนี้เป็นต้นไป) */

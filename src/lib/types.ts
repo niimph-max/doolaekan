@@ -2,6 +2,8 @@
 
 export type ShareLevel = 'full' | 'appointments' | 'none';
 export type DoseSlot = 'morning' | 'noon' | 'evening' | 'bedtime' | 'prn';
+/** จังหวะกินเทียบกับมื้ออาหาร — ว่าง = ไม่ระบุ */
+export type MealTiming = '' | 'before' | 'after' | 'with';
 export type RecordKind = 'symptom' | 'bp' | 'doc' | 'visit';
 
 export interface Doctor {
@@ -44,6 +46,7 @@ export interface Medication {
   prescriber: string;    // หมอที่สั่ง
   tag: string;           // แผนก เช่น "หัวใจ"
   slots: DoseSlot[];
+  timing: MealTiming;
   duplicate_flag: boolean;
   photo?: string;        // data URL รูปถุงยา (ของจริง = Supabase Storage)
 }

@@ -3,9 +3,9 @@
 import React, { useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
-import { SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
+import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER, inferMealTiming } from '@/lib/format';
 import { useStore } from '@/lib/store';
-import type { DoseSlot } from '@/lib/types';
+import type { DoseSlot, MealTiming } from '@/lib/types';
 
 /** สแกนถุงยา: ถ่ายรูป → ตรวจ/แก้ข้อความ → บันทึก + เช็คยาซ้ำอัตโนมัติ
  *  หมายเหตุ: ยังไม่ได้ต่อ OCR จริง ผู้ใช้ต้องยืนยันข้อความเองก่อนบันทึก */
@@ -20,9 +20,10 @@ export function ScanSheet({ open, bookId, onClose }: {
   const [prescriber, setPrescriber] = useState('');
   const [helps, setHelps] = useState('');
   const [slots, setSlots] = useState<DoseSlot[]>(['morning']);
+  const [timing, setTiming] = useState<MealTiming>('');
 
   const close = () => {
-    setPhoto(''); setName(''); setHow(''); setPrescriber(''); setHelps(''); setSlots(['morning']);
+    setPhoto(''); setName(''); setHow(''); setPrescriber(''); setHelps(''); setSlots(['morning']); setTiming('');
     onClose();
   };
 
@@ -44,7 +45,8 @@ export function ScanSheet({ open, bookId, onClose }: {
     if (!name.trim()) return;
     const created = actions.addMedication(bookId, {
       name: name.trim(), how_to_take: how.trim(), prescriber: prescriber.trim(),
-      helps: helps.trim(), tag: prescriber.replace('หมอ', '').trim(), slots, photo,
+      helps: helps.trim(), tag: prescriber.replace('หมอ', '').trim(), slots,
+      timing: timing || inferMealTiming(how), photo,
     });
     if (photo) {
       actions.addRecord(bookId, {
@@ -95,6 +97,17 @@ export function ScanSheet({ open, bookId, onClose }: {
           <label className="o-label" htmlFor="sc-helps">ช่วยอะไร</label>
           <input id="sc-helps" className="o-input" placeholder="อธิบายภาษาบ้านๆ ให้คนที่บ้านเข้าใจ"
             value={helps} onChange={(e) => setHelps(e.target.value)} />
+
+          <label className="o-label">ก่อน / หลังอาหาร</label>
+          <div className="o-chips">
+            {MEAL_ORDER.filter((t) => t !== '').map((t) => (
+              <button key={t} type="button" className="o-chip"
+                aria-pressed={(timing || inferMealTiming(how)) === t}
+                onClick={() => setTiming(timing === t ? '' : t)}>
+                {MEAL_LABEL[t]}
+              </button>
+            ))}
+          </div>
 
           <label className="o-label">มื้อที่ต้องกิน</label>
           <div className="o-chips">
