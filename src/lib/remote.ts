@@ -488,10 +488,20 @@ export async function diagnose(activeBookId: string): Promise<Diagnosis> {
   const c = db();
   const sb = getSupabase();
   const { data: userData } = await (sb ? sb.auth.getUser() : Promise.resolve({ data: { user: null } }));
-  const user = userData?.user ?? null;
+  let user = userData?.user ?? null;
+  // ถามเซิร์ฟเวอร์ไม่ทัน ให้ดูใบที่เก็บไว้ในเครื่องแทน แล้วบอกตามจริงว่ายังยืนยันไม่ได้
+  // ห้ามรายงานว่า "ยังไม่ได้เข้าระบบ" ทั้งที่บรรทัดถัดไปอ่านสมุดได้และเขียนได้
+  // แผงที่ขัดแย้งกันเองทำให้ผู้ใช้หลงไปแก้ผิดจุด
+  let unconfirmed = false;
+  if (!user && sb) {
+    const { data: sess } = await sb.auth.getSession();
+    if (sess.session) { user = sess.session.user; unconfirmed = true; }
+  }
 
   const out: Diagnosis = {
-    email: user?.email ?? '(ไม่พบ — ยังไม่ได้เข้าระบบ)',
+    email: user?.email
+      ? (unconfirmed ? `${user.email} (ยืนยันกับเซิร์ฟเวอร์ไม่ทัน)` : user.email)
+      : '(ไม่พบ — ยังไม่ได้เข้าระบบ)',
     userId: user?.id ?? '',
     readableBooks: [],
     activeBookId,
@@ -566,5 +576,28 @@ export async function currentUserId(): Promise<string> {
   const sb = getSupabase();
   if (!sb) return '';
   const { data } = await sb.auth.getUser();
-  return data?.user?.id ?? '';
+  if (data?.user?.id) return data.user.id;
+  // ── ถามเซิร์ฟเวอร์ไม่ได้ ≠ ไม่ได้เข้าระบบ ──
+  // getUser คุยกับเซิร์ฟเวอร์เข้าระบบทุกครั้ง ถ้าเน็ตช้าหรือฝั่งนั้นไม่ตอบ มันคืนค่าว่าง
+  // กลับมาเฉยๆ โดยไม่นับเป็น error การเชื่อตามตรงๆ แล้วสรุปว่า "ยังไม่ได้เข้าระบบ"
+  // ทำให้แอปไล่ผู้ใช้ไปเข้าระบบใหม่ทั้งที่ใบเข้าระบบยังใช้ได้ดี (อ่านเขียนได้ปกติ)
+  const { data: sess } = await sb.auth.getSession();
+  return sess.session?.user.id ?? '';
+}
+
+/** ตอบให้ชัดว่า "ยังเข้าระบบอยู่ไหม" โดยแยกกรณี "ตอบไม่ได้" ออกจาก "ไม่ได้เข้า"
+ *  @returns true = เข้าอยู่แน่ / false = ไม่ได้เข้าแน่ / null = ยังตอบไม่ได้ อย่าเพิ่งสรุป */
+export async function isSignedIn(): Promise<boolean | null> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { data, error } = await sb.auth.getUser();
+    if (data?.user?.id) return true;
+    // เซิร์ฟเวอร์บอกชัดว่าใบนี้ใช้ไม่ได้ = ไม่ได้เข้าระบบจริง
+    if (error && /401|invalid|expired|jwt/i.test(error.message)) return false;
+  } catch {
+    /* ต่อไม่ติด — ยังสรุปไม่ได้ */
+  }
+  const { data: sess } = await sb.auth.getSession();
+  return sess.session ? null : false;
 }

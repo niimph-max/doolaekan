@@ -5,7 +5,7 @@ import { ConnectionCheck } from './ConnectionCheck';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { Onboarding } from './Onboarding';
-import { currentUserId } from '@/lib/remote';
+import { isSignedIn } from '@/lib/remote';
 import { useStore } from '@/lib/store';
 import { forgetHadBook, hadBookBefore } from '@/lib/storage';
 
@@ -47,11 +47,13 @@ export function NoBook() {
     if (!state.userId) return;
     let done = false;
     Promise.race([
-      currentUserId(),
-      new Promise<string>((resolve) => setTimeout(() => resolve('timeout'), PROBE_TIMEOUT_MS)),
+      isSignedIn(),
+      new Promise<boolean | null>((resolve) => setTimeout(() => resolve(null), PROBE_TIMEOUT_MS)),
     ])
-      .then((id) => { if (!done) setAuthOk(id === 'timeout' ? null : id === state.userId); })
-      .catch(() => { if (!done) setAuthOk(false); });
+      // ตอบไม่ได้ = null ต้องเงียบไว้ ห้ามเดาว่าหมดเวลาเข้าระบบแล้วไล่ให้เข้าใหม่
+      // ทั้งที่ใบเข้าระบบยังใช้ได้ ซึ่งจะพาไปวนกับหน้าเข้าระบบโดยไม่จำเป็น
+      .then((v) => { if (!done) setAuthOk(v); })
+      .catch(() => { if (!done) setAuthOk(null); });
     return () => { done = true; };
   }, [state.userId]);
 

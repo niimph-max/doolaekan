@@ -19,6 +19,8 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 const REFRESH_TIMEOUT_MS = 8000;
 /** เวลาสูงสุดที่ยอมรอการดึงข้อมูลหนึ่งรอบ ก่อนจะถือว่าล้มเหลวและคืนปุ่มให้ผู้ใช้ */
 const FETCH_TIMEOUT_MS = 12000;
+/** จังหวะลองดึงข้อมูลใหม่เงียบๆ เมื่อมีสำเนาให้ดูอยู่แล้ว (มิลลิวินาที) */
+const BACKGROUND_RETRIES = [2000, 6000];
 
 const emptyState: AppState = {
   ready: false,
@@ -295,9 +297,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // ห้ามปล่อยให้ตกไปหน้า onboarding — ผู้ใช้ที่มีสมุดอยู่แล้วจะนึกว่าข้อมูลหาย
         // แล้วกรอกใหม่จนได้สมุดซ้ำสองเล่ม
         if (showingCache) {
-          // มีสำเนาให้ดูอยู่แล้ว ไม่ต้องขึ้นหน้าเต็มจอขวางทาง บอกเบาๆ ก็พอ
+          // ── มีสำเนาให้ดูอยู่แล้ว ลองเงียบๆ อีกสองรอบก่อนค่อยรบกวน ──
+          // เดิมพลาดครั้งเดียวก็เตือนทันที ทั้งที่สาเหตุส่วนใหญ่หายเองในไม่กี่วินาที
+          // ผู้ใช้จึงเห็นคำเตือนบ่อยจนรู้สึกว่าแอปใกล้พังตลอดเวลา ทั้งที่ใช้งานได้ปกติ
           setState((s) => ({ ...s, ready: true, userId }));
-          toast('อัปเดตข้อมูลล่าสุดไม่สำเร็จ — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+          void (async () => {
+            for (const wait of BACKGROUND_RETRIES) {
+              await new Promise((r) => setTimeout(r, wait));
+              if (cancelled) return;
+              try {
+                await refresh(userId);
+                return;   // ได้แล้ว ไม่ต้องบอกอะไรเลย
+              } catch { /* ลองรอบถัดไป */ }
+            }
+            if (!cancelled) toast('อัปเดตข้อมูลล่าสุดไม่สำเร็จ — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+          })();
         } else {
           setState((s) => ({ ...s, ready: true, userId, loadError: (e as Error).message }));
         }
@@ -322,12 +336,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       // ต้องโหลดใหม่จนกว่าจะมีรอบที่ต่ออายุทัน
       if (event === 'SIGNED_OUT' && !intentionalSignOut.current) {
         setState((st) => ({ ...st, ready: true }));
-        toast('ต่อคลาวด์ไม่ได้ชั่วคราว — กำลังลองเชื่อมต่อใหม่');
-        // ลองต่ออายุให้เองเลย ดีกว่าให้ผู้ใช้ไปนั่งกดโหลดหน้าเอง
-        sb.auth.refreshSession().then(({ data, error }) => {
-          if (cancelled || error || !data.session) return;
-          onAuth(data.session.user.id, data.session.user.email ?? '');
-        }).catch(() => { /* ยังไม่ได้ก็แสดงสำเนาในเครื่องไปก่อน */ });
+        // ── ห้ามเตือนก่อนรู้ผล ──
+        // เดิมเตือนทันทีที่ได้ยินว่าต่ออายุไม่ผ่าน แล้วค่อยไปลองใหม่เงียบๆ พอลองแล้ว
+        // สำเร็จก็ไม่ได้ถอนคำเตือน ผู้ใช้จึงเห็น "ต่อคลาวด์ไม่ได้" ค้างอยู่ทั้งที่
+        // อ่านเขียนได้ตามปกติ — คำเตือนที่ไม่ตรงกับความจริงทำให้คนไปแก้ผิดจุด
+        sb.auth.refreshSession().then(({ data }) => {
+          if (cancelled) return;
+          if (data.session) {
+            onAuth(data.session.user.id, data.session.user.email ?? '');
+            return;   // ต่อได้แล้ว ไม่ต้องบอกอะไรเลย
+          }
+          toast('ต่อคลาวด์ไม่ได้ชั่วคราว — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+        }).catch(() => {
+          if (!cancelled) toast('ต่อคลาวด์ไม่ได้ชั่วคราว — กำลังแสดงข้อมูลที่เก็บไว้ในเครื่อง');
+        });
         return;
       }
       intentionalSignOut.current = false;
