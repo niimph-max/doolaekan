@@ -65,6 +65,14 @@ jobs:
         run: npm run build
 
       # กัน Jekyll ทิ้งโฟลเดอร์ _next (ชื่อขึ้นต้นด้วย _ จะถูกข้าม)
+      # ประทับเลข build ลงใน service worker ทุก deploy จะได้มีตัวใหม่ให้เบราว์เซอร์
+      # ติดตั้งเสมอ ไม่งั้นเครื่องที่แคชไว้จะไม่รู้เลยว่ามีของใหม่
+      - name: ประทับเลขรุ่นลง service worker
+        run: |
+          sed -i "s/__BUILD__/${{ github.run_number }}/" out/sw.js
+          grep -q "const BUILD = '${{ github.run_number }}'" out/sw.js \
+            || { echo "::error::ประทับเลขรุ่นลง sw.js ไม่สำเร็จ"; exit 1; }
+
       - run: touch out/.nojekyll
 
       - uses: actions/upload-pages-artifact@v3

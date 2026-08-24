@@ -1,11 +1,15 @@
 // Doolaekan service worker — ให้ติดตั้งลงหน้าจอได้ และเปิดแอปได้ทันทีแม้เน็ตช้า
 // (ขั้นถัดไปตาม notifications.md: รับ Web Push ที่นี่ด้วย)
 
-const VERSION = 5;
+// เลขรุ่นถูกแทนที่ตอน deploy ด้วยเลข build จริง ทุก deploy จึงได้ service worker
+// ที่เนื้อไฟล์ต่างจากเดิมเสมอ เบราว์เซอร์เห็นว่าเปลี่ยนแล้วติดตั้งตัวใหม่ให้ทันที
+// ถ้าไม่ทำแบบนี้ deploy ที่ไม่ได้แตะ sw.js จะไม่มีอะไรกระตุ้นให้เครื่องอัปเดตเลย
+const BUILD = '__BUILD__';
+const VERSION = BUILD === ('__' + 'BUILD__') ? 'dev' : BUILD;
 const CACHE = `doolaekan-shell-v${VERSION}`;
 // เก็บของรอบก่อนไว้ด้วยหนึ่งรุ่น — หน้าเว็บที่หยิบจากแคชอ้างถึงไฟล์ js/css ชุดเก่า
 // ซึ่ง GitHub Pages ลบทิ้งไปแล้วตอน deploy รอบใหม่ ถ้าล้างแคชเก่าด้วยจะเหลือจอขาว
-const KEEP = [CACHE, `doolaekan-shell-v${VERSION - 1}`];
+const KEEP = [CACHE, `doolaekan-shell-v${Number(VERSION) - 1}`];
 
 // scope คือโฟลเดอร์ที่แอปถูกวางไว้ ('/' บนโดเมนของตัวเอง, '/doolaekan/' บน GitHub Pages)
 const BASE = new URL(self.registration.scope).pathname;

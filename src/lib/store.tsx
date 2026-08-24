@@ -479,11 +479,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       updateBook: (id, p) => {
-        patch((s) => ({ books: s.books.map((b) => (b.id === id ? { ...b, ...p } : b)) }));
-        push(async () => {
-          const book = stateRef.current.books.find((b) => b.id === id);
-          if (book) await remote.updateBook(book);
-        });
+        // ต้องประกอบแถวใหม่ตรงนี้แล้วส่งตัวนั้นไปเลย ห้ามไปอ่านจาก stateRef ข้างใน push
+        // เพราะ push ทำงานทันทีในจังหวะเดียวกับที่กด ส่วน setState ยังไม่ทันมีผล
+        // stateRef จึงยังเป็นค่าก่อนแก้ — ที่ผ่านมาแอปจึงส่งค่าเก่าขึ้นคลาวด์ทุกครั้ง
+        const before = stateRef.current.books.find((b) => b.id === id);
+        if (!before) return;
+        const updated: Book = { ...before, ...p };
+        patch((s) => ({ books: s.books.map((b) => (b.id === id ? updated : b)) }));
+        push(() => remote.updateBook(updated));
       },
 
       addDoctor: (bookId, doc) => {
@@ -493,11 +496,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       updateDoctor: (id, p) => {
-        patch((s) => ({ doctors: s.doctors.map((d) => (d.id === id ? { ...d, ...p } : d)) }));
-        push(async () => {
-          const doc = stateRef.current.doctors.find((d) => d.id === id);
-          if (doc) await remote.upsertDoctor(doc);
-        });
+        const before = stateRef.current.doctors.find((d) => d.id === id);
+        if (!before) return;
+        const updated: Doctor = { ...before, ...p };
+        patch((s) => ({ doctors: s.doctors.map((d) => (d.id === id ? updated : d)) }));
+        push(() => remote.upsertDoctor(updated));
       },
 
       removeDoctor: (id) => {
@@ -636,11 +639,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       updateAppointment: (id, p) => {
-        patch((s) => ({ appointments: s.appointments.map((a) => (a.id === id ? { ...a, ...p } : a)) }));
-        push(async () => {
-          const appt = stateRef.current.appointments.find((a) => a.id === id);
-          if (appt) await remote.upsertAppointment(appt);
-        });
+        const before = stateRef.current.appointments.find((a) => a.id === id);
+        if (!before) return;
+        const updated: Appointment = { ...before, ...p };
+        patch((s) => ({ appointments: s.appointments.map((a) => (a.id === id ? updated : a)) }));
+        push(() => remote.upsertAppointment(updated));
       },
 
       removeAppointment: (id) => {
@@ -675,11 +678,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       updateWatchRule: (id, p) => {
-        patch((s) => ({ watchRules: s.watchRules.map((w) => (w.id === id ? { ...w, ...p } : w)) }));
-        push(async () => {
-          const rule = stateRef.current.watchRules.find((w) => w.id === id);
-          if (rule) await remote.upsertWatchRule(rule);
-        });
+        const before = stateRef.current.watchRules.find((w) => w.id === id);
+        if (!before) return;
+        const updated: WatchRule = { ...before, ...p };
+        patch((s) => ({ watchRules: s.watchRules.map((w) => (w.id === id ? updated : w)) }));
+        push(() => remote.upsertWatchRule(updated));
       },
 
       removeWatchRule: (id) => {

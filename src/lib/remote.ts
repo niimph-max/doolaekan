@@ -221,14 +221,22 @@ export async function upsertBook(b: Book): Promise<void> {
  *  (สร้างสมุดได้เฉพาะในชื่อตัวเอง) ลูกที่ดูแลพ่อแม่จึงแก้สมุดของพ่อแม่ไม่ผ่าน */
 export async function updateBook(b: Book): Promise<void> {
   const { owner_id: _owner, ...fields } = bookRow(b);
-  const { error } = await db().from('books').update(fields).eq('id', b.id);
+  // ขอแถวที่แก้กลับมาด้วย — UPDATE ที่ไม่โดนแถวไหนเลย (เช่นสิทธิ์ไม่ถึง) PostgREST
+  // ตอบว่าสำเร็จเฉยๆ ไม่มี error ข้อมูลจึงหายเงียบโดยไม่มีอะไรบอก
+  const { data, error } = await db().from('books').update(fields).eq('id', b.id).select('id');
   check('updateBook', error);
+  if (!data?.length) {
+    throw new Error('บันทึกไม่ติด — ไม่มีสิทธิ์แก้สมุดเล่มนี้ หรือสมุดถูกลบไปแล้ว');
+  }
 }
 
 export async function upsertDoctor(d: Doctor): Promise<void> {
   const row = doctorRow(d) as Record<string, unknown>;
-  const { error } = await db().from('doctors').upsert(row);
-  if (!error) return;
+  const { data, error } = await db().from('doctors').upsert(row).select('id');
+  if (!error) {
+    if (!data?.length) throw new Error('บันทึกไม่ติด — ไม่มีสิทธิ์แก้ข้อมูลหมอในสมุดเล่มนี้');
+    return;
+  }
   // ยังไม่ได้รัน 0007 — บันทึกส่วนที่เหลือให้ก่อน ดีกว่าแก้ชื่อหมอไม่ได้เลย
   if (error.code === 'PGRST204' && error.message.includes('phone')) {
     delete row.phone;
