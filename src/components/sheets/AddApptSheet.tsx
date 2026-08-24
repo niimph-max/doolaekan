@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Sheet } from '../Sheet';
-import { escortOptions } from '@/lib/selectors';
+import { EscortPicker } from '../EscortPicker';
 import { useStore } from '@/lib/store';
 
 const OTHER = '__other__';
@@ -130,14 +130,7 @@ export function AddApptSheet({ open, bookId, onClose }: {
       )}
 
       <label className="o-label">ใครพาไป</label>
-      <div className="o-chips">
-        {escortOptions(state).map((n) => (
-          <button key={n} type="button" className="o-chip" aria-pressed={escort === n}
-            onClick={() => setEscort(escort === n ? '' : n)}>
-            {n}
-          </button>
-        ))}
-      </div>
+      <EscortPicker value={escort} onChange={setEscort} />
 
       {needsBloodTest && (
         <p className="subtle" style={{ marginTop: 14, color: 'var(--color-accent-700)' }}>

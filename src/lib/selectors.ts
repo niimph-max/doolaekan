@@ -107,12 +107,17 @@ export function activeBook(state: AppState): Book | undefined {
   return state.books.find((b) => b.id === state.activeBookId) ?? state.books[0];
 }
 
-/** ชื่อคนที่เลือกเป็น "คนพาไปหาหมอ" ได้ — สมาชิกกลุ่มปัจจุบัน + ตัวเลือกไปเอง */
+/** ชื่อคนที่เลือกเป็น "คนพาไปหาหมอ" ได้
+ *  = สมาชิกกลุ่มปัจจุบัน + ชื่อที่เคยพิมพ์เพิ่มเองในนัดก่อนๆ (คนนอกกลุ่ม เช่น หลาน คนขับรถ)
+ *  พิมพ์ครั้งเดียวแล้วครั้งหน้าเลือกได้เลย ไม่ต้องพิมพ์ซ้ำ */
 export function escortOptions(state: AppState): string[] {
   const group = state.groups.find((g) => g.id === state.activeGroupId);
-  const names = (group?.members ?? []).map((m) => m.name.replace(' (คนดูแล)', ''));
+  const members = (group?.members ?? []).map((m) => m.name.replace(' (คนดูแล)', ''));
   const own = state.books.filter((b) => b.is_mine).map((b) => b.owner_name);
-  return Array.from(new Set([...names, ...own].filter(Boolean))).concat('ไปเอง');
+  const used = state.appointments.map((a) => a.escort);
+  const names = Array.from(new Set([...members, ...own, ...used].filter(Boolean)))
+    .filter((n) => n !== 'ไปเอง');
+  return [...names, 'ไปเอง'];
 }
 
 export const SHARE_LABEL: Record<string, string> = {

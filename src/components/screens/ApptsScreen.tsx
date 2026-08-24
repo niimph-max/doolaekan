@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import { EscortPicker } from '../EscortPicker';
 import { Icon } from '../Icon';
 import { daysLabel, daysUntil, fmtDate } from '@/lib/format';
-import { bookAppointments, escortOptions } from '@/lib/selectors';
+import { bookAppointments } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Appointment, Book } from '@/lib/types';
 
@@ -68,17 +69,13 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
         >
           <div style={{ marginTop: 8 }}>
             <div className="o-label" style={{ marginTop: 0 }}>ใครพาไป</div>
-            <div className="o-chips">
-              {escortOptions(state).map((n) => (
-                <button key={n} type="button" className="o-chip" aria-pressed={a.escort === n}
-                  onClick={() => {
-                    actions.updateAppointment(a.id, { escort: a.escort === n ? '' : n });
-                    actions.toast(a.escort === n ? 'ยกเลิกคนพาไปแล้ว' : `มอบหมาย ${n} พาไป`);
-                  }}>
-                  {n}
-                </button>
-              ))}
-            </div>
+            <EscortPicker
+              value={a.escort}
+              onChange={(n) => {
+                actions.updateAppointment(a.id, { escort: n });
+                actions.toast(n ? `มอบหมาย ${n} พาไป` : 'ยกเลิกคนพาไปแล้ว');
+              }}
+            />
           </div>
         </Step>
       </div>
