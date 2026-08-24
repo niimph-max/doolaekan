@@ -8,7 +8,7 @@ import type {
 import { uid } from './format';
 import { demoState } from './seed';
 import {
-  clearCloudCache, clearLocal, loadCloudCache, loadLastUserId, loadLocal, loadPrefs,
+  clearAuthStorage, clearCloudCache, clearLocal, loadCloudCache, loadLastUserId, loadLocal, loadPrefs,
   markHadBook,
   saveCloudCache, saveLastUserId, savePrefs, saveLocal,
 } from './storage';
@@ -16,7 +16,9 @@ import * as remote from './remote';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 
 /** เวลาสูงสุดที่ยอมรอการต่ออายุ token ก่อนจะลองดึงข้อมูลด้วยใบเดิมไปเลย */
-const REFRESH_TIMEOUT_MS = 2500;
+const REFRESH_TIMEOUT_MS = 8000;
+/** เวลาสูงสุดที่ยอมรอการดึงข้อมูลหนึ่งรอบ ก่อนจะถือว่าล้มเหลวและคืนปุ่มให้ผู้ใช้ */
+const FETCH_TIMEOUT_MS = 12000;
 
 const emptyState: AppState = {
   ready: false,
@@ -568,7 +570,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ]);
         }
         try {
-          await refresh(userId);
+          // ต้องมีเวลาจำกัดเหมือนกัน ไม่งั้นปุ่ม "ลองใหม่" ค้างที่ "กำลังลอง…" ได้ไม่จบ
+          // เมื่อเน็ตหยุดตอบโดยไม่เด้ง error ซึ่งเป็นทางตันที่ผู้ใช้ทำอะไรต่อไม่ได้เลย
+          await Promise.race([
+            refresh(userId),
+            new Promise((_, reject) => setTimeout(
+              () => reject(new Error('ดึงข้อมูลนานเกินไป — เน็ตช้าหรือเซิร์ฟเวอร์ไม่ตอบ')),
+              FETCH_TIMEOUT_MS,
+            )),
+          ]);
         } catch (e) {
           setState((s) => ({ ...s, loadError: (e as Error).message }));
         }
@@ -578,8 +588,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         intentionalSignOut.current = true;
         clearCloudCache(stateRef.current.userId);
         saveLastUserId('');
-        await getSupabase()?.auth.signOut();
+        // ── ล้างฝั่งเครื่องให้เสร็จก่อนเสมอ แล้วค่อยไปบอกเซิร์ฟเวอร์ ──
+        // เดิมรอเซิร์ฟเวอร์ตอบก่อนถึงจะล้างสถานะบนจอ ซึ่งพังในกรณีที่สำคัญที่สุด:
+        // ตอนใบเข้าระบบหมดอายุ คำขอออกจากระบบจะค้างหรือพัง บรรทัดล้างสถานะจึงไม่เคย
+        // ได้ทำงาน ผู้ใช้ติดอยู่หน้าเดิมออกไม่ได้เลย ทั้งที่การออกจากระบบเป็นทางแก้
+        clearAuthStorage();
         setState({ ...emptyState, ready: true });
+        const sb = getSupabase();
+        if (sb) {
+          // scope local = ล้างใบเข้าระบบในเครื่องอย่างเดียว ไม่ต้องรอเซิร์ฟเวอร์อนุมัติ
+          await Promise.race([
+            sb.auth.signOut({ scope: 'local' }).catch(() => { /* ล้างเองไปแล้ว */ }),
+            new Promise((resolve) => setTimeout(resolve, REFRESH_TIMEOUT_MS)),
+          ]);
+        }
       },
 
       resyncToCloud: async () => {

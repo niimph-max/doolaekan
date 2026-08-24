@@ -86,8 +86,6 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
         </button>
       ))}
 
-      <AddBookRow />
-
       {/* สิทธิ์การเห็น */}
       <div className="o-card">
         <h3>สิทธิ์การเห็นในกลุ่มนี้</h3>
@@ -194,49 +192,3 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
   );
 }
 
-/** เปิดสมุดให้คนที่ไม่ได้ใช้แอปเอง — พ่อแม่หลายท่านไม่ถนัดมือถือ
- *  หรือไม่มีอีเมลของตัวเอง แต่ยังต้องมีสมุดยาและนัดหมอเป็นของตัวเอง */
-function AddBookRow() {
-  const { actions } = useStore();
-  const [name, setName] = useState('');
-  const [open, setOpen] = useState(false);
-
-  if (!open) {
-    return (
-      <button type="button" className="o-btn ghost block" style={{ marginTop: 12 }}
-        onClick={() => setOpen(true)}>
-        <Icon name="plus" size={19} /> เพิ่มสมุดของคนอื่น
-      </button>
-    );
-  }
-
-  const save = () => {
-    if (!name.trim()) return;
-    actions.addBook(name);
-    actions.toast(`เปิดสมุดของ${name.trim()}แล้ว`);
-    setName('');
-    setOpen(false);
-  };
-
-  return (
-    <div className="o-card" style={{ marginTop: 12 }}>
-      <label className="o-label" style={{ marginTop: 0 }} htmlFor="new-book-name">
-        เรียกคนนี้ว่าอะไร
-      </label>
-      <input id="new-book-name" className="o-input" placeholder="เช่น แม่, ย่า, คุณตา"
-        value={name} onChange={(e) => setName(e.target.value)} />
-      <p className="subtle" style={{ margin: '8px 0 0' }}>
-        คนนี้ไม่ต้องมีอีเมลหรือเข้าแอปเอง คุณดูแลสมุดให้ได้เลย
-        และทุกคนในกลุ่มจะเห็นสมุดเล่มนี้ด้วย
-      </p>
-      <div className="o-row" style={{ marginTop: 12 }}>
-        <button type="button" className="o-btn ghost" onClick={() => { setOpen(false); setName(''); }}>
-          ยกเลิก
-        </button>
-        <button type="button" className="o-btn primary" disabled={!name.trim()} onClick={save}>
-          เปิดสมุด
-        </button>
-      </div>
-    </div>
-  );
-}

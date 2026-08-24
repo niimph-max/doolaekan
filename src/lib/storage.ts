@@ -143,3 +143,18 @@ export function forgetHadBook(userId: string): void {
   if (!userId) return;
   write(HAD_BOOK_KEY, (read<string[]>(HAD_BOOK_KEY) ?? []).filter((id) => id !== userId));
 }
+
+/** ล้างใบเข้าระบบทั้งหมดในเครื่องนี้ทิ้ง โดยไม่พึ่งเซิร์ฟเวอร์เลย
+ *
+ *  ทางออกสุดท้ายสำหรับตอนที่ใบเข้าระบบเสียจนคุยกับเซิร์ฟเวอร์ไม่ได้ ซึ่งเป็นจังหวะ
+ *  เดียวกับที่ผู้ใช้อยากออกจากระบบที่สุด ถ้าทางออกต้องรอเซิร์ฟเวอร์ก็จะไม่มีทางออก */
+export function clearAuthStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const doomed = Object.keys(window.localStorage)
+      .filter((k) => k.startsWith('sb-') || k.startsWith('supabase.') || k === LAST_USER_KEY);
+    for (const k of doomed) window.localStorage.removeItem(k);
+  } catch {
+    /* ignore */
+  }
+}

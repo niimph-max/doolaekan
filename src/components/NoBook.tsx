@@ -5,6 +5,7 @@ import { ConnectionCheck } from './ConnectionCheck';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { Onboarding } from './Onboarding';
+import { currentUserId } from '@/lib/remote';
 import { useStore } from '@/lib/store';
 import { forgetHadBook, hadBookBefore } from '@/lib/storage';
 
@@ -15,6 +16,8 @@ const AUTO_TRIES = 2;
  *  เกินคาดเสมอ ถ้าผูกกับรอบที่ลองเสร็จ ผู้ใช้อาจติดหน้ารอโดยไม่มีปุ่มให้กดเลย
  *  ซึ่งเป็นทางตันแบบเดียวกับที่หน้านี้ตั้งใจจะแก้ */
 const SETTLE_MS = 7000;
+/** เวลาสูงสุดที่ยอมรอคำตอบว่า token ยังใช้ได้ไหม */
+const PROBE_TIMEOUT_MS = 6000;
 
 /** เข้าระบบแล้วแต่ยังไม่เห็นสมุดสักเล่ม — ที่ให้ "รอ" ก่อนถึงหน้ากรอกข้อมูล
  *
@@ -31,7 +34,26 @@ export function NoBook() {
   const [tries, setTries] = useState(0);
   const [busy, setBusy] = useState(false);
   const [settled, setSettled] = useState(false);
+  const [authOk, setAuthOk] = useState<boolean | null>(null);
   const knew = hadBookBefore(state.userId);
+
+  // ── ถามเซิร์ฟเวอร์ตรงๆ ว่ายังรู้จักเราอยู่ไหม ──
+  // "อ่านได้ 0 เล่ม" เกิดได้จากสองสาเหตุที่ต่างกันคนละเรื่อง แต่หน้าตาเหมือนกันเป๊ะ
+  // คือยังไม่มีสมุดจริงๆ กับ session หมดอายุจนคำขอถูกส่งไปแบบไม่มีตัวตน
+  // (ฐานข้อมูลไม่รู้ว่าเราคือใคร กติกาจึงไม่คืนแถวไหนเลย และไม่นับเป็น error)
+  // ถ้าเดาผิดทางแล้วชวนผู้ใช้สร้างสมุดใหม่ จะได้สมุดซ้ำทั้งที่ของเดิมอยู่ครบ
+  // การเรียก getUser คุยกับเซิร์ฟเวอร์เข้าระบบโดยตรง จึงแยกสองกรณีนี้ได้ขาด
+  useEffect(() => {
+    if (!state.userId) return;
+    let done = false;
+    Promise.race([
+      currentUserId(),
+      new Promise<string>((resolve) => setTimeout(() => resolve('timeout'), PROBE_TIMEOUT_MS)),
+    ])
+      .then((id) => { if (!done) setAuthOk(id === 'timeout' ? null : id === state.userId); })
+      .catch(() => { if (!done) setAuthOk(false); });
+    return () => { done = true; };
+  }, [state.userId]);
 
   // ลองดึงเองเงียบๆ ก่อน เพราะสาเหตุที่พบบ่อยที่สุดหายเองได้ในไม่กี่วินาที
   useEffect(() => {
@@ -74,7 +96,9 @@ export function NoBook() {
         ) : (
           <>
             <h2 style={{ fontSize: 24, margin: '4px 0 8px', textAlign: 'center' }}>
-              {knew ? 'ยังดึงสมุดกลับมาไม่ได้' : 'ยังไม่เจอสมุดของบัญชีนี้'}
+              {authOk === false
+                ? 'หมดเวลาเข้าระบบแล้ว'
+                : (knew ? 'ยังดึงสมุดกลับมาไม่ได้' : 'ยังไม่เจอสมุดของบัญชีนี้')}
             </h2>
             {state.userEmail && (
               <p className="subtle" style={{ textAlign: 'center', margin: 0, wordBreak: 'break-all' }}>
@@ -82,7 +106,25 @@ export function NoBook() {
               </p>
             )}
 
-            {knew ? (
+            {authOk === false ? (
+              <>
+                <div className="o-card warn" style={{ marginTop: 18 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
+                    <Icon name="alert" size={22} color="var(--color-accent-700)" />
+                    <strong>ข้อมูลไม่ได้หาย</strong>
+                  </div>
+                  <p style={{ margin: 0 }}>
+                    ข้อมูลอยู่ครบในคลาวด์ แค่ต้องเข้าระบบใหม่อีกครั้ง
+                    <strong> อย่าสร้างสมุดใหม่</strong> เพราะจะได้สมุดซ้ำสองเล่ม
+                  </p>
+                </div>
+                <button type="button" className="o-btn primary block" style={{ marginTop: 16 }}
+                  onClick={() => { void actions.signOut(); }}>
+                  เข้าระบบใหม่ด้วย {state.userEmail || 'บัญชีเดิม'}
+                </button>
+                <ConnectionCheck />
+              </>
+            ) : knew ? (
               <div className="o-card warn" style={{ marginTop: 18 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
                   <Icon name="alert" size={22} color="var(--color-accent-700)" />
@@ -101,6 +143,8 @@ export function NoBook() {
               </p>
             )}
 
+            {authOk !== false && (
+            <>
             <button type="button" className="o-btn primary block" style={{ marginTop: 16 }}
               disabled={busy}
               onClick={async () => {
@@ -121,8 +165,10 @@ export function NoBook() {
               }}>
               <Icon name="plus" size={18} /> {knew ? 'ยืนยันสร้างสมุดใหม่' : 'สร้างสมุดของฉัน'}
             </button>
+            </>
+            )}
 
-            {state.mode === 'cloud' && state.userEmail && <ConnectionCheck />}
+            {authOk !== false && state.mode === 'cloud' && state.userEmail && <ConnectionCheck />}
           </>
         )}
       </div>
