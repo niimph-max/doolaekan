@@ -50,7 +50,7 @@ export function Onboarding() {
   };
 
   return (
-    <div className="full">
+    <div className="full has-footer">
       <div className="full-inner">
         {step === 1 && (
           <>

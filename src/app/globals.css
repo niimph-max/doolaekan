@@ -262,5 +262,9 @@ button { font-family: inherit; font-size: inherit; }
   position: fixed; inset: 0; z-index: 50; overflow-y: auto;
   background: var(--color-bg); padding: 28px 20px calc(28px + env(safe-area-inset-bottom));
 }
+/* หน้าเปิดใช้ครั้งแรกมีแถบบอกอีเมล/ออกจากระบบลอยทับอยู่ล่างสุด
+   ต้องเว้นที่ให้พอ ไม่งั้นมันไปทับปุ่มของขั้นตอนสุดท้ายจนกดไม่ได้
+   (เว้นสองบรรทัด เผื่ออีเมลยาวจนแถบตัดขึ้นบรรทัดใหม่บนจอแคบ) */
+.full.has-footer .full-inner { padding-bottom: 120px; }
 .full.card-bg { background: #ebddc5; }
 .full-inner { max-width: 480px; margin: 0 auto; }

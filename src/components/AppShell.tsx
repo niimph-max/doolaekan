@@ -56,7 +56,8 @@ export function AppShell() {
         <Onboarding />
         <div style={{
           position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 55, display: 'flex', gap: 8,
+          zIndex: 55, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
+          maxWidth: 'calc(100vw - 32px)',
         }}>
           {hasLocalToUpload && (
             <button type="button" className="o-btn secondary"
