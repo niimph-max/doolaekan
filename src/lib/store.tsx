@@ -37,6 +37,8 @@ interface Actions {
   updateDoctor: (id: string, patch: Partial<Doctor>) => void;
   removeDoctor: (id: string) => void;
   addMedication: (bookId: string, med: Omit<Medication, 'id' | 'book_id' | 'duplicate_flag'>) => Medication;
+  updateMedication: (id: string, patch: Partial<Medication>) => void;
+  removeMedication: (id: string) => void;
   logDose: (log: Omit<MedLog, 'id' | 'at' | 'actor_name'>) => void;
   addAppointment: (bookId: string, appt: Omit<Appointment, 'id' | 'book_id' | 'blood_test_done'>) => void;
   updateAppointment: (id: string, patch: Partial<Appointment>) => void;
@@ -324,6 +326,43 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
         push(() => remote.upsertMedications(changed));
         return created;
+      },
+
+      updateMedication: (id, p) => {
+        const before = stateRef.current.medications;
+        const target = before.find((m) => m.id === id);
+        if (!target) return;
+        const after = markDuplicates(
+          before.map((m) => (m.id === id ? { ...m, ...p } : m)),
+          target.book_id,
+        );
+        setState((s) => ({ ...s, medications: after }));
+        // ชื่อยาเปลี่ยน = ธงยาซ้ำอาจเปลี่ยนทั้งเล่ม ส่งขึ้นเฉพาะตัวที่ต่างจากเดิม
+        const changed = after.filter((m) => {
+          const old = before.find((o) => o.id === m.id);
+          return !old || old.duplicate_flag !== m.duplicate_flag || m.id === id;
+        });
+        push(() => remote.upsertMedications(changed));
+      },
+
+      removeMedication: (id) => {
+        const before = stateRef.current.medications;
+        const target = before.find((m) => m.id === id);
+        if (!target) return;
+        const after = markDuplicates(before.filter((m) => m.id !== id), target.book_id);
+        setState((s) => ({
+          ...s,
+          medications: after,
+          medLogs: s.medLogs.filter((l) => l.medication_id !== id),
+        }));
+        const changed = after.filter((m) => {
+          const old = before.find((o) => o.id === m.id);
+          return old && old.duplicate_flag !== m.duplicate_flag;
+        });
+        push(async () => {
+          if (changed.length) await remote.upsertMedications(changed);
+          await remote.deactivateMedication(id);
+        });
       },
 
       logDose: (log) => {

@@ -229,6 +229,14 @@ export async function upsertMedications(meds: Medication[]): Promise<void> {
   check('upsertMedications', error);
 }
 
+/** เอายาออกจากรายการ = ปิด active ไม่ใช่ลบแถว
+ *  เพราะ med_logs ผูกกับ medication แบบ on delete cascade — ลบยาทิ้ง
+ *  ประวัติกินยาทั้งหมดของตัวนั้นจะหายไปด้วย ซึ่งเป็นข้อมูลที่เอาคืนไม่ได้ */
+export async function deactivateMedication(id: string): Promise<void> {
+  const { error } = await db().from('medications').update({ active: false }).eq('id', id);
+  check('deactivateMedication', error);
+}
+
 export async function upsertMedLog(l: MedLog): Promise<void> {
   const { error } = await db()
     .from('med_logs')
