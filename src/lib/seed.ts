@@ -42,23 +42,26 @@ export function demoState(): Omit<AppState, 'ready'> {
   ];
 
   const doctors: Doctor[] = [
-    { id: 'dr1', book_id: 'b_dad', name: 'หมอหัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '58-0012345', clinic_hours: 'พุธ 09:00–12:00' },
-    { id: 'dr2', book_id: 'b_dad', name: 'หมอตา', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '58-0012345', clinic_hours: 'ศุกร์ 09:00–12:00' },
-    { id: 'dr3', book_id: 'b_dad', name: 'หมอกระดูก', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '58-0012345', clinic_hours: 'อังคาร 13:00–16:00' },
-    { id: 'dr4', book_id: 'b_mom', name: 'หมอหัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '60-0088123', clinic_hours: 'ศุกร์ 09:00–12:00' },
-    { id: 'dr5', book_id: 'b_me', name: 'หมอฟัน', hospital: 'คลินิกฟันดี', hn: '—', clinic_hours: 'จ.–ส. 17:00–20:00' },
+    { id: 'dr1', book_id: 'b_dad', name: 'หมอหัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '58-0012345', phone: '039-324-975', clinic_hours: 'พุธ 09:00–12:00' },
+    { id: 'dr2', book_id: 'b_dad', name: 'หมอตา', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '58-0012345', phone: '039-324-975', clinic_hours: 'ศุกร์ 09:00–12:00' },
+    { id: 'dr3', book_id: 'b_dad', name: 'หมอกระดูก', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '58-0012345', phone: '039-324-975', clinic_hours: 'อังคาร 13:00–16:00' },
+    { id: 'dr4', book_id: 'b_mom', name: 'หมอหัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', hn: '60-0088123', phone: '039-324-975', clinic_hours: 'ศุกร์ 09:00–12:00' },
+    { id: 'dr6', book_id: 'b_dad', name: 'หมอหัวใจ', hospital: 'คลินิกหมอหัวใจ ท่าใหม่', hn: 'C-2291', phone: '081-455-0192', clinic_hours: 'เสาร์ 17:00–20:00' },
+    { id: 'dr5', book_id: 'b_me', name: 'หมอฟัน', hospital: 'คลินิกฟันดี', hn: '—', phone: '039-311-2020', clinic_hours: 'จ.–ส. 17:00–20:00' },
   ];
 
   const medications: Medication[] = [
-    { id: 'm1', book_id: 'b_dad', name: 'แอสไพริน 81 มก.', helps: 'ป้องกันเลือดจับตัวเป็นลิ่ม ลดเสี่ยงหัวใจขาดเลือด', how_to_take: 'เช้า 1 เม็ด หลังอาหาร', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning'], timing: 'after', duplicate_flag: false },
-    { id: 'm2', book_id: 'b_dad', name: 'บิโซโพรลอล 2.5 มก.', helps: 'คุมจังหวะหัวใจไม่ให้เต้นเร็วเกิน ช่วยลดความดัน', how_to_take: 'เช้า 1 เม็ด', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning'], timing: '', duplicate_flag: false },
-    { id: 'm3', book_id: 'b_dad', name: 'อะทอร์วาสแตติน 40 มก.', helps: 'ลดไขมันในเลือด ป้องกันเส้นเลือดตีบ', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: true },
-    { id: 'm4', book_id: 'b_dad', name: 'ซิมวาสแตติน 20 มก.', helps: 'ลดไขมันในเลือด (ฤทธิ์เดียวกับอะทอร์วาสแตติน)', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมออายุรกรรม', tag: 'ไขมัน', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: true },
-    { id: 'm5', book_id: 'b_dad', name: 'น้ำตาเทียม', helps: 'เพิ่มความชุ่มชื้น แก้ตาแห้งแสบตา', how_to_take: 'หยอด 1 หยดทั้งสองข้าง วันละ 4 ครั้ง', prescriber: 'หมอตา', tag: 'ตา', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning', 'noon', 'evening', 'bedtime'], timing: '', duplicate_flag: false },
-    { id: 'm6', book_id: 'b_dad', name: 'แคลเซียม + วิตามินดี', helps: 'เสริมมวลกระดูก ลดเสี่ยงกระดูกหักจากการล้ม', how_to_take: 'เย็น 1 เม็ด พร้อมอาหาร', prescriber: 'หมอกระดูก', tag: 'กระดูก', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['evening'], timing: 'with', duplicate_flag: false },
-    { id: 'm7', book_id: 'b_mom', name: 'บิโซโพรลอล 2.5 มก.', helps: 'คุมจังหวะหัวใจ ช่วยลดความดัน', how_to_take: 'เช้า 1 เม็ด หลังอาหาร', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning'], timing: 'after', duplicate_flag: false },
-    { id: 'm8', book_id: 'b_mom', name: 'ซิมวาสแตติน 20 มก.', helps: 'ลดไขมันในเลือด', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: false },
-    { id: 'm9', book_id: 'b_me', name: 'ลอราทาดีน 10 มก.', helps: 'แก้แพ้ ลดผื่นคัน น้ำมูกไหล', how_to_take: 'กินเมื่อมีอาการ', prescriber: 'ซื้อเอง', tag: 'ภูมิแพ้', hospital: '', slots: ['prn'], timing: '', duplicate_flag: false },
+    { id: 'm1', book_id: 'b_dad', name: 'แอสไพริน 81 มก.', helps: 'ป้องกันเลือดจับตัวเป็นลิ่ม ลดเสี่ยงหัวใจขาดเลือด', how_to_take: 'เช้า 1 เม็ด หลังอาหาร', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning'], timing: 'after', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm2', book_id: 'b_dad', name: 'บิโซโพรลอล 2.5 มก.', helps: 'คุมจังหวะหัวใจไม่ให้เต้นเร็วเกิน ช่วยลดความดัน', how_to_take: 'เช้า 1 เม็ด', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning'], timing: '', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm3', book_id: 'b_dad', name: 'อะทอร์วาสแตติน 40 มก.', helps: 'ลดไขมันในเลือด ป้องกันเส้นเลือดตีบ', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: true, paused: false, paused_note: '' },
+    { id: 'm4', book_id: 'b_dad', name: 'ซิมวาสแตติน 20 มก.', helps: 'ลดไขมันในเลือด (ฤทธิ์เดียวกับอะทอร์วาสแตติน)', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมออายุรกรรม', tag: 'ไขมัน', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: true, paused: false, paused_note: '' },
+    { id: 'm5', book_id: 'b_dad', name: 'น้ำตาเทียม', helps: 'เพิ่มความชุ่มชื้น แก้ตาแห้งแสบตา', how_to_take: 'หยอด 1 หยดทั้งสองข้าง วันละ 4 ครั้ง', prescriber: 'หมอตา', tag: 'ตา', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning', 'noon', 'evening', 'bedtime'], timing: '', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm6', book_id: 'b_dad', name: 'แคลเซียม + วิตามินดี', helps: 'เสริมมวลกระดูก ลดเสี่ยงกระดูกหักจากการล้ม', how_to_take: 'เย็น 1 เม็ด พร้อมอาหาร', prescriber: 'หมอกระดูก', tag: 'กระดูก', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['evening'], timing: 'with', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm7', book_id: 'b_mom', name: 'บิโซโพรลอล 2.5 มก.', helps: 'คุมจังหวะหัวใจ ช่วยลดความดัน', how_to_take: 'เช้า 1 เม็ด หลังอาหาร', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['morning'], timing: 'after', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm8', book_id: 'b_mom', name: 'ซิมวาสแตติน 20 มก.', helps: 'ลดไขมันในเลือด', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมอหัวใจ', tag: 'หัวใจ', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm10', book_id: 'b_dad', name: 'พรีกาบาลิน 75 มก.', helps: 'ลดปวดปลายประสาท ชาตามปลายมือปลายเท้า', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมอกระดูก', tag: 'กระดูก', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: false, paused: false, paused_note: '' },
+    { id: 'm11', book_id: 'b_dad', name: 'พรีกาบาลิน 25 มก.', helps: 'ลดปวดปลายประสาท (โดสเดิม)', how_to_take: 'ก่อนนอน 1 เม็ด', prescriber: 'หมอวิวัฒน์', tag: 'ปลายประสาท', hospital: 'รพ.พระปกเกล้า จันทบุรี', slots: ['bedtime'], timing: '', duplicate_flag: false, paused: true, paused_note: 'รอกินโดส 75 มก. ให้หมดก่อน แล้วค่อยกลับมากินตัวนี้ต่อ' },
+    { id: 'm9', book_id: 'b_me', name: 'ลอราทาดีน 10 มก.', helps: 'แก้แพ้ ลดผื่นคัน น้ำมูกไหล', how_to_take: 'กินเมื่อมีอาการ', prescriber: 'ซื้อเอง', tag: 'ภูมิแพ้', hospital: '', slots: ['prn'], timing: '', duplicate_flag: false, paused: false, paused_note: '' },
   ];
 
   const appointments: Appointment[] = [

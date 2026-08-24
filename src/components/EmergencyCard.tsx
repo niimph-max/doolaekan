@@ -11,7 +11,11 @@ import type { Book } from '@/lib/types';
 export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => void }) {
   const { state } = useStore();
   const [zoom, setZoom] = useState(false);
-  const meds = state.medications.filter((m) => m.book_id === book.id);
+  const bookMeds = state.medications.filter((m) => m.book_id === book.id);
+  // หมอต้องรู้ว่า "ตอนนี้กินอะไรอยู่" ก่อน ส่วนยาที่พักไว้ยังต้องบอก
+  // เพราะเป็นยาที่เพิ่งหยุดและกำลังจะกลับมากิน แต่ต้องแยกให้ชัดว่าคนละสถานะ
+  const meds = bookMeds.filter((m) => !m.paused);
+  const pausedMeds = bookMeds.filter((m) => m.paused);
   const docs = state.doctors.filter((d) => d.book_id === book.id);
   const rules = bookWatchRules(state, book.id);
   const age = ageFromBirthDate(book.birth_date) || book.age;
@@ -60,6 +64,12 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
             {meds.length ? meds.map((m) => m.name).join(' · ') : <span className="subtle">—</span>}
           </Row>
 
+          {pausedMeds.length > 0 && (
+            <Row label="ยาที่พักไว้ (ยังไม่ได้กิน)">
+              {pausedMeds.map((m) => m.name).join(' · ')}
+            </Row>
+          )}
+
           <Row label="ข้อเฝ้าระวัง">
             {rules.length
               ? rules.map((w) => (
@@ -71,7 +81,12 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
           <Row label="หมอประจำ">
             {docs.length
               ? docs.map((d) => (
-                <div key={d.id}>{d.name} — {d.hospital}{d.hn ? ` (HN ${d.hn})` : ''}</div>
+                <div key={d.id} style={{ marginBottom: 4 }}>
+                  {d.name} — {d.hospital}{d.hn ? ` (HN ${d.hn})` : ''}
+                  {d.phone && (
+                    <> · <a href={`tel:${d.phone.replace(/[^\d+]/g, '')}`}>{d.phone}</a></>
+                  )}
+                </div>
               ))
               : <span className="subtle">—</span>}
           </Row>

@@ -17,6 +17,8 @@ function MedCard({ med, book, onFilterCleared }: {
   const { state, actions } = useStore();
   const [draft, setDraft] = useState<Medication | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [pauseNote, setPauseNote] = useState('');
 
   const options = medFieldOptions(state, book.id);
   const timing = mealTimingOf(med);
@@ -41,11 +43,19 @@ function MedCard({ med, book, onFilterCleared }: {
   };
 
   return (
-    <div className="o-card">
+    <div className="o-card" style={med.paused ? { opacity: 0.72 } : undefined}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-        <h3>{med.name}</h3>
+        <h3 style={med.paused ? { color: 'color-mix(in srgb, var(--color-text) 62%, transparent)' } : undefined}>{med.name}</h3>
         {med.tag && <span className="o-tag sage" style={{ height: 'fit-content' }}>{med.tag}</span>}
       </div>
+      {med.paused && (
+        <div style={{ margin: '6px 0 2px' }}>
+          <span className="o-tag" style={{ background: 'var(--color-neutral-200)' }}>พักไว้ก่อน</span>
+          <p className="subtle" style={{ margin: '6px 0 0' }}>
+            {med.paused_note || 'ยังไม่ต้องกิน — ไม่ขึ้นในรายการยาวันนี้'}
+          </p>
+        </div>
+      )}
       {med.helps && (
         <p style={{ margin: '6px 0' }}>
           <strong style={{ color: 'var(--color-accent-700)' }}>ช่วยอะไร:</strong> {med.helps}
@@ -65,12 +75,51 @@ function MedCard({ med, book, onFilterCleared }: {
         </p>
       )}
 
-      {!draft && (
-        <button type="button" className="o-btn ghost"
-          style={{ marginTop: 12, padding: '8px 18px', minHeight: 38 }}
-          onClick={() => { setDraft({ ...med }); setConfirmingDelete(false); }}>
-          แก้ไข
-        </button>
+      {!draft && !pausing && (
+        <div className="o-row" style={{ marginTop: 12 }}>
+          <button type="button" className="o-btn ghost" style={{ padding: '8px 18px', minHeight: 38 }}
+            onClick={() => { setDraft({ ...med }); setConfirmingDelete(false); }}>
+            แก้ไข
+          </button>
+          {med.paused ? (
+            <button type="button" className="o-btn secondary" style={{ padding: '8px 18px', minHeight: 38 }}
+              onClick={() => {
+                actions.setMedicationPaused(med.id, false);
+                actions.toast(`กลับมากิน ${med.name} ต่อแล้ว`);
+              }}>
+              กลับมากินต่อ
+            </button>
+          ) : (
+            <button type="button" className="o-btn ghost" style={{ padding: '8px 18px', minHeight: 38 }}
+              onClick={() => { setPauseNote(''); setPausing(true); }}>
+              พักไว้ก่อน
+            </button>
+          )}
+        </div>
+      )}
+
+      {pausing && (
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--color-neutral-200)', paddingTop: 12 }}>
+          <p className="subtle" style={{ margin: '0 0 8px' }}>
+            พัก {med.name} ไว้ชั่วคราว — ยาจะไม่ขึ้นในรายการยาวันนี้ แต่ยังอยู่ในสมุด
+            พร้อมประวัติกินยาเดิม กดกลับมากินต่อได้ทุกเมื่อ
+          </p>
+          <label className="o-label" htmlFor={`md-pause-${med.id}`}>เพราะอะไร (ไม่ใส่ก็ได้)</label>
+          <input id={`md-pause-${med.id}`} className="o-input" value={pauseNote}
+            onChange={(e) => setPauseNote(e.target.value)}
+            placeholder="เช่น รอกินโดส 75 มก. ให้หมดก่อน" />
+          <div className="o-row" style={{ marginTop: 12 }}>
+            <button type="button" className="o-btn ghost" onClick={() => setPausing(false)}>ยกเลิก</button>
+            <button type="button" className="o-btn primary"
+              onClick={() => {
+                actions.setMedicationPaused(med.id, true, pauseNote.trim());
+                setPausing(false);
+                actions.toast(`พัก ${med.name} ไว้แล้ว`);
+              }}>
+              พักยานี้ไว้
+            </button>
+          </div>
+        </div>
       )}
 
       {draft && (
@@ -163,10 +212,15 @@ export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
   const [filter, setFilter] = useState('');
 
   const allMeds = state.medications.filter((m) => m.book_id === book.id);
+  const takingNow = allMeds.filter((m) => !m.paused);
+  const pausedCount = allMeds.length - takingNow.length;
   // จัดกลุ่มตามหมอที่สั่ง — ถ้าไม่ได้กรอกก็ใช้แผนกแทน
   const groupOf = (m: Medication) => m.prescriber || m.tag || 'ไม่ระบุ';
   const groups = Array.from(new Set(allMeds.map(groupOf))).sort();
-  const meds = filter ? allMeds.filter((m) => groupOf(m) === filter) : allMeds;
+  // ยาที่พักไว้ลงไปอยู่ท้ายรายการ ของที่ต้องกินจริงวันนี้ต้องอยู่บนสุดเสมอ
+  const meds = (filter ? allMeds.filter((m) => groupOf(m) === filter) : allMeds)
+    .slice()
+    .sort((a, b) => Number(a.paused) - Number(b.paused));
 
   // เตือนยาซ้ำนับจากยาทั้งเล่มเสมอ ยาซ้ำข้ามหมอคือเคสที่อันตรายที่สุด
   // ถ้านับเฉพาะที่กรองอยู่ คำเตือนจะถูกตัวกรองบังหายไปพอดี
@@ -184,6 +238,7 @@ export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
       <h2>ยาของ{book.owner_name}</h2>
       <p className="subtle">
         {filter ? `${meds.length} จาก ${allMeds.length} รายการ · ${filter}` : `${allMeds.length} รายการ`}
+        {pausedCount > 0 && ` · พักไว้ ${pausedCount}`}
       </p>
 
       {groups.length > 1 && (
@@ -211,6 +266,10 @@ export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
           ))}
           <p className="subtle" style={{ margin: '8px 0 0' }}>
             ติดธงไว้ถามหมอนัดหน้าแล้ว — อย่าเพิ่งหยุดยาเอง
+          </p>
+          <p className="subtle" style={{ margin: '6px 0 0' }}>
+            ถ้าหมอสั่งให้กินตัวใหม่ก่อน กด &quot;พักไว้ก่อน&quot; ที่ตัวเดิม
+            ยาจะไม่ขึ้นในรายการวันนี้แต่ยังอยู่ในสมุด กลับมากินต่อได้ทีหลัง
           </p>
         </div>
       )}

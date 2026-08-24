@@ -10,7 +10,8 @@ export interface Dose {
 
 /** ยาที่ต้องกินวันนี้ของสมุดเล่มหนึ่ง เรียงตามมื้อ (ข้าม prn ที่กินเมื่อมีอาการ) */
 export function todayDoses(state: AppState, bookId: string, day = todayKey()): Dose[] {
-  const meds = state.medications.filter((m) => m.book_id === bookId);
+  // ยาที่พักไว้ยังอยู่ในสมุด แต่วันนี้ไม่ต้องกิน จึงไม่ควรโผล่ในรายการยาวันนี้
+  const meds = state.medications.filter((m) => m.book_id === bookId && !m.paused);
   const doses: Dose[] = [];
   for (const slot of SLOT_ORDER) {
     if (slot === 'prn') continue;
@@ -151,10 +152,13 @@ export function medFieldOptions(state: AppState, bookId: string) {
 export function hospitalOfDoctor(state: AppState, bookId: string, doctorName: string): string {
   const name = doctorName.trim();
   if (!name) return '';
-  const doc = state.doctors.find(
+  const places = state.doctors.filter(
     (d) => d.book_id === bookId && (d.name === name || `หมอ${d.name}` === name),
   );
-  return doc?.hospital ?? '';
+  // หมอคนเดียวออกตรวจหลายที่ — เดาแทนไม่ได้ว่ายาถุงนี้ได้มาจากที่ไหน
+  // เติมให้เองเฉพาะตอนที่มีที่เดียว ไม่งั้นจะกรอกผิดให้โดยที่ผู้ใช้ไม่ทันสังเกต
+  const hospitals = Array.from(new Set(places.map((d) => d.hospital.trim()).filter(Boolean)));
+  return hospitals.length === 1 ? hospitals[0] : '';
 }
 
 export const SHARE_LABEL: Record<string, string> = {

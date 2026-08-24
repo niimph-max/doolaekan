@@ -59,7 +59,8 @@ const toBook = (r: any, userId: string): Book => ({
 
 const toDoctor = (r: any): Doctor => ({
   id: r.id, book_id: r.book_id, name: r.name,
-  hospital: r.hospital ?? '', hn: r.hn ?? '', clinic_hours: r.clinic_hours ?? '',
+  hospital: r.hospital ?? '', hn: r.hn ?? '', phone: r.phone ?? '',
+  clinic_hours: r.clinic_hours ?? '',
 });
 
 const toMedication = (r: any): Medication => ({
@@ -67,6 +68,7 @@ const toMedication = (r: any): Medication => ({
   helps: r.helps ?? '', how_to_take: r.how_to_take ?? '',
   prescriber: r.prescriber ?? '', tag: r.tag ?? '', hospital: r.hospital ?? '',
   slots: r.slots ?? [], timing: r.timing ?? '', duplicate_flag: r.duplicate_flag ?? false,
+  paused: r.paused ?? false, paused_note: r.paused_note ?? '',
   photo: r.photo_path ?? undefined,
 });
 
@@ -109,7 +111,7 @@ export const bookRow = (b: Book) => ({
 
 export const doctorRow = (d: Doctor) => ({
   id: d.id, book_id: d.book_id, name: d.name,
-  hospital: d.hospital, hn: d.hn, clinic_hours: d.clinic_hours,
+  hospital: d.hospital, hn: d.hn, phone: d.phone || null, clinic_hours: d.clinic_hours,
 });
 
 export const medicationRow = (m: Medication) => ({
@@ -117,6 +119,7 @@ export const medicationRow = (m: Medication) => ({
   helps: m.helps, tag: m.tag, slots: m.slots, timing: m.timing || null,
   hospital: m.hospital || null, prescriber: m.prescriber,
   photo_path: m.photo ?? null, duplicate_flag: m.duplicate_flag,
+  paused: m.paused, paused_note: m.paused_note || null,
 });
 
 export const medLogRow = (l: MedLog) => ({
@@ -223,7 +226,16 @@ export async function updateBook(b: Book): Promise<void> {
 }
 
 export async function upsertDoctor(d: Doctor): Promise<void> {
-  const { error } = await db().from('doctors').upsert(doctorRow(d));
+  const row = doctorRow(d) as Record<string, unknown>;
+  const { error } = await db().from('doctors').upsert(row);
+  if (!error) return;
+  // ยังไม่ได้รัน 0007 — บันทึกส่วนที่เหลือให้ก่อน ดีกว่าแก้ชื่อหมอไม่ได้เลย
+  if (error.code === 'PGRST204' && error.message.includes('phone')) {
+    delete row.phone;
+    const retry = await db().from('doctors').upsert(row);
+    check('upsertDoctor', retry.error);
+    return;
+  }
   check('upsertDoctor', error);
 }
 
@@ -233,34 +245,37 @@ export async function deleteDoctor(id: string): Promise<void> {
 }
 
 /** ฐานข้อมูลที่ยังไม่ได้รัน migration ล่าสุดจะไม่มีคอลัมน์ที่โค้ดใหม่ส่งไป
- *  PostgREST ตอบ PGRST204 พร้อมชื่อคอลัมน์ที่หาไม่เจอ */
-function isMissingColumn(error: PgError, column: string): boolean {
-  if (!error) return false;
-  return error.code === 'PGRST204' && error.message.includes(column);
+ *  PostgREST ตอบ PGRST204 พร้อมชื่อคอลัมน์ที่หาไม่เจอในข้อความ */
+const NEWER_COLUMNS = ['timing', 'hospital', 'paused', 'paused_note'] as const;
+
+function missingColumn(error: PgError): string | null {
+  if (!error || error.code !== 'PGRST204') return null;
+  return NEWER_COLUMNS.find((c) => error.message.includes(c)) ?? null;
 }
 
-/** ยาซ้ำคำนวณฝั่งแอป แล้วอัปเดตธงกลับทั้งเล่มในทีเดียว */
+/** ยาซ้ำคำนวณฝั่งแอป แล้วอัปเดตธงกลับทั้งเล่มในทีเดียว
+ *
+ *  ฐานข้อมูลที่ยังรัน migration ไม่ครบจะบันทึกไม่ผ่านทั้งรายการ ทั้งที่ติดแค่
+ *  คอลัมน์เดียว — แก้ชื่อยาหรือลบยาก็ทำไม่ได้ตามไปด้วย จึงตัดคอลัมน์ที่หาไม่เจอ
+ *  ออกทีละตัวแล้วลองใหม่ ส่วนที่เหลือได้บันทึกไว้ก่อน ดีกว่าเสียทั้งก้อน */
 export async function upsertMedications(meds: Medication[]): Promise<void> {
   if (!meds.length) return;
-  const rows = meds.map(medicationRow);
-  const { error } = await db().from('medications').upsert(rows);
-  if (!error) return;
+  let rows = meds.map(medicationRow) as Record<string, unknown>[];
 
-  // ยังไม่ได้รัน 0003 — บันทึกส่วนที่เหลือให้ก่อน ดีกว่าให้ทั้งรายการบันทึกไม่ได้เลย
-  // จังหวะก่อน/หลังอาหารยังอ่านจากข้อความวิธีกินได้อยู่ จึงไม่เสียอะไรที่จอ
-  for (const column of ['timing', 'hospital'] as const) {
-    if (isMissingColumn(error, column)) {
-      const trimmed = rows.map((row) => {
-        const copy = { ...row } as Record<string, unknown>;
-        delete copy[column];
-        return copy;
-      });
-      const retry = await db().from('medications').upsert(trimmed);
-      check('upsertMedications', retry.error);
+  for (let attempt = 0; attempt <= NEWER_COLUMNS.length; attempt += 1) {
+    const { error } = await db().from('medications').upsert(rows);
+    if (!error) return;
+    const column = missingColumn(error);
+    if (!column) {
+      check('upsertMedications', error);
       return;
     }
+    rows = rows.map((row) => {
+      const copy = { ...row };
+      delete copy[column];
+      return copy;
+    });
   }
-  check('upsertMedications', error);
 }
 
 /** เอายาออกจากรายการ = ปิด active ไม่ใช่ลบแถว

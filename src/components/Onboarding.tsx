@@ -29,7 +29,7 @@ export function Onboarding() {
   const [allergy, setAllergy] = useState('');
 
   const [doctors, setDoctors] = useState<DoctorDraft[]>([]);
-  const [dr, setDr] = useState<DoctorDraft>({ name: '', hospital: '', hn: '', clinic_hours: '' });
+  const [dr, setDr] = useState<DoctorDraft>({ name: '', hospital: '', hn: '', phone: '', clinic_hours: '' });
 
   const [groupChoice, setGroupChoice] = useState<OnboardingInput['groupChoice'] | null>(null);
   const [groupName, setGroupName] = useState('');
@@ -46,7 +46,7 @@ export function Onboarding() {
   const addDoctor = () => {
     if (!dr.name.trim()) return;
     setDoctors((list) => [...list, dr]);
-    setDr({ name: '', hospital: '', hn: '', clinic_hours: '' });
+    setDr({ name: '', hospital: '', hn: '', phone: '', clinic_hours: '' });
   };
 
   return (
@@ -120,6 +120,11 @@ export function Onboarding() {
             <label className="o-label" htmlFor="dr-hosp">โรงพยาบาล / คลินิก</label>
             <input id="dr-hosp" className="o-input" value={dr.hospital}
               onChange={(e) => setDr({ ...dr, hospital: e.target.value })} />
+            <label className="o-label" htmlFor="dr-phone">เบอร์โทรที่นี่</label>
+            <input id="dr-phone" className="o-input" type="tel" inputMode="tel"
+              placeholder="เช่น 039-324-975" value={dr.phone}
+              onChange={(e) => setDr({ ...dr, phone: e.target.value })} />
+
             <label className="o-label" htmlFor="dr-hn">เลข HN</label>
             <input id="dr-hn" className="o-input" value={dr.hn}
               onChange={(e) => setDr({ ...dr, hn: e.target.value })} />

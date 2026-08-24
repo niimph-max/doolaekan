@@ -138,8 +138,16 @@ export function ScanSheet({ open, bookId, onClose }: {
                 <strong>อาจซ้ำกับยาที่มีอยู่</strong>
               </div>
               <p style={{ margin: 0 }}>
-                {clash.map((m) => m.name).join(' · ')} — บันทึกแล้วจะติดธงไว้ถามหมอนัดหน้า
+                {clash.map((m) => m.name + (m.paused ? ' (พักไว้)' : '')).join(' · ')}
+                {clash.every((m) => m.paused)
+                  ? ' — ตัวเดิมพักไว้อยู่แล้ว บันทึกตัวใหม่ได้เลย'
+                  : ' — บันทึกแล้วจะติดธงไว้ถามหมอนัดหน้า'}
               </p>
+              {clash.some((m) => !m.paused) && (
+                <p className="subtle" style={{ margin: '6px 0 0' }}>
+                  ถ้าเป็นตัวเดียวกันแต่เปลี่ยนโดส บันทึกตัวใหม่แล้วไปกด &quot;พักไว้ก่อน&quot; ที่ตัวเดิม
+                </p>
+              )}
             </div>
           )}
 

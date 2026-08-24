@@ -6,12 +6,15 @@ export type DoseSlot = 'morning' | 'noon' | 'evening' | 'bedtime' | 'prn';
 export type MealTiming = '' | 'before' | 'after' | 'with';
 export type RecordKind = 'symptom' | 'bp' | 'doc' | 'visit';
 
+/** หมอหนึ่งคนที่โรงพยาบาลหนึ่งแห่ง — หมอคนเดียวออกตรวจหลายที่ = หลายแถว
+ *  ชื่อเดียวกัน แต่ HN เบอร์โทร และเวลาออกตรวจเป็นคนละชุด */
 export interface Doctor {
   id: string;
   book_id: string;
   name: string;          // "หมอหัวใจ"
   hospital: string;
-  hn: string;
+  hn: string;            // HN ของโรงพยาบาลนี้ คนละเลขกับที่อื่น
+  phone: string;         // เบอร์โรงพยาบาล/คลินิกนี้ — กดโทรจากในแอปได้เลย
   clinic_hours: string;  // "พุธ 09:00–12:00"
 }
 
@@ -49,6 +52,10 @@ export interface Medication {
   slots: DoseSlot[];
   timing: MealTiming;
   duplicate_flag: boolean;
+  /** พักไว้ก่อน ยังไม่ได้เลิกกิน — เช่น หมออีกคนสั่งตัวเดียวกันแต่โดสสูงกว่า
+   *  กินตัวใหม่ให้หมดก่อนแล้วค่อยกลับมากินตัวนี้ต่อ */
+  paused: boolean;
+  paused_note: string;   // "รอกิน progabilin 75 มก. ให้หมดก่อน"
   photo?: string;        // data URL รูปถุงยา (ของจริง = Supabase Storage)
 }
 

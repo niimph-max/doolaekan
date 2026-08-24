@@ -65,8 +65,10 @@ interface Actions {
   addDoctor: (bookId: string, doc: Omit<Doctor, 'id' | 'book_id'>) => void;
   updateDoctor: (id: string, patch: Partial<Doctor>) => void;
   removeDoctor: (id: string) => void;
-  addMedication: (bookId: string, med: Omit<Medication, 'id' | 'book_id' | 'duplicate_flag'>) => Medication;
+  addMedication: (bookId: string, med: Omit<Medication, 'id' | 'book_id' | 'duplicate_flag' | 'paused' | 'paused_note'>) => Medication;
   updateMedication: (id: string, patch: Partial<Medication>) => void;
+  /** พักยาไว้ชั่วคราว / กลับมากินต่อ — ต่างจาก removeMedication ที่เป็นการเอาออกถาวร */
+  setMedicationPaused: (id: string, paused: boolean, note?: string) => void;
   removeMedication: (id: string) => void;
   /** เปลี่ยนค่าในช่องเดียวกันของยาทุกตัวที่ใช้ค่านั้นอยู่ (รวมชื่อที่สะกดเพี้ยน / ล้างค่าที่ไม่ใช้) */
   renameMedField: (bookId: string, field: 'prescriber' | 'tag' | 'hospital', from: string, to: string) => number;
@@ -112,7 +114,9 @@ function markDuplicates(meds: Medication[], bookId: string): Medication[] {
   const key = (m: Medication) => m.name.trim().split(/[\s\d]/)[0];
   const counts = new Map<string, number>();
   for (const m of meds) {
-    if (m.book_id !== bookId) continue;
+    // ยาที่พักไว้ไม่ได้กินอยู่ จึงไม่ใช่ยาซ้ำอีกต่อไป — พักตัวเก่าแล้วธงต้องหายเอง
+    // ไม่ต้องให้ผู้ใช้มานั่งปิดคำเตือนเองอีกที
+    if (m.book_id !== bookId || m.paused) continue;
     counts.set(key(m), (counts.get(key(m)) ?? 0) + 1);
   }
   return meds.map((m) =>
@@ -440,7 +444,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       addMedication: (bookId, med) => {
-        const created: Medication = { ...med, id: uid(), book_id: bookId, duplicate_flag: false };
+        const created: Medication = {
+          ...med, id: uid(), book_id: bookId, duplicate_flag: false, paused: false, paused_note: '',
+        };
         const before = stateRef.current.medications;
         const after = markDuplicates([...before, created], bookId);
         setState((s) => ({ ...s, medications: markDuplicates([...s.medications, created], bookId) }));
@@ -463,6 +469,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         );
         setState((s) => ({ ...s, medications: after }));
         // ชื่อยาเปลี่ยน = ธงยาซ้ำอาจเปลี่ยนทั้งเล่ม ส่งขึ้นเฉพาะตัวที่ต่างจากเดิม
+        const changed = after.filter((m) => {
+          const old = before.find((o) => o.id === m.id);
+          return !old || old.duplicate_flag !== m.duplicate_flag || m.id === id;
+        });
+        push(() => remote.upsertMedications(changed));
+      },
+
+      setMedicationPaused: (id, paused, note = '') => {
+        const before = stateRef.current.medications;
+        const target = before.find((m) => m.id === id);
+        if (!target) return;
+        const after = markDuplicates(
+          before.map((m) => (m.id === id ? { ...m, paused, paused_note: paused ? note : '' } : m)),
+          target.book_id,
+        );
+        setState((s) => ({ ...s, medications: after }));
+        // พัก/กลับมากิน เป็นเรื่องที่คนอื่นในบ้านต้องรู้ ไม่งั้นคนจัดยาตอนเช้า
+        // จะงงว่าทำไมยาหายไปจากรายการวันนี้
+        actionsRef.current?.addRecord(target.book_id, {
+          kind: 'visit',
+          title: paused ? `พักยา ${target.name} ไว้ก่อน` : `กลับมากิน ${target.name} ต่อ`,
+          body: paused ? note : '',
+          important: false,
+        });
         const changed = after.filter((m) => {
           const old = before.find((o) => o.id === m.id);
           return !old || old.duplicate_flag !== m.duplicate_flag || m.id === id;
