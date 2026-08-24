@@ -243,6 +243,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         showingCache = false;
         setState((s) => ({ ...s, ...emptyCloudData, ready: false, onboarded: false }));
       }
+      // จำไว้ตั้งแต่ตอนนี้เลยว่าเครื่องนี้เข้าระบบด้วยใคร ไม่ต้องรอให้โหลดสำเร็จก่อน
+      //
+      // เดิมจำหลังโหลดสำเร็จเท่านั้น ผู้ใช้ใหม่ที่เพิ่งกรอกข้อมูลเสร็จจึงเสี่ยงมาก:
+      // ถ้าแอปโหลดหน้าใหม่ (เช่นมี service worker รุ่นใหม่เข้ามาพอดี) ก่อนที่สมุด
+      // จะขึ้นคลาวด์ทัน เปิดมาอีกทีจะไม่รู้ว่าใครเข้าอยู่ หยิบสำเนาในเครื่องไม่ได้
+      // แล้วเด้งกลับไปหน้ากรอกข้อมูลใหม่ทั้งที่เพิ่งกรอกไปหมาดๆ
+      saveLastUserId(userId);
       setState((s) => ({ ...s, userEmail: email || s.userEmail }));
       try {
         await refresh(userId);
