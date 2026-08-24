@@ -274,6 +274,11 @@ export async function upsertAppointment(a: Appointment): Promise<void> {
   check('upsertAppointment', error);
 }
 
+export async function deleteAppointment(id: string): Promise<void> {
+  const { error } = await db().from('appointments').delete().eq('id', id);
+  check('deleteAppointment', error);
+}
+
 export async function insertRecord(r: RecordItem): Promise<void> {
   const { error } = await db().from('records').insert(recordRow(r));
   check('insertRecord', error);

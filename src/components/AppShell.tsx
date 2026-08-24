@@ -18,12 +18,13 @@ import { AddMedSheet } from './sheets/AddMedSheet';
 import { GroupSheet } from './sheets/GroupSheet';
 import { ProfileSheet } from './sheets/ProfileSheet';
 import { ScanSheet } from './sheets/ScanSheet';
+import { TidyNamesSheet } from './sheets/TidyNamesSheet';
 import { SymptomSheet } from './sheets/SymptomSheet';
 import { activeBook } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import { hasBrokenConfig } from '@/lib/supabase';
 
-type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | null;
+type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | null;
 
 export function AppShell() {
   const { state, actions, toastMsg, hasLocalToUpload } = useStore();
@@ -94,7 +95,8 @@ export function AppShell() {
         />
       )}
       {state.tab === 'meds' && (
-        <MedsScreen book={book} onScan={() => setSheet('scan')} onAddMed={() => setSheet('med')} />
+        <MedsScreen book={book} onScan={() => setSheet('scan')} onAddMed={() => setSheet('med')}
+          onTidy={() => setSheet('tidy')} />
       )}
       {state.tab === 'appts' && <ApptsScreen book={book} onAdd={() => setSheet('appt')} />}
       {state.tab === 'book' && (
@@ -109,6 +111,7 @@ export function AppShell() {
       <AddMedSheet open={sheet === 'med'} bookId={book.id} onClose={close} />
       <ScanSheet open={sheet === 'scan'} bookId={book.id} onClose={close} />
       <GroupSheet open={sheet === 'group'} onClose={close} />
+      <TidyNamesSheet open={sheet === 'tidy'} book={book} onClose={close} />
       {sheet === 'profile' && <ProfileSheet open book={book} onClose={close} />}
 
       {emergency && <EmergencyCard book={book} onClose={() => setEmergency(false)} />}

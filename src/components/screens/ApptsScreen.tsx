@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ComboField } from '../ComboField';
 import { EscortPicker } from '../EscortPicker';
 import { Icon } from '../Icon';
 import { daysLabel, daysUntil, fmtDate } from '@/lib/format';
@@ -30,8 +31,100 @@ function Step({ n, title, body, done, children }: {
   );
 }
 
+/** แก้นัดที่บันทึกไว้แล้ว — พิมพ์ชื่อหมอเองทำให้ "หมอศุภฤกษ์/โรคกระดูก" กับ
+ *  "หมอศุภฤกษ์ / โรคกระดูก" กลายเป็นคนละนัดคนละหมอ เลือกจากรายการเดิมแทน */
+function EditAppt({ appt, book, onDone }: { appt: Appointment; book: Book; onDone: () => void }) {
+  const { state, actions } = useStore();
+  const [draft, setDraft] = useState<Appointment>({ ...appt });
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const uniq = (list: string[]) => Array.from(new Set(list.map((v) => v.trim()).filter(Boolean))).sort();
+  const doctors = state.doctors.filter((d) => d.book_id === book.id);
+  const titles = uniq([
+    ...doctors.map((d) => d.name),
+    ...state.appointments.filter((a) => a.book_id === book.id).map((a) => a.title),
+  ]);
+  const places = uniq([
+    ...doctors.map((d) => d.hospital),
+    ...state.appointments.filter((a) => a.book_id === book.id).map((a) => a.place),
+  ]);
+
+  const set = (p: Partial<Appointment>) => setDraft((d) => ({ ...d, ...p }));
+
+  const pickTitle = (title: string) => {
+    const doc = doctors.find((d) => d.name === title);
+    set(doc?.hospital ? { title, place: doc.hospital } : { title });
+  };
+
+  return (
+    <div style={{ marginTop: 12, borderTop: '1px solid var(--color-neutral-300)', paddingTop: 4 }}>
+      <ComboField id={`ap-title-${appt.id}`} label="หมอ / เรื่องที่ไป" value={draft.title}
+        options={titles} placeholder="เลือกหมอ…" onChange={pickTitle} />
+
+      <label className="o-label" htmlFor={`ap-date-${appt.id}`}>วันที่</label>
+      <input id={`ap-date-${appt.id}`} className="o-input" type="date" value={draft.date}
+        onChange={(e) => set({ date: e.target.value })} />
+
+      <label className="o-label" htmlFor={`ap-time-${appt.id}`}>เวลา</label>
+      <input id={`ap-time-${appt.id}`} className="o-input" type="time" value={draft.time}
+        onChange={(e) => set({ time: e.target.value })} />
+
+      <ComboField id={`ap-place-${appt.id}`} label="สถานที่" value={draft.place}
+        options={places} placeholder="เลือกสถานที่…" onChange={(place) => set({ place })} />
+
+      <label className="o-label">ขั้นตรวจเลือดล่วงหน้า</label>
+      <div className="o-chips">
+        <button type="button" className="o-chip" aria-pressed={draft.blood_test_before}
+          onClick={() => set({ blood_test_before: !draft.blood_test_before })}>
+          ต้องตรวจเลือดก่อนนัด
+        </button>
+      </div>
+
+      <div className="o-row" style={{ marginTop: 18 }}>
+        <button type="button" className="o-btn ghost" onClick={onDone}>ยกเลิก</button>
+        <button type="button" className="o-btn primary"
+          disabled={!draft.title.trim() || !draft.date}
+          onClick={() => {
+            actions.updateAppointment(appt.id, {
+              title: draft.title.trim(), date: draft.date, time: draft.time || '09:00',
+              place: draft.place.trim(), blood_test_before: draft.blood_test_before,
+            });
+            actions.toast('แก้นัดแล้ว');
+            onDone();
+          }}>
+          บันทึก
+        </button>
+      </div>
+
+      {confirmingDelete ? (
+        <>
+          <p className="subtle" style={{ margin: '16px 0 8px' }}>ลบนัด {appt.title} ออกจากสมุด</p>
+          <div className="o-row">
+            <button type="button" className="o-btn ghost" onClick={() => setConfirmingDelete(false)}>
+              ไม่ลบ
+            </button>
+            <button type="button" className="o-btn danger"
+              onClick={() => {
+                actions.removeAppointment(appt.id);
+                actions.toast(`ลบนัด ${appt.title} แล้ว`);
+              }}>
+              ยืนยันลบ
+            </button>
+          </div>
+        </>
+      ) : (
+        <button type="button" className="o-btn ghost block" style={{ marginTop: 12 }}
+          onClick={() => setConfirmingDelete(true)}>
+          <Icon name="x" size={17} /> ลบนัดนี้
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) {
   const { state, actions } = useStore();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const appts = bookAppointments(state, book.id);
 
   const renderSteps = (a: Appointment) => {
@@ -115,8 +208,15 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
                     {fmtDate(a.date)} · {a.time} น.{a.place ? ` · ${a.place}` : ''}
                   </p>
                 </div>
+                <button type="button" className="o-btn ghost"
+                  style={{ padding: '6px 14px', minHeight: 34, flex: '0 0 auto' }}
+                  onClick={() => setEditingId(editingId === a.id ? null : a.id)}>
+                  {editingId === a.id ? 'ปิด' : 'แก้ไข'}
+                </button>
               </div>
-              {!past && renderSteps(a)}
+              {editingId === a.id
+                ? <EditAppt appt={a} book={book} onDone={() => setEditingId(null)} />
+                : !past && renderSteps(a)}
             </div>
           );
         })}

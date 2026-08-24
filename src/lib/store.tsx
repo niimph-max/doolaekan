@@ -42,9 +42,12 @@ interface Actions {
   addMedication: (bookId: string, med: Omit<Medication, 'id' | 'book_id' | 'duplicate_flag'>) => Medication;
   updateMedication: (id: string, patch: Partial<Medication>) => void;
   removeMedication: (id: string) => void;
+  /** เปลี่ยนค่าในช่องเดียวกันของยาทุกตัวที่ใช้ค่านั้นอยู่ (รวมชื่อที่สะกดเพี้ยน / ล้างค่าที่ไม่ใช้) */
+  renameMedField: (bookId: string, field: 'prescriber' | 'tag' | 'hospital', from: string, to: string) => number;
   logDose: (log: Omit<MedLog, 'id' | 'at' | 'actor_name'>) => void;
   addAppointment: (bookId: string, appt: Omit<Appointment, 'id' | 'book_id' | 'blood_test_done'>) => void;
   updateAppointment: (id: string, patch: Partial<Appointment>) => void;
+  removeAppointment: (id: string) => void;
   addRecord: (bookId: string, rec: Omit<RecordItem, 'id' | 'book_id' | 'at' | 'actor_name'>) => void;
   addWatchRule: (bookId: string, rule: Omit<WatchRule, 'id' | 'book_id'>) => void;
   createGroup: (name: string, share: ShareLevel) => void;
@@ -405,6 +408,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
       },
 
+      renameMedField: (bookId, field, from, to) => {
+        const before = stateRef.current.medications;
+        const hits = before.filter((m) => m.book_id === bookId && m[field] === from);
+        if (!hits.length) return 0;
+        const changed = hits.map((m) => ({ ...m, [field]: to }));
+        setState((s) => ({
+          ...s,
+          medications: s.medications.map(
+            (m) => changed.find((c) => c.id === m.id) ?? m,
+          ),
+        }));
+        push(() => remote.upsertMedications(changed));
+        return hits.length;
+      },
+
       logDose: (log) => {
         const created: MedLog = {
           ...log, id: uid(), at: new Date().toISOString(),
@@ -434,6 +452,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           const appt = stateRef.current.appointments.find((a) => a.id === id);
           if (appt) await remote.upsertAppointment(appt);
         });
+      },
+
+      removeAppointment: (id) => {
+        patch((s) => ({ appointments: s.appointments.filter((a) => a.id !== id) }));
+        push(() => remote.deleteAppointment(id));
       },
 
       addRecord: (bookId, rec) => {

@@ -156,8 +156,8 @@ function MedCard({ med, book, onFilterCleared }: {
   );
 }
 
-export function MedsScreen({ book, onScan, onAddMed }: {
-  book: Book; onScan: () => void; onAddMed: () => void;
+export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
+  book: Book; onScan: () => void; onAddMed: () => void; onTidy: () => void;
 }) {
   const { state } = useStore();
   const [filter, setFilter] = useState('');
@@ -242,6 +242,11 @@ export function MedsScreen({ book, onScan, onAddMed }: {
       <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }} onClick={onAddMed}>
         <Icon name="plus" size={20} /> พิมพ์เพิ่มยาเอง
       </button>
+      {groups.length > 1 && (
+        <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }} onClick={onTidy}>
+          จัดระเบียบชื่อหมอ / แผนก / โรงพยาบาล
+        </button>
+      )}
     </div>
   );
 }
