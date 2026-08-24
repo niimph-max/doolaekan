@@ -154,7 +154,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    sb.auth.getSession().then(({ data }) => load(data.session?.user.id, data.session?.user.email ?? ''));
+    // getSession อาจต้องต่ออินเทอร์เน็ตเพื่อต่ออายุ token ถ้าค้างแล้วไม่มี timeout
+    // แอปจะติดอยู่ที่ ready=false ตลอดไป ผลคือจอขาวเปล่าๆ ไม่มีอะไรบอกสาเหตุ
+    const SESSION_TIMEOUT_MS = 12000;
+    const withTimeout = <T,>(promise: Promise<T>): Promise<T | 'timeout'> => Promise.race([
+      promise,
+      new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), SESSION_TIMEOUT_MS)),
+    ]);
+
+    withTimeout(sb.auth.getSession())
+      .then((result) => {
+        if (cancelled) return;
+        if (result === 'timeout') {
+          setState((st) => ({
+            ...st,
+            ready: true,
+            loadError: 'เช็คสถานะการเข้าระบบไม่สำเร็จ — ต่ออินเทอร์เน็ตไม่ได้หรือเซิร์ฟเวอร์ไม่ตอบ',
+          }));
+          return;
+        }
+        void load(result.data.session?.user.id, result.data.session?.user.email ?? '');
+      })
+      .catch((e: Error) => {
+        if (cancelled) return;
+        setState((st) => ({ ...st, ready: true, loadError: e.message }));
+      });
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       load(session?.user.id, session?.user.email ?? '');
     });

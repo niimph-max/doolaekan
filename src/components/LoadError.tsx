@@ -19,7 +19,7 @@ export function LoadError() {
             <h3 style={{ margin: 0 }}>โหลดข้อมูลไม่สำเร็จ</h3>
           </div>
           <p style={{ margin: 0 }}>
-            เข้าระบบได้แล้ว แต่ดึงสมุดจากคลาวด์ไม่ได้ — <strong>ข้อมูลยังอยู่ครบ</strong> ไม่ได้หายไปไหน
+            ต่อกับคลาวด์ไม่ได้ตอนนี้ — <strong>ข้อมูลยังอยู่ครบ</strong> ไม่ได้หายไปไหน
           </p>
           <p className="subtle" style={{ margin: '10px 0 0', wordBreak: 'break-word' }}>
             {state.loadError}
@@ -27,7 +27,11 @@ export function LoadError() {
         </div>
 
         <button type="button" className="o-btn primary block"
-          onClick={() => { void actions.retryLoad(); }}>
+          onClick={() => {
+            // ยังไม่ได้ userId แปลว่าพังตั้งแต่เช็คสถานะเข้าระบบ ต้องเริ่มใหม่ทั้งหน้า
+            if (state.userId) void actions.retryLoad();
+            else window.location.reload();
+          }}>
           ลองใหม่อีกครั้ง
         </button>
 
@@ -44,10 +48,12 @@ export function LoadError() {
           )}
         </div>
 
-        <button type="button" className="o-btn ghost block"
-          onClick={() => { void actions.signOut(); }}>
-          ออกจากระบบ
-        </button>
+        {state.userId && (
+          <button type="button" className="o-btn ghost block"
+            onClick={() => { void actions.signOut(); }}>
+            ออกจากระบบ
+          </button>
+        )}
       </div>
     </div>
   );

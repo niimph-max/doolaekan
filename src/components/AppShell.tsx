@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AuthGate } from './AuthGate';
 import { ConfigError } from './ConfigError';
 import { LoadError } from './LoadError';
+import { Splash } from './Splash';
 import { Onboarding } from './Onboarding';
 import { TabBar } from './TabBar';
 import { EmergencyCard } from './EmergencyCard';
@@ -32,7 +33,7 @@ export function AppShell() {
   // ใส่ค่า Supabase ไว้แล้วแต่ค่าผิด — ห้ามเงียบๆ ถอยไปโหมดเครื่องเดียว เพราะผู้ใช้ตั้งใจจะต่อคลาวด์
   if (hasBrokenConfig) return <div className="app"><ConfigError /></div>;
 
-  if (!state.ready) return <div className="app" aria-busy="true" />;
+  if (!state.ready) return <div className="app" aria-busy="true"><Splash /></div>;
 
   // ต่อคลาวด์แล้วแต่ยังไม่ได้เข้าระบบ
   if (state.mode === 'cloud' && !state.userId) {
@@ -40,7 +41,8 @@ export function AppShell() {
   }
 
   // ดึงข้อมูลไม่สำเร็จ ≠ ยังไม่มีสมุด — ห้ามพาไปหน้ากรอกข้อมูลใหม่
-  if (state.mode === 'cloud' && state.userId && state.loadError) {
+  // ครอบคลุมตอนเช็คสถานะเข้าระบบไม่ผ่านด้วย ซึ่งตอนนั้นยังไม่มี userId
+  if (state.mode === 'cloud' && state.loadError) {
     return <div className="app"><LoadError /></div>;
   }
 

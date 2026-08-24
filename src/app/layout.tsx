@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RegisterSW } from '@/components/RegisterSW';
 import { StoreProvider } from '@/lib/store';
 
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="th" data-bigtext="0">
       <body>
-        <StoreProvider>{children}</StoreProvider>
+        <ErrorBoundary>
+          <StoreProvider>{children}</StoreProvider>
+        </ErrorBoundary>
         <RegisterSW />
       </body>
     </html>
