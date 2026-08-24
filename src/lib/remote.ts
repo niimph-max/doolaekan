@@ -499,3 +499,15 @@ export async function diagnose(activeBookId: string): Promise<Diagnosis> {
   else out.writeOk = true;
   return out;
 }
+
+/** รหัสผู้ใช้ที่เซิร์ฟเวอร์ยอมรับจริง ณ วินาทีนี้
+ *
+ *  ห้ามใช้ค่าที่จำไว้ในเครื่องตอนสร้างของใหม่ เพราะกติกาของฐานข้อมูลเทียบกับ
+ *  auth.uid() ของคำขอนั้นๆ ถ้าสองค่าไม่ตรงกันจะโดนปฏิเสธ (42501) โดยไม่มีทางรู้เลย
+ *  ว่าเพราะอะไร — ค่าที่จำไว้เพี้ยนได้หลายทาง เช่นเครื่องเคยเข้าบัญชีอื่นมาก่อน */
+export async function currentUserId(): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) return '';
+  const { data } = await sb.auth.getUser();
+  return data?.user?.id ?? '';
+}

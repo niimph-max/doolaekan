@@ -511,10 +511,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }));
 
         push(async () => {
-          await remote.upsertProfile(s.userId, book.owner_name);
-          await remote.upsertBook(book);
+          // ถามเซิร์ฟเวอร์ว่าตอนนี้เราคือใคร แล้วใช้ค่านั้นเป็นเจ้าของสมุด
+          // ค่าที่จำไว้ในเครื่องเพี้ยนได้ และถ้าไม่ตรงกับ auth.uid() ของคำขอ
+          // ฐานข้อมูลจะปฏิเสธด้วย 42501 โดยไม่บอกว่าเพราะเจ้าของไม่ตรง
+          const owner = (await remote.currentUserId()) || s.userId;
+          const mine = owner !== book.owner_id ? { ...book, owner_id: owner } : book;
+          if (owner !== book.owner_id) {
+            setState((st) => ({
+              ...st, userId: owner,
+              books: st.books.map((b) => (b.id === book.id ? mine : b)),
+              groups: st.groups.map((g) => (g.owner_id === book.owner_id ? { ...g, owner_id: owner } : g)),
+            }));
+          }
+          await remote.upsertProfile(owner, mine.owner_name);
+          await remote.upsertBook(mine);
           for (const d of doctors) await remote.upsertDoctor(d);
-          for (const g of groups) await remote.insertGroup(g);
+          for (const g of groups) await remote.insertGroup({ ...g, owner_id: owner });
           for (const sh of shares) await remote.upsertShare(sh);
         });
 
@@ -553,12 +565,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       resyncToCloud: async () => {
         const s = stateRef.current;
         if (s.mode !== 'cloud' || !s.userId) { toast('ยังไม่ได้เข้าระบบ'); return; }
-        const mine = s.books.filter((b) => b.owner_id === s.userId).map((b) => b.id);
+        const owner = (await remote.currentUserId()) || s.userId;
+        const mine = s.books.filter((b) => b.owner_id === s.userId || b.is_mine).map((b) => b.id);
         if (!mine.length) { toast('ไม่มีสมุดของคุณในเครื่อง'); return; }
         const inMine = <T extends { book_id: string }>(rows: T[]) => rows.filter((r) => mine.includes(r.book_id));
         try {
-          await remote.upsertProfile(s.userId, s.books.find((b) => mine.includes(b.id))?.owner_name ?? 'ฉัน');
-          for (const b of s.books.filter((b) => mine.includes(b.id))) await remote.upsertBook(b);
+          await remote.upsertProfile(owner, s.books.find((b) => mine.includes(b.id))?.owner_name ?? 'ฉัน');
+          for (const b of s.books.filter((b) => mine.includes(b.id))) {
+            await remote.upsertBook({ ...b, owner_id: owner });
+          }
           for (const d of inMine(s.doctors)) await remote.upsertDoctor(d);
           const meds = inMine(s.medications);
           if (meds.length) await remote.upsertMedications(meds);
@@ -602,7 +617,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           activeBookId: created.id,
         }));
         push(async () => {
-          await remote.upsertBook(created);
+          const owner = (await remote.currentUserId()) || created.owner_id;
+          const mine = owner !== created.owner_id ? { ...created, owner_id: owner } : created;
+          if (owner !== created.owner_id) {
+            setState((st) => ({ ...st, books: st.books.map((b) => (b.id === created.id ? mine : b)) }));
+          }
+          await remote.upsertBook(mine);
           if (share) await remote.upsertShare(share);
         });
       },
