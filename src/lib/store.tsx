@@ -108,6 +108,8 @@ interface Ctx {
   toastMsg: string;
   /** จำนวนรายการที่ยังบันทึกขึ้นคลาวด์ไม่สำเร็จ — ค้างรอกดลองใหม่ */
   unsavedCount: number;
+  /** สาเหตุจริงที่บันทึกไม่ผ่าน — ข้อความจากฐานข้อมูล/เครือข่ายตรงๆ */
+  unsavedReason: string;
   retryUnsaved: () => void;
   /** มีข้อมูลค้างจากโหมดเครื่องเดียวรอยกขึ้นคลาวด์ */
   hasLocalToUpload: boolean;
@@ -134,6 +136,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(emptyState);
   const [toastMsg, setToastMsg] = useState('');
   const [unsavedCount, setUnsavedCount] = useState(0);
+  const [unsavedReason, setUnsavedReason] = useState('');
   // งานเขียนที่ล้มเหลว เก็บไว้ยิงซ้ำ — ห้ามทิ้งสิ่งที่ผู้ใช้พิมพ์ไปเฉยๆ
   const failedWrites = useRef<(() => Promise<void>)[]>([]);
   // งานเขียนที่ยังไม่เสร็จ ระหว่างนี้ห้ามดึงข้อมูลใหม่มาทับ ไม่งั้นของเก่าจากเซิร์ฟเวอร์
@@ -358,14 +361,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             return;
           } catch (e) {
             const err = e as Error;
+            // token หมดอายุ/ใช้ไม่ได้ — ลองซ้ำกี่ครั้งก็ไม่ผ่าน ต้องเข้าระบบใหม่เท่านั้น
+            // เคสนี้อันตรายเป็นพิเศษ เพราะอ่านข้อมูลก็พังไปด้วย แอปเลยแสดงสำเนาในเครื่อง
+            // ดูเหมือนใช้งานได้ปกติทุกอย่าง ทั้งที่ไม่มีอะไรขึ้นคลาวด์เลยสักรายการ
+            const authBroken = /JWT|jwt|401|Invalid API key|not authenticated|token/i.test(err.message);
             // ผิดกติกาฐานข้อมูล (สิทธิ์ไม่พอ / ข้อมูลไม่ถูกรูปแบบ) ลองอีกกี่ครั้งก็ไม่ผ่าน
-            const permanent = /42501|23\d{3}|22\d{3}|PGRST/.test(err.message);
+            const permanent = authBroken || /42501|23\d{3}|22\d{3}|PGRST/.test(err.message);
             if (permanent || attempt >= RETRY_DELAYS.length) {
               failedWrites.current.push(fn);
               setUnsavedCount(failedWrites.current.length);
-              toast(permanent
-                ? `บันทึกไม่สำเร็จ: ${err.message}`
-                : 'ยังบันทึกขึ้นคลาวด์ไม่สำเร็จ — ข้อมูลที่กรอกยังอยู่ในเครื่อง');
+              // ต้องบอกสาเหตุจริง ไม่ใช่แค่ "ไม่สำเร็จ" — ไม่งั้นทั้งผู้ใช้และคนแก้โค้ด
+              // ก็ได้แต่เดา ว่าติดสิทธิ์ ติดเน็ต หรือข้อมูลผิดรูปแบบ
+              setUnsavedReason(authBroken
+                ? 'หมดเวลาเข้าระบบแล้ว — ต้องออกจากระบบแล้วเข้าใหม่ ข้อมูลในเครื่องยังอยู่ครบ'
+                : err.message || 'ต่อคลาวด์ไม่ได้');
               return;
             }
             await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
@@ -383,6 +392,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const queued = failedWrites.current;
       failedWrites.current = [];
       setUnsavedCount(0);
+      setUnsavedReason('');
       for (const fn of queued) await runWrite(fn);
     };
 
@@ -777,8 +787,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   actionsRef.current = actions;
 
   const value = useMemo(
-    () => ({ state, actions, toastMsg, unsavedCount, retryUnsaved, hasLocalToUpload }),
-    [state, actions, toastMsg, unsavedCount, retryUnsaved, hasLocalToUpload],
+    () => ({ state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, hasLocalToUpload }),
+    [state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, hasLocalToUpload],
   );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

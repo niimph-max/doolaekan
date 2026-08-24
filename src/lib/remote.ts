@@ -275,7 +275,10 @@ export async function upsertMedications(meds: Medication[]): Promise<void> {
     if (!error) return;
     const column = missingColumn(error);
     if (!column) {
-      check('upsertMedications', error);
+      // บอกด้วยว่าติดที่ยาตัวไหน สมุดเล่มไหน ไม่งั้นได้แต่รู้ว่า "สิทธิ์ไม่พอ" ลอยๆ
+      const where = meds.map((m) => m.name).join(', ');
+      const books = Array.from(new Set(meds.map((m) => m.book_id))).join(', ');
+      check(`upsertMedications [${where}] book=${books}`, error);
       return;
     }
     rows = rows.map((row) => {

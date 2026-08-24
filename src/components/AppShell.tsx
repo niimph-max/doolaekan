@@ -27,7 +27,7 @@ import { hasBrokenConfig } from '@/lib/supabase';
 type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | null;
 
 export function AppShell() {
-  const { state, actions, toastMsg, unsavedCount, retryUnsaved, hasLocalToUpload } = useStore();
+  const { state, actions, toastMsg, unsavedCount, unsavedReason, retryUnsaved, hasLocalToUpload } = useStore();
   const [sheet, setSheet] = useState<SheetName>(null);
   const [emergency, setEmergency] = useState(false);
 
@@ -121,7 +121,12 @@ export function AppShell() {
       {unsavedCount > 0 && (
         <div className="unsaved-bar" role="alert">
           <span style={{ flex: 1, minWidth: 0 }}>
-            ยังบันทึกขึ้นคลาวด์ไม่สำเร็จ {unsavedCount} รายการ — ข้อมูลยังอยู่ในเครื่อง
+            ยังบันทึกไม่สำเร็จ {unsavedCount} รายการ — ข้อมูลยังอยู่ในเครื่อง
+            {unsavedReason && (
+              <span style={{ display: 'block', fontSize: 14, opacity: 0.85, marginTop: 4 }}>
+                {unsavedReason}
+              </span>
+            )}
           </span>
           <button type="button" onClick={retryUnsaved}>ลองใหม่</button>
         </div>
