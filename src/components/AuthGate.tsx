@@ -64,6 +64,8 @@ export function AuthGate() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  // แยกจาก busy: การส่งอีเมลทำงานอยู่เบื้องหลัง ห้ามไปล็อกปุ่มตรวจรหัส
+  const [sending, setSending] = useState(false);
   const [fail, setFail] = useState<Fail | null>(null);
   const [askCreate, setAskCreate] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -90,33 +92,39 @@ export function AuthGate() {
   const send = async (createUser: boolean) => {
     const sb = getSupabase();
     if (!sb || !email.trim()) return;
-    setBusy(true); setFail(null); setAskCreate(false);
+
+    // ── เปิดช่องกรอกรหัสทันที ไม่รอเซิร์ฟเวอร์ตอบ ──
+    // อีเมลมักถึงมือผู้ใช้ก่อนที่คำขอจะตอบกลับเสียอีก การรอให้ตอบก่อนแล้วค่อยเปิด
+    // ช่องกรอก ทำให้ผู้ใช้ถือรหัสอยู่ในมือแต่ไม่มีที่ให้กรอก ได้แต่มองปุ่มค้างที่
+    // "กำลังส่ง…" ซึ่งเป็นทางตันที่ไม่มีเหตุผลรองรับเลย
+    setSending(true); setFail(null); setAskCreate(false);
+    setStep('code'); setCode(''); setSentAt(Date.now()); startCooldown();
+
     try {
       const { error: err } = await withTimeout(sb.auth.signInWithOtp({
         email: email.trim(), options: { shouldCreateUser: createUser },
       }), SEND_TIMEOUT_MS);
       if (err) {
         const f = classify(err.message);
-        if (f.kind === 'nouser') setAskCreate(true);
-        else setFail(f.kind === 'network' ? { kind: 'network', text: networkText('email') } : f);
-      } else {
-        setStep('code'); setCode(''); setSentAt(Date.now()); startCooldown();
+        if (f.kind === 'nouser') {
+          // ไม่มีบัญชีนี้จริงๆ = ไม่มีรหัสให้กรอกแน่นอน พากลับไปถามก่อน
+          setStep('email'); setAskCreate(true);
+        } else {
+          setFail(f.kind === 'network' ? { kind: 'network', text: networkText('email') } : f);
+        }
       }
     } catch (e) {
-      // ── เลิกรอเอง ≠ ส่งไม่สำเร็จ ──
-      // เราเป็นฝ่ายตัดสินใจไม่รอต่อ ไม่ได้แปลว่าเซิร์ฟเวอร์ไม่ได้ส่ง อีเมลอาจกำลังมา
-      // การทิ้งผู้ใช้ไว้หน้าเดิมพร้อมข้อความว่าเน็ตพัง ทำให้กดส่งซ้ำแล้วซ้ำอีก
-      // ซึ่งทุกครั้งไปยกเลิกรหัสของรอบก่อนที่กำลังเดินทางมาพอดี
+      // เลิกรอเอง ≠ ส่งไม่สำเร็จ อีเมลอาจกำลังเดินทางมา ปล่อยให้กรอกรหัสต่อได้
+      // แต่ต้องบอกด้วยว่ายังไม่มีคำยืนยัน ไม่งั้นถ้ารหัสไม่มาจริงๆ ผู้ใช้จะนั่งรอเปล่า
       const msg = (e as Error).message;
       if (msg === TIMED_OUT) {
-        setStep('code'); setCode(''); setSentAt(Date.now()); startCooldown();
-        setFail({ kind: 'pending', text: 'ส่งคำขอไปแล้วแต่เซิร์ฟเวอร์ยังไม่ตอบกลับ — ถ้ารหัสมาถึงอีเมล ให้กรอกได้เลย' });
+        setFail({ kind: 'pending', text: 'ส่งคำขอไปแล้วแต่เซิร์ฟเวอร์ยังไม่ตอบกลับว่าสำเร็จไหม — ถ้ารหัสมาถึงอีเมล กรอกได้เลย' });
       } else {
         const f = classify(msg);
         setFail(f.kind === 'network' ? { kind: 'network', text: networkText('email') } : f);
       }
     }
-    setBusy(false);
+    setSending(false);
   };
 
   const verify = async () => {
@@ -178,14 +186,14 @@ export function AuthGate() {
                   ไม่เห็นข้อมูลเดิมของครอบครัว
                 </p>
                 <button type="button" className="o-btn ghost block" style={{ marginTop: 12 }}
-                  disabled={busy} onClick={() => { void send(true); }}>
+                  disabled={sending} onClick={() => { void send(true); }}>
                   ฉันเป็นคนใหม่ สร้างบัญชีให้เลย
                 </button>
               </div>
             ) : (
               <button type="button" className="o-btn primary block" style={{ marginTop: 18 }}
-                disabled={busy || !email.trim()} onClick={() => { void send(false); }}>
-                {busy ? 'กำลังส่ง…' : 'ส่งรหัสเข้าอีเมล'}
+                disabled={sending || !email.trim()} onClick={() => { void send(false); }}>
+                {sending ? 'กำลังส่ง…' : 'ส่งรหัสเข้าอีเมล'}
               </button>
             )}
           </>
@@ -200,7 +208,9 @@ export function AuthGate() {
               style={{ textAlign: 'center', letterSpacing: '.25em' }}
               value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, OTP_MAX))} />
             <p className="subtle" style={{ marginTop: 8 }}>
-              อีเมลบางทีมาช้าเป็นนาที ถ้ายังไม่มา ให้รอก่อน อย่าเพิ่งกดขอใหม่
+              {sending
+                ? 'กำลังส่ง… ถ้ารหัสมาถึงอีเมลแล้ว กรอกได้เลยไม่ต้องรอ'
+                : 'อีเมลบางทีมาช้าเป็นนาที ถ้ายังไม่มา ให้รอก่อน อย่าเพิ่งกดขอใหม่'}
             </p>
 
             <button type="button" className="o-btn primary block" style={{ marginTop: 18 }}
@@ -211,7 +221,7 @@ export function AuthGate() {
             {/* ขอรหัสใหม่ = รหัสเก่าใช้ไม่ได้ทันที ต้องบอกให้ชัดก่อนกด
                 ไม่ใช่ให้ผู้ใช้ค้นพบเองตอนกรอกรหัสเก่าแล้วโดนบอกว่าผิด */}
             <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }}
-              disabled={busy || cooldown > 0} onClick={() => { void send(false); }}>
+              disabled={sending || cooldown > 0} onClick={() => { void send(false); }}>
               {cooldown > 0 ? `ขอรหัสใหม่ได้ในอีก ${cooldown} วินาที` : 'ขอรหัสใหม่ (รหัสเดิมจะใช้ไม่ได้)'}
             </button>
 
