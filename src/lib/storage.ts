@@ -24,12 +24,16 @@ function read<T>(key: string): T | null {
   }
 }
 
-function write(key: string, value: unknown): void {
-  if (typeof window === 'undefined') return;
+function write(key: string, value: unknown): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    /* โควตาเต็ม / โหมดส่วนตัว — ข้ามไป ไม่ให้แอปพัง */
+    // โควตาเต็ม / โหมดส่วนตัว — ห้ามทำให้แอปพัง แต่ต้องคืนคำตอบว่าไม่สำเร็จ
+    // การกลืนเงียบๆ ทำให้สำเนาในเครื่องหายไปเฉยๆ โดยไม่มีใครรู้ แล้วแอปกลาย
+    // เป็นต้องพึ่งเน็ตทุกครั้งที่เปิด ทั้งที่ออกแบบมาให้เปิดออฟไลน์ได้
+    return false;
   }
 }
 
@@ -66,13 +70,31 @@ export function loadCloudCache(userId: string): CloudCache | null {
   return read<CloudCache>(cacheKey(userId));
 }
 
-export function saveCloudCache(userId: string, data: CloudCache): void {
-  if (!userId) return;
-  // รูปสแกนเป็นลิงก์ชั่วคราวที่หมดอายุ เก็บไว้ก็ใช้ไม่ได้ ตัดทิ้งให้ไฟล์เล็กลงด้วย
-  write(cacheKey(userId), {
+/** ตัดรูปออกจากสำเนาให้หมด — เก็บแต่ path เอาไว้ขอลิงก์ใหม่ทีหลัง
+ *
+ *  รูปที่เพิ่งถ่ายจะอยู่ใน state เป็น data URL (base64) รูปเดียวจากมือถือกิน
+ *  หลายเมกะไบต์ ขณะที่ localStorage ทั้งเครื่องมีเพดานราว 5 MB เท่านั้น
+ *  พอเขียนไม่ลง สำเนาจะไม่ถูกบันทึกเลยสักครั้ง เปิดแอปมาจึงไม่มีอะไรให้ดู
+ *  ต้องรอโหลดจากคลาวด์ทุกรอบ เน็ตสะดุดเมื่อไหร่ก็เจอหน้า "โหลดไม่สำเร็จ" ทันที
+ *  ส่วนลิงก์ชั่วคราวของรูปบนคลาวด์ก็หมดอายุอยู่แล้ว เก็บไว้ก็ใช้ไม่ได้ */
+function stripImages(data: CloudCache): CloudCache {
+  return {
     ...data,
     records: data.records.map(({ file: _file, ...rest }) => rest),
-  });
+    medications: data.medications.map(({ photo: _photo, ...rest }) => rest),
+    appointments: data.appointments.map(({ photo: _photo, ...rest }) => rest),
+  };
+}
+
+/** @returns เขียนสำเนาสำเร็จหรือไม่ */
+export function saveCloudCache(userId: string, data: CloudCache): boolean {
+  if (!userId) return false;
+  const slim = stripImages(data);
+  if (write(cacheKey(userId), slim)) return true;
+
+  // ยังไม่พอ — ทิ้งสองก้อนที่ใหญ่ที่สุดแล้วลองใหม่ ได้สมุด/ยา/นัดไว้ก็ยังดีกว่าไม่ได้อะไร
+  // (ไทม์ไลน์กับประวัติกินยาโตไม่หยุด ส่วนที่เหลือเล็กและเป็นสิ่งที่ต้องเห็นทันทีที่เปิด)
+  return write(cacheKey(userId), { ...slim, records: [], medLogs: [] });
 }
 
 export function clearCloudCache(userId: string): void {

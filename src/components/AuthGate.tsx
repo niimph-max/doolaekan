@@ -9,19 +9,27 @@ import { getSupabase } from '@/lib/supabase';
 // ความยาวรหัสตั้งได้ที่ Supabase (Auth → Sessions) ค่าเริ่มต้น 6 แต่บางโปรเจกต์เป็น 8
 const OTP_MIN = 6;
 const OTP_MAX = 10;
-/** คำขอทางเน็ตต้องมีเส้นตายเสมอ ไม่งั้นปุ่มค้างที่ "กำลังตรวจ…" โดยไม่มีทางออก */
-const NET_TIMEOUT_MS = 15000;
+/** คำขอทางเน็ตต้องมีเส้นตายเสมอ ไม่งั้นปุ่มค้างที่ "กำลังตรวจ…" โดยไม่มีทางออก
+ *
+ *  การส่งอีเมลต้องให้เวลามากกว่าการตรวจรหัสมาก เพราะฝั่งเซิร์ฟเวอร์ต้องไปคุยกับ
+ *  ผู้ให้บริการอีเมลอีกทอด บ่อยครั้งเกินสิบวินาที ตั้งสั้นไปแล้วจะไปสรุปว่า
+ *  "เน็ตไม่ติด" ทั้งที่คำขอส่งสำเร็จและอีเมลกำลังเดินทางมา */
+const SEND_TIMEOUT_MS = 30000;
+const VERIFY_TIMEOUT_MS = 20000;
 /** กันกดขอรหัสรัวๆ ซึ่งทำให้รหัสที่เพิ่งส่งไปใช้ไม่ได้ และไปชนลิมิตของผู้ให้บริการ */
 const RESEND_COOLDOWN_S = 30;
 
-type Fail = { kind: 'code' | 'network' | 'nouser' | 'other'; text: string };
+type Fail = { kind: 'code' | 'network' | 'nouser' | 'pending' | 'other'; text: string };
+
+/** ข้อความที่ไลบรารีโยนมาเมื่อเราเป็นฝ่ายเลิกรอเอง — ต่างจากเน็ตพังจริง */
+const TIMED_OUT = 'เกินเวลารอ';
 
 /** แยกให้ออกว่า "รหัสผิดจริง" กับ "ต่อไม่ติด" เพราะทางแก้คนละทางกันคนละเรื่อง
  *  ของเดิมเหมารวมทุกอย่างเป็น "รหัสไม่ถูกต้อง" ผู้ใช้จึงไปขอรหัสใหม่ทั้งที่รหัสเดิมยังดี
  *  แล้วการขอใหม่ก็ไปยกเลิกรหัสเดิมที่กำลังส่งมา กลายเป็นวนไม่จบ */
 function classify(message: string): Fail {
   if (/failed to fetch|networkerror|load failed|timeout|เกินเวลา/i.test(message)) {
-    return { kind: 'network', text: 'ต่ออินเทอร์เน็ตไม่ติดตอนนี้ — รหัสเดิมยังใช้ได้ กดลองอีกครั้งได้เลย' };
+    return { kind: 'network', text: '' };   // ข้อความเลือกตามหน้าที่ยืนอยู่ ดู networkText()
   }
   if (/signups not allowed|user not found|invalid login credentials/i.test(message)) {
     return { kind: 'nouser', text: '' };
@@ -35,10 +43,19 @@ function classify(message: string): Fail {
   return { kind: 'other', text: message };
 }
 
-function withTimeout<T>(p: Promise<T>): Promise<T> {
+/** เน็ตพังตอนขอรหัส กับตอนตรวจรหัส ต้องบอกคนละอย่าง
+ *  ของเดิมใช้ข้อความเดียวว่า "รหัสเดิมยังใช้ได้" ซึ่งไม่มีความหมายเลยตอนอยู่หน้าใส่อีเมล
+ *  เพราะยังไม่เคยมีรหัสสักอัน */
+function networkText(step: 'email' | 'code'): string {
+  return step === 'code'
+    ? 'ต่ออินเทอร์เน็ตไม่ติดตอนนี้ — รหัสเดิมยังใช้ได้ กดลองอีกครั้งได้เลย'
+    : 'ส่งคำขอไม่ออก — เช็คสัญญาณแล้วกดส่งรหัสอีกครั้ง';
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     p,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('เกินเวลารอ')), NET_TIMEOUT_MS)),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(TIMED_OUT)), ms)),
   ]);
 }
 
@@ -77,16 +94,27 @@ export function AuthGate() {
     try {
       const { error: err } = await withTimeout(sb.auth.signInWithOtp({
         email: email.trim(), options: { shouldCreateUser: createUser },
-      }));
+      }), SEND_TIMEOUT_MS);
       if (err) {
         const f = classify(err.message);
         if (f.kind === 'nouser') setAskCreate(true);
-        else setFail(f);
+        else setFail(f.kind === 'network' ? { kind: 'network', text: networkText('email') } : f);
       } else {
         setStep('code'); setCode(''); setSentAt(Date.now()); startCooldown();
       }
     } catch (e) {
-      setFail(classify((e as Error).message));
+      // ── เลิกรอเอง ≠ ส่งไม่สำเร็จ ──
+      // เราเป็นฝ่ายตัดสินใจไม่รอต่อ ไม่ได้แปลว่าเซิร์ฟเวอร์ไม่ได้ส่ง อีเมลอาจกำลังมา
+      // การทิ้งผู้ใช้ไว้หน้าเดิมพร้อมข้อความว่าเน็ตพัง ทำให้กดส่งซ้ำแล้วซ้ำอีก
+      // ซึ่งทุกครั้งไปยกเลิกรหัสของรอบก่อนที่กำลังเดินทางมาพอดี
+      const msg = (e as Error).message;
+      if (msg === TIMED_OUT) {
+        setStep('code'); setCode(''); setSentAt(Date.now()); startCooldown();
+        setFail({ kind: 'pending', text: 'ส่งคำขอไปแล้วแต่เซิร์ฟเวอร์ยังไม่ตอบกลับ — ถ้ารหัสมาถึงอีเมล ให้กรอกได้เลย' });
+      } else {
+        const f = classify(msg);
+        setFail(f.kind === 'network' ? { kind: 'network', text: networkText('email') } : f);
+      }
     }
     setBusy(false);
   };
@@ -98,7 +126,7 @@ export function AuthGate() {
     try {
       const { error: err } = await withTimeout(sb.auth.verifyOtp({
         email: email.trim(), token: code.trim(), type: 'email',
-      }));
+      }), VERIFY_TIMEOUT_MS);
       if (err) {
         // ── สำคัญ: ต้องเช็คว่าเข้าได้จริงไหมก่อนจะบอกว่าพัง ──
         // เคยเจอกับตัวเองว่าขึ้น "รหัสไม่ถูกต้อง" ทั้งที่รหัสถูกและเข้าระบบสำเร็จแล้ว
@@ -106,12 +134,16 @@ export function AuthGate() {
         // ตรงๆ แล้วไล่ผู้ใช้ไปขอรหัสใหม่ คือต้นเหตุของวังวนทั้งหมด
         const { data } = await sb.auth.getSession();
         if (data.session) { setBusy(false); return; }
-        setFail(classify(err.message));
+        const f = classify(err.message);
+        setFail(f.kind === 'network' ? { kind: 'network', text: networkText('code') } : f);
       }
       // สำเร็จ = onAuthStateChange ใน store จะพาเข้าแอปเอง
     } catch (e) {
       const { data } = await sb.auth.getSession();
-      if (!data.session) setFail(classify((e as Error).message));
+      if (!data.session) {
+        const f = classify((e as Error).message);
+        setFail(f.kind === 'network' ? { kind: 'network', text: networkText('code') } : f);
+      }
     }
     setBusy(false);
   };

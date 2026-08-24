@@ -178,6 +178,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // แยกให้ออกว่า "ผู้ใช้กดออกจากระบบเอง" กับ "token ต่ออายุไม่สำเร็จ"
   // supabase ยิงเหตุการณ์เดียวกัน (SIGNED_OUT) ทั้งสองกรณี
   const intentionalSignOut = useRef(false);
+  // เตือนเรื่องสำเนาเขียนไม่ลงครั้งเดียวพอ ไม่งั้นเด้งทุกครั้งที่ข้อมูลเปลี่ยน
+  const cacheWarned = useRef(false);
   const [hasLocalToUpload, setHasLocalToUpload] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
@@ -403,11 +405,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // เปิดใหม่จะเห็นของเก่าจนกว่าจะโหลดจากคลาวด์เสร็จ
   useEffect(() => {
     if (!state.ready || state.mode !== 'cloud' || !state.userId) return;
-    saveCloudCache(state.userId, {
+    const cached = saveCloudCache(state.userId, {
       books: state.books, doctors: state.doctors, medications: state.medications,
       medLogs: state.medLogs, appointments: state.appointments, records: state.records,
       watchRules: state.watchRules, groups: state.groups, shares: state.shares,
     });
+    // เก็บสำเนาไม่ลง = เปิดแอปครั้งหน้าจะไม่มีอะไรให้ดูจนกว่าจะโหลดจากคลาวด์สำเร็จ
+    // เป็นเรื่องที่ผู้ใช้ต้องรู้ ไม่ใช่ปล่อยให้ไปเซอร์ไพรส์ตอนเน็ตไม่ดี
+    if (!cached && !cacheWarned.current) {
+      cacheWarned.current = true;
+      toast('เก็บสำเนาในเครื่องไม่ได้ (พื้นที่เต็ม) — เปิดแอปครั้งหน้าต้องรอโหลดจากคลาวด์');
+    }
   }, [
     state.ready, state.mode, state.userId,
     state.books, state.doctors, state.medications, state.medLogs,
