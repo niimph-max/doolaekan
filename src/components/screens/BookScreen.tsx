@@ -7,7 +7,7 @@ import {
   SHARE_LABEL, bookRecords, bookSummary, bookWatchRules, bpHistory, shareLevel, visibleBooks,
 } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
-import type { Book, RecordKind, ShareLevel } from '@/lib/types';
+import type { Book, RecordItem, RecordKind, ShareLevel } from '@/lib/types';
 
 const FILTERS: { id: 'all' | RecordKind; label: string }[] = [
   { id: 'all', label: 'ทั้งหมด' },
@@ -171,7 +171,7 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
                   {fmtTime(r.at)} น. · {r.actor_name}บันทึก
                 </p>
                 {}
-                {r.file && <img src={r.file} alt={r.title} className="scan-img" />}
+                <RecordPhoto record={r} />
               </div>
             </div>
           </div>
@@ -192,3 +192,30 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
   );
 }
 
+/** รูปในไทม์ไลน์ — ดึงตอนกดดูเท่านั้น
+ *  สำเนาในเครื่องเก็บแต่ที่อยู่ของรูป ไม่เก็บตัวรูป การไม่ดึงรูปล่วงหน้าคือเหตุผล
+ *  ที่เปิดแอปได้เร็ว ส่วนใหญ่เลื่อนผ่านไทม์ไลน์เฉยๆ ไม่ได้เปิดดูรูปทุกใบ */
+function RecordPhoto({ record }: { record: RecordItem }) {
+  const { actions } = useStore();
+  const [loading, setLoading] = useState(false);
+
+  if (record.file) {
+    return (
+      <a href={record.file} target="_blank" rel="noreferrer">
+        <img src={record.file} alt={record.title} className="scan-img" />
+      </a>
+    );
+  }
+  if (!record.file_path) return null;
+
+  return (
+    <button type="button" className="o-btn ghost block" style={{ marginTop: 8 }} disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        await actions.loadPhoto(record.file_path as string);
+        setLoading(false);
+      }}>
+      <Icon name="camera" size={17} /> {loading ? 'กำลังเปิด…' : 'ดูรูปที่แนบไว้'}
+    </button>
+  );
+}

@@ -122,6 +122,11 @@ interface Actions {
   createGroup: (name: string, share: ShareLevel) => void;
   joinGroup: (code: string, share: ShareLevel) => Promise<boolean>;
   setShareLevel: (bookId: string, level: ShareLevel) => void;
+  /** ขอลิงก์ดูรูปเฉพาะใบที่ผู้ใช้กดดู
+   *
+   *  ไม่ขอล่วงหน้าให้ทุกใบ เพราะรูปเป็นของหนักที่สุดในแอปและส่วนใหญ่ไม่ได้เปิดดู
+   *  การไม่ดึงรูปคือเหตุผลหนึ่งที่ทำให้เปิดแอปได้เร็ว ควรรักษาไว้ */
+  loadPhoto: (path: string) => Promise<void>;
   toast: (msg: string) => void;
 }
 
@@ -1023,6 +1028,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ],
         }));
         push(() => remote.upsertShare(row));
+      },
+
+      loadPhoto: async (path) => {
+        if (!path) return;
+        try {
+          const byPath = await remote.signPhotoUrls([path]);
+          const url = byPath.get(path);
+          if (!url) { toast('เปิดดูรูปไม่ได้ตอนนี้ — รูปยังอยู่ครบ'); return; }
+          setState((st) => ({
+            ...st,
+            records: st.records.map((r) => (r.file_path === path ? { ...r, file: url } : r)),
+            appointments: st.appointments.map((a) => (a.photo_path === path ? { ...a, photo: url } : a)),
+          }));
+        } catch {
+          toast('เปิดดูรูปไม่ได้ตอนนี้ — รูปยังอยู่ครบ ลองใหม่เมื่อสัญญาณดีขึ้น');
+        }
       },
 
       toast,

@@ -237,6 +237,10 @@ function ApptPhoto({ appt }: { appt: Appointment }) {
   const { actions } = useStore();
   const camRef = useRef<HTMLInputElement>(null);
   const pickRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+
+  // เก็บไว้แล้วแต่ยังไม่ได้ดึงรูปมา — ดึงตอนกดดูเท่านั้น รูปเป็นของหนักที่สุดในแอป
+  const stored = Boolean(appt.photo_path) && !appt.photo;
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -257,9 +261,19 @@ function ApptPhoto({ appt }: { appt: Appointment }) {
           <img src={appt.photo} alt={`ใบนัด ${appt.title}`} className="scan-img" />
         </a>
       )}
-      <div className="o-row" style={{ marginTop: appt.photo ? 10 : 0 }}>
+      {stored && (
+        <button type="button" className="o-btn secondary block" disabled={loading}
+          onClick={async () => {
+            setLoading(true);
+            await actions.loadPhoto(appt.photo_path as string);
+            setLoading(false);
+          }}>
+          <Icon name="camera" size={18} /> {loading ? 'กำลังเปิด…' : 'ดูภาพใบนัดที่เก็บไว้'}
+        </button>
+      )}
+      <div className="o-row" style={{ marginTop: (appt.photo || stored) ? 10 : 0 }}>
         <button type="button" className="o-btn ghost" onClick={() => camRef.current?.click()}>
-          <Icon name="camera" size={18} /> {appt.photo ? 'ถ่ายใหม่' : 'ถ่ายใบนัด'}
+          <Icon name="camera" size={18} /> {(appt.photo || stored) ? 'ถ่ายใหม่' : 'ถ่ายใบนัด'}
         </button>
         <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>
           เลือกรูปที่มีอยู่

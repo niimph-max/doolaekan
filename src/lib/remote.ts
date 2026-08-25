@@ -231,6 +231,24 @@ export async function fetchAll(userId: string): Promise<CloudData> {
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
+/** ขอลิงก์ดูรูปจากที่อยู่ของรูป — แยกออกมาให้เรียกได้ทุกเมื่อ
+ *
+ *  เดิมการขอลิงก์ฝังอยู่ในขั้นตอนดึงข้อมูลสดที่เดียว พอแอปเปิดจากสำเนาในเครื่อง
+ *  (ซึ่งเก็บแต่ที่อยู่ของรูป ไม่เก็บตัวรูป) หรือดึงไทม์ไลน์ไม่สำเร็จ จะไม่มีใคร
+ *  ไปขอลิงก์เลย รูปจึงหายทั้งที่ไฟล์อยู่ครบและที่อยู่ก็อยู่ในมือแล้ว
+ *
+ *  โยน error ออกมาด้วย ไม่กลืนเงียบเหมือนเดิม รูปหายต้องมีเหตุผลบอกได้เสมอ */
+export async function signPhotoUrls(paths: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!paths.length) return out;
+  const { data, error } = await db().storage.from(SCANS).createSignedUrls(paths, 60 * 60);
+  check('ขอลิงก์ดูรูป', error);
+  for (const d of data ?? []) {
+    if (d.signedUrl) out.set(d.path ?? '', d.signedUrl);
+  }
+  return out;
+}
+
 /** เติมลิงก์ชั่วคราวให้รูปในไทม์ไลน์ (bucket เป็น private) */
 /** ใบนัดที่ถ่ายเก็บไว้ต้องได้ลิงก์ชั่วคราวเหมือนเอกสารสแกน ไม่งั้นเปิดดูไม่ได้ */
 async function attachApptUrls(appts: Appointment[]): Promise<void> {
