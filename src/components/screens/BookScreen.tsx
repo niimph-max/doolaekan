@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
 import { fmtShortDate, fmtTime } from '@/lib/format';
@@ -24,12 +24,11 @@ const DOT: Record<RecordKind, string> = {
   symptom: 'var(--color-neutral-400)',
 };
 
-export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
-  book: Book; onOpenGroup: () => void; onOpenProfile: () => void;
+export function BookScreen({ book, onOpenGroup, onOpenProfile, onAddDoc }: {
+  book: Book; onOpenGroup: () => void; onOpenProfile: () => void; onAddDoc: () => void;
 }) {
   const { state, actions } = useStore();
   const [filter, setFilter] = useState<'all' | RecordKind>('all');
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const group = state.groups.find((g) => g.id === state.activeGroupId);
   const books = visibleBooks(state);
@@ -39,20 +38,6 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
     .filter((r) => (filter === 'all' ? true : r.kind === filter));
   const maxSys = Math.max(160, ...bps.map((r) => r.data?.sys ?? 0));
   const myLevel = shareLevel(state, book.id);
-
-  const onScanDoc = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      actions.addRecord(book.id, {
-        kind: 'doc', title: 'เอกสารจากหมอ', body: f.name, file: String(reader.result), important: true,
-      });
-      actions.toast('เก็บเอกสารเข้าไทม์ไลน์แล้ว');
-    };
-    reader.readAsDataURL(f);
-    e.target.value = '';
-  };
 
   return (
     <div className="screen">
@@ -180,14 +165,11 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
       )}
 
       <button type="button" className="o-btn primary block" style={{ marginTop: 10 }}
-        onClick={() => fileRef.current?.click()}>
+        onClick={onAddDoc}>
         <Icon name="camera" size={20} /> เก็บเอกสารจากหมอ
       </button>
-      {/* ไม่ล็อกไว้ที่กล้องอย่างเดียว — เอกสารบางใบถ่ายไว้ก่อนแล้ว หรือคนอื่นส่งมาให้ */}
-      <input ref={fileRef} type="file" accept="image/*"
-        onChange={onScanDoc} style={{ display: 'none' }} />
       <p className="subtle" style={{ margin: '8px 0 0', textAlign: 'center' }}>
-        ถ่ายใหม่หรือเลือกรูปที่มีอยู่แล้วก็ได้
+        ผลตรวจเลือด ผลตรวจตา — ใส่วันที่บนใบจริงได้ เอกสารเก่าจะได้เรียงถูกที่
       </p>
     </div>
   );

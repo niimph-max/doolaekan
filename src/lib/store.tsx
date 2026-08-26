@@ -115,7 +115,12 @@ interface Actions {
   /** เก็บภาพใบนัดไว้กับนัดนั้น — ใบกระดาษหายง่าย และมีข้อมูลที่แอปไม่ได้เก็บ
    *  (เลขคิว ชั้น ห้องตรวจ ข้อความที่หมอเขียนมือ) */
   setAppointmentPhoto: (id: string, dataUrl: string) => void;
-  addRecord: (bookId: string, rec: Omit<RecordItem, 'id' | 'book_id' | 'at' | 'actor_name'>) => void;
+  /** `at` ใส่เองได้สำหรับเอกสารเก่าที่เพิ่งเอามาเก็บย้อนหลัง
+   *  ถ้าไม่ใส่จะเป็นเวลาปัจจุบัน */
+  addRecord: (
+    bookId: string,
+    rec: Omit<RecordItem, 'id' | 'book_id' | 'at' | 'actor_name'> & { at?: string },
+  ) => void;
   addWatchRule: (bookId: string, rule: Omit<WatchRule, 'id' | 'book_id'>) => void;
   updateWatchRule: (id: string, patch: Partial<WatchRule>) => void;
   removeWatchRule: (id: string) => void;
@@ -917,7 +922,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       addRecord: (bookId, rec) => {
         const created: RecordItem = {
-          ...rec, id: uid(), book_id: bookId, at: new Date().toISOString(),
+          ...rec, id: uid(), book_id: bookId,
+          at: rec.at || new Date().toISOString(),
           actor_name: stateRef.current.actorName || 'ฉัน',
         };
         patch((s) => ({ records: [created, ...s.records] }));

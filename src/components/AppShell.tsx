@@ -15,6 +15,7 @@ import { ApptsScreen } from './screens/ApptsScreen';
 import { BookScreen } from './screens/BookScreen';
 import { ActorSheet } from './sheets/ActorSheet';
 import { AddApptSheet } from './sheets/AddApptSheet';
+import { AddDocSheet } from './sheets/AddDocSheet';
 import { AddMedSheet } from './sheets/AddMedSheet';
 import { GroupSheet } from './sheets/GroupSheet';
 import { ProfileSheet } from './sheets/ProfileSheet';
@@ -25,7 +26,7 @@ import { activeBook } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import { hasBrokenConfig } from '@/lib/supabase';
 
-type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | null;
+type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | 'doc' | null;
 
 export function AppShell() {
   const {
@@ -108,7 +109,8 @@ export function AppShell() {
       )}
       {state.tab === 'appts' && <ApptsScreen book={book} onAdd={() => setSheet('appt')} />}
       {state.tab === 'book' && (
-        <BookScreen book={book} onOpenGroup={() => setSheet('group')} onOpenProfile={() => setSheet('profile')} />
+        <BookScreen book={book} onOpenGroup={() => setSheet('group')}
+          onOpenProfile={() => setSheet('profile')} onAddDoc={() => setSheet('doc')} />
       )}
 
       <TabBar tab={state.tab} onChange={actions.setTab} />
@@ -117,6 +119,7 @@ export function AppShell() {
       <SymptomSheet open={sheet === 'symptom'} bookId={book.id} onClose={close} />
       <AddApptSheet open={sheet === 'appt'} bookId={book.id} onClose={close} />
       <AddMedSheet open={sheet === 'med'} bookId={book.id} onClose={close} />
+      <AddDocSheet open={sheet === 'doc'} bookId={book.id} onClose={close} />
       <ScanSheet open={sheet === 'scan'} bookId={book.id} onClose={close} />
       <GroupSheet open={sheet === 'group'} onClose={close} />
       <TidyNamesSheet open={sheet === 'tidy'} book={book} onClose={close} />

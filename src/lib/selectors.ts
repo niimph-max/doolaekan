@@ -170,10 +170,13 @@ export const SHARE_LABEL: Record<string, string> = {
 /** สรุปสถานะสั้นๆ ใต้ชื่อสมุดในแท็บ "สมุด" */
 export function bookSummary(state: AppState, bookId: string): string {
   const doses = todayDoses(state, bookId);
-  const pending = doses.filter((d) => !d.log).length;
   const next = nextAppointment(state, bookId);
   const parts: string[] = [];
-  if (doses.length) parts.push(pending ? `ยังไม่กินยา ${pending} มื้อ` : 'กินยาครบแล้ววันนี้');
+  // ── ไม่บอกจำนวนมื้อที่ "ยังไม่กิน" ──
+  // ปุ่มกดกินยาไม่ได้ถูกกดตามจริงทุกมื้อ คนที่บ้านกินยาไปแล้วแต่ไม่มีใครกด เป็นเรื่องปกติ
+  // ตัวเลขนั้นจึงแปลว่า "ยังไม่มีใครกด" ไม่ใช่ "ยังไม่ได้กิน" ซึ่งคนละเรื่องกันเลย
+  // แล้วมันไปเด่นอยู่หน้าแรกเหมือนเรื่องน่ากังวลทุกวัน ทั้งที่ไม่ใช่
+  if (doses.length && doses.every((d) => d.log)) parts.push('กินยาครบแล้ววันนี้');
   if (next) parts.push(`นัด ${next.title.split(' — ')[0]} ${daysUntil(next.date)} วัน`);
-  return parts.join(' · ') || 'ยังไม่มีข้อมูลวันนี้';
+  return parts.join(' · ') || `ยา ${doses.length} มื้อวันนี้`;
 }
