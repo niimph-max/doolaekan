@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
+import { AvatarPicker } from '../Avatar';
 import { DraftInput } from '../DraftInput';
 import { WatchRuleEditor } from '../WatchRuleEditor';
 import { ConnectionCheck } from '../ConnectionCheck';
@@ -36,6 +37,9 @@ export function ProfileSheet({ open, book, onClose }: {
 
   return (
     <Sheet open={open} title="โปรไฟล์ &amp; หมอ" onClose={onClose}>
+      <label className="o-label" style={{ marginTop: 0 }}>รูปโปรไฟล์</label>
+      <AvatarPicker book={book} />
+
       <label className="o-label" htmlFor="pf-name">ชื่อเรียกในสมุด</label>
       <DraftInput id="pf-name" value={book.owner_name}
         onCommit={(v) => set({ owner_name: v })} />

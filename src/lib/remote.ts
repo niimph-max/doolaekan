@@ -66,6 +66,7 @@ const toBook = (r: any, userId: string): Book => ({
   birth_date: r.birth_date ?? '',
   age: r.age ?? '',
   emergency_contact: r.emergency_contact ?? '',
+  avatar: r.avatar ?? '',
   is_mine: r.owner_id === userId,
 });
 
@@ -120,6 +121,7 @@ export const bookRow = (b: Book) => ({
   conditions: b.conditions, blood_group: b.blood_type,
   birth_date: b.birth_date || null, age: b.age,
   emergency_contact: b.emergency_contact,
+  avatar: b.avatar || null,
 });
 
 export const doctorRow = (d: Doctor) => ({
@@ -323,7 +325,7 @@ export async function deleteDoctor(id: string): Promise<void> {
 
 /** ฐานข้อมูลที่ยังไม่ได้รัน migration ล่าสุดจะไม่มีคอลัมน์ที่โค้ดใหม่ส่งไป
  *  PostgREST ตอบ PGRST204 พร้อมชื่อคอลัมน์ที่หาไม่เจอในข้อความ */
-const NEWER_COLUMNS = ['timing', 'hospital', 'paused', 'paused_note'] as const;
+const NEWER_COLUMNS = ['timing', 'hospital', 'paused', 'paused_note', 'avatar'] as const;
 
 function missingColumn(error: PgError): string | null {
   if (!error || error.code !== 'PGRST204') return null;

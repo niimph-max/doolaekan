@@ -549,7 +549,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const book: Book = {
           id: bookId, owner_id: s.userId, owner_name: input.displayName || 'ฉัน',
           full_name: input.fullName, address: input.address, allergy: input.allergy,
-          conditions: input.conditions, blood_type: '', birth_date: '', age: '', emergency_contact: '',
+          conditions: input.conditions, blood_type: '', birth_date: '', age: '', emergency_contact: '', avatar: '',
           is_mine: true,
         };
         const doctors: Doctor[] = input.doctors.map((d) => ({ ...d, id: uid(), book_id: bookId }));
@@ -700,7 +700,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const created: Book = {
           id: uid(), owner_id: s.userId, owner_name: displayName.trim() || 'สมุดใหม่',
           full_name: '', address: '', allergy: '', conditions: [],
-          blood_type: '', birth_date: '', age: '', emergency_contact: '',
+          blood_type: '', birth_date: '', age: '', emergency_contact: '', avatar: '',
           is_mine: true,
         };
         // แชร์เข้ากลุ่มที่เปิดอยู่ให้เลย ไม่งั้นคนอื่นในบ้านจะไม่เห็นสมุดเล่มใหม่

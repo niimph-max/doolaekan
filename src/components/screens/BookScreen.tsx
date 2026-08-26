@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
 import { fmtShortDate, fmtTime } from '@/lib/format';
 import {
@@ -77,7 +78,7 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile }: {
             textAlign: 'left',
             border: b.id === book.id ? '2px solid var(--color-accent)' : '1.5px solid transparent',
           }}>
-          <span className="ph" style={{ width: 46, height: 46 }} />
+          <Avatar book={b} size={46} />
           <span style={{ flex: 1, minWidth: 0 }}>
             <strong style={{ display: 'block' }}>{b.owner_name}{b.is_mine ? ' (ฉัน)' : ''}</strong>
             <span className="subtle">{bookSummary(state, b.id)}</span>
