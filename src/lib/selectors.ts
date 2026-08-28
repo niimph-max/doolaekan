@@ -203,11 +203,15 @@ export interface ActivityDay {
  *  ยอดแคลรวมนับเฉพาะรายการที่กรอกไว้จริง และรายงานด้วยว่ามาจากกี่รายการ
  *  เพราะการกรอกแคลเป็นเรื่องไม่บังคับ ถ้าเอา 3 ใน 7 รายการมาบวกแล้วเรียกว่า
  *  "แคลวันนี้" มันคือตัวเลขที่ต่ำกว่าความจริงเสมอ และคนอ่านไม่มีทางรู้ */
-export function activityDays(state: AppState, bookId: string): ActivityDay[] {
+export function activityDays(
+  state: AppState, bookId: string, kinds: RecordKind[] = ACTIVITY_KINDS,
+): ActivityDay[] {
   const byDay = new Map<string, RecordItem[]>();
   for (const r of state.records) {
     if (r.book_id !== bookId) continue;
-    if (!ACTIVITY_KINDS.includes(r.kind)) continue;
+    // กรองตั้งแต่ก่อนจัดกลุ่ม ยอดสรุปของแต่ละวันจึงตรงกับที่เห็นบนจอเสมอ
+    // ถ้ากรองทีหลัง เลือกดูเฉพาะอาหารแล้วยังขึ้น "ออกกำลังกาย 60 นาที" อยู่
+    if (!ACTIVITY_KINDS.includes(r.kind) || !kinds.includes(r.kind)) continue;
     const day = todayKey(new Date(r.at));
     const list = byDay.get(day);
     if (list) list.push(r);

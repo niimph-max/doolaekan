@@ -6,7 +6,16 @@ import { fmtDate, fmtTime, todayKey } from '@/lib/format';
 import { activityDays, activityEntries } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { ActivityEntry } from '@/lib/selectors';
-import type { Book, RecordItem } from '@/lib/types';
+import type { Book, RecordItem, RecordKind } from '@/lib/types';
+
+/** ดูเฉพาะกลุ่ม — ไดอารี่ที่จดทุกวันจะยาวเร็วมาก และคำถามจริงมักเจาะจง
+ *  "อาทิตย์นี้กินอะไรบ้าง" หรือ "เข้ายิมครั้งก่อนเมื่อไหร่" ไม่ใช่ "ขอดูทุกอย่าง" */
+const FILTERS: { id: 'all' | RecordKind; label: string; kinds?: RecordKind[] }[] = [
+  { id: 'all', label: 'ทั้งหมด' },
+  { id: 'exercise', label: 'ออกกำลังกาย', kinds: ['exercise'] },
+  { id: 'food', label: 'อาหาร', kinds: ['food'] },
+  { id: 'note', label: 'อื่นๆ', kinds: ['note'] },
+];
 
 const KIND_LABEL: Record<string, string> = {
   exercise: 'ออกกำลังกาย',
@@ -109,7 +118,9 @@ export function ActivityScreen({ book, onAdd, onEdit }: {
   book: Book; onAdd: () => void; onEdit: (entry: ActivityEntry) => void;
 }) {
   const { state } = useStore();
-  const days = activityDays(state, book.id);
+  const [filter, setFilter] = useState<'all' | RecordKind>('all');
+  const active = FILTERS.find((f) => f.id === filter);
+  const days = activityDays(state, book.id, active?.kinds);
   const today = todayKey();
 
   return (
@@ -122,10 +133,30 @@ export function ActivityScreen({ book, onAdd, onEdit }: {
         <Icon name="plus" size={19} /> จดบันทึกวันนี้
       </button>
 
+      <div className="o-chips" style={{ marginTop: 16 }}>
+        {FILTERS.map((f) => (
+          <button key={f.id} type="button" className="o-chip" aria-pressed={filter === f.id}
+            onClick={() => setFilter(f.id)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {days.length === 0 && (
-        <button type="button" className="o-empty" style={{ marginTop: 18 }} onClick={onAdd}>
-          ยังไม่มีบันทึก — แตะเพื่อจดครั้งแรก
-        </button>
+        filter === 'all' ? (
+          <button type="button" className="o-empty" style={{ marginTop: 18 }} onClick={onAdd}>
+            ยังไม่มีบันทึก — แตะเพื่อจดครั้งแรก
+          </button>
+        ) : (
+          // บอกให้ชัดว่าไม่มีของ "กลุ่มนี้" ไม่ใช่ไม่มีอะไรเลย ไม่งั้นคนจะคิดว่าบันทึกหาย
+          <p className="subtle" style={{ marginTop: 18 }}>
+            ยังไม่มีบันทึกกลุ่ม{active?.label}
+            <button type="button" className="o-btn ghost" style={{ marginLeft: 8 }}
+              onClick={() => setFilter('all')}>
+              ดูทั้งหมด
+            </button>
+          </p>
+        )
       )}
 
       {days.map((d) => (
