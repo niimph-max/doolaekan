@@ -340,3 +340,38 @@ export function equipmentLine(
   else if (sets.trim()) parts.push(`${sets.trim()} เซ็ต`);
   return parts.join(' ');
 }
+
+/** บันทึกหนึ่งครั้งที่ผู้ใช้เห็นเป็นการ์ดเดียว — อาจกินหลายแถวในตารางถ้ามีหลายรูป */
+export interface ActivityEntry {
+  key: string;
+  ids: string[];
+  head: RecordItem;
+  photos: RecordItem[];
+}
+
+/** จับแถวที่จดพร้อมกัน (ชนิดเดียวกัน เวลาเดียวกัน ชื่อเดียวกัน) กลับมาเป็นบันทึกเดียว
+ *
+ *  ตารางเก็บได้รูปละหนึ่งแถว ถ่ายอาหารมื้อเดียวสามใบจึงเป็นสามแถว ถ้าปล่อยให้
+ *  แสดงเรียงลงมาสามการ์ด ไดอารี่จะอ่านไม่รู้เรื่องภายในไม่กี่วัน และเวลาลบ
+ *  ผู้ใช้จะต้องกดลบสามครั้งสำหรับของที่เขาคิดว่าเป็นชิ้นเดียว */
+export function activityEntries(items: RecordItem[]): ActivityEntry[] {
+  const out: ActivityEntry[] = [];
+  const index = new Map<string, ActivityEntry>();
+  for (const r of items) {
+    const key = `${r.kind}|${r.at}|${r.title}`;
+    const found = index.get(key);
+    if (found) {
+      found.ids.push(r.id);
+      if (r.file || r.file_path) found.photos.push(r);
+      // ข้อความอยู่ที่แถวแรกของชุด แต่ถ้าแถวแรกบังเอิญไม่มี ก็เอาของแถวถัดมา
+      if (!found.head.body && r.body) found.head = { ...found.head, body: r.body };
+      continue;
+    }
+    const entry: ActivityEntry = {
+      key, ids: [r.id], head: r, photos: r.file || r.file_path ? [r] : [],
+    };
+    index.set(key, entry);
+    out.push(entry);
+  }
+  return out;
+}

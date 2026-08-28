@@ -136,6 +136,13 @@ interface Actions {
     bookId: string,
     rec: Omit<RecordItem, 'id' | 'book_id' | 'at' | 'actor_name'> & { at?: string },
   ) => void;
+  /** ลบบันทึก — ส่งได้หลาย id เพราะรูปหลายใบของบันทึกเดียวคือหลายแถว */
+  removeRecords: (ids: string[]) => void;
+  /** แก้บันทึกที่จดไว้แล้ว — แก้ทุกแถวในชุดเดียวกันพร้อมกัน */
+  updateRecords: (
+    ids: string[],
+    patch: { title?: string; body?: string; data?: RecordItem['data']; at?: string },
+  ) => void;
   addWatchRule: (bookId: string, rule: Omit<WatchRule, 'id' | 'book_id'>) => void;
   updateWatchRule: (id: string, patch: Partial<WatchRule>) => void;
   removeWatchRule: (id: string) => void;
@@ -958,6 +965,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }
           await remote.insertRecord(row);
         });
+      },
+
+      removeRecords: (ids) => {
+        if (!ids.length) return;
+        const targets = stateRef.current.records.filter((r) => ids.includes(r.id));
+        if (!targets.length) return;
+        // ไฟล์รูปต้องตามไปลบด้วย ไม่งั้นพื้นที่เก็บไฟล์โตขึ้นเรื่อยๆ โดยไม่มีทางลด
+        const paths = targets.map((r) => r.file_path).filter((p): p is string => Boolean(p));
+        patch((s) => ({ records: s.records.filter((r) => !ids.includes(r.id)) }));
+        push(async () => {
+          await remote.deleteRecords(ids);
+          // ลบแถวสำเร็จแล้วถือว่าลบสำเร็จ ไฟล์ค้างไม่ใช่เรื่องที่ต้องให้ผู้ใช้มาลองใหม่
+          try { await remote.deleteImages(paths); } catch { /* ไว้เก็บกวาดทีหลัง */ }
+        });
+      },
+
+      updateRecords: (ids, changes) => {
+        if (!ids.length) return;
+        patch((s) => ({
+          records: s.records.map((r) => (ids.includes(r.id) ? { ...r, ...changes } : r)),
+        }));
+        push(() => remote.updateRecords(ids, changes));
       },
 
       addWatchRule: (bookId, rule) => {

@@ -421,6 +421,39 @@ export async function insertRecord(r: RecordItem): Promise<void> {
   check('insertRecord', error);
 }
 
+/** ลบบันทึกหลายแถวในครั้งเดียว — รูปหลายใบของบันทึกเดียวคือหลายแถว */
+export async function deleteRecords(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const { error } = await db().from('records').delete().in('id', ids);
+  check('deleteRecords', error);
+}
+
+/** ลบไฟล์รูปที่ไม่มีใครอ้างถึงแล้ว
+ *
+ *  ลบแค่แถวในตารางแล้วปล่อยไฟล์ทิ้งไว้ = พื้นที่เก็บไฟล์โตขึ้นตลอดโดยไม่มีทางลด
+ *  และบนแพลนฟรีมีเพดาน 1 GB ซึ่งรูปที่ถ่ายทุกวันจะไปชนเข้าสักวัน */
+export async function deleteImages(paths: string[]): Promise<void> {
+  if (!paths.length) return;
+  const { error } = await db().storage.from(SCANS).remove(paths);
+  check('deleteImages', error);
+}
+
+/** แก้ไขบันทึกที่จดไว้แล้ว — แก้พร้อมกันหลายแถวเพื่อให้ชุดเดียวกันยังจับกลุ่มกันติด */
+export async function updateRecords(
+  ids: string[],
+  patch: { title?: string; body?: string; data?: RecordItem['data']; at?: string },
+): Promise<void> {
+  if (!ids.length) return;
+  const row: Record<string, unknown> = {};
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.body !== undefined) row.body = patch.body || null;
+  if (patch.data !== undefined) row.data = patch.data ?? null;
+  if (patch.at !== undefined) row.created_at = patch.at;
+  if (!Object.keys(row).length) return;
+  const { error } = await db().from('records').update(row).in('id', ids);
+  check('updateRecords', error);
+}
+
 export async function upsertWatchRule(w: WatchRule): Promise<void> {
   const { error } = await db().from('watch_rules').upsert(watchRuleRow(w));
   check('upsertWatchRule', error);

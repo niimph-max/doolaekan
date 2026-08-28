@@ -25,6 +25,7 @@ import { ScanSheet } from './sheets/ScanSheet';
 import { TidyNamesSheet } from './sheets/TidyNamesSheet';
 import { SymptomSheet } from './sheets/SymptomSheet';
 import { activeBook } from '@/lib/selectors';
+import type { ActivityEntry } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import { hasBrokenConfig } from '@/lib/supabase';
 
@@ -37,6 +38,7 @@ export function AppShell() {
   } = useStore();
   const [sheet, setSheet] = useState<SheetName>(null);
   const [emergency, setEmergency] = useState(false);
+  const [editEntry, setEditEntry] = useState<ActivityEntry | undefined>();
 
   // ใส่ค่า Supabase ไว้แล้วแต่ค่าผิด — ห้ามเงียบๆ ถอยไปโหมดเครื่องเดียว เพราะผู้ใช้ตั้งใจจะต่อคลาวด์
   if (hasBrokenConfig) return <div className="app"><ConfigError /></div>;
@@ -110,7 +112,11 @@ export function AppShell() {
           onTidy={() => setSheet('tidy')} />
       )}
       {state.tab === 'appts' && <ApptsScreen book={book} onAdd={() => setSheet('appt')} />}
-      {state.tab === 'activity' && <ActivityScreen book={book} onAdd={() => setSheet('activity')} />}
+      {state.tab === 'activity' && (
+        <ActivityScreen book={book}
+          onAdd={() => { setEditEntry(undefined); setSheet('activity'); }}
+          onEdit={(entry) => { setEditEntry(entry); setSheet('activity'); }} />
+      )}
       {state.tab === 'book' && (
         <BookScreen book={book} onOpenGroup={() => setSheet('group')}
           onOpenProfile={() => setSheet('profile')} onAddDoc={() => setSheet('doc')} />
@@ -121,7 +127,8 @@ export function AppShell() {
       <ActorSheet open={sheet === 'actor'} onClose={close} />
       <SymptomSheet open={sheet === 'symptom'} bookId={book.id} onClose={close} />
       <AddApptSheet open={sheet === 'appt'} bookId={book.id} onClose={close} />
-      <AddActivitySheet open={sheet === 'activity'} bookId={book.id} onClose={close} />
+      <AddActivitySheet open={sheet === 'activity'} bookId={book.id} edit={editEntry}
+        onClose={close} />
       <AddMedSheet open={sheet === 'med'} bookId={book.id} onClose={close} />
       <AddDocSheet open={sheet === 'doc'} bookId={book.id} onClose={close} />
       <ScanSheet open={sheet === 'scan'} bookId={book.id} onClose={close} />

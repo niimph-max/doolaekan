@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Chips } from '../Chips';
 import { Icon } from '../Icon';
@@ -8,6 +8,7 @@ import { EXERCISE_CHIPS, MEAL_CHIPS } from '@/lib/seed';
 import { fmtShortDate, todayKey } from '@/lib/format';
 import { equipmentHistory, equipmentLine, knownEquipment, lastExercise, lastWeight } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
+import type { ActivityEntry } from '@/lib/selectors';
 import type { RecordKind } from '@/lib/types';
 
 /** ย่อรูปก่อนเก็บ
@@ -50,8 +51,8 @@ const MODES: { id: Mode; label: string }[] = [
  *  เจตนาคือแทนที่การจดลงแอปโน้ต จึงเป็นช่องพิมพ์เปล่าเป็นหลัก ไม่ใช่ฟอร์ม
  *  ที่บังคับกรอกเซ็ต/เรป/น้ำหนักทีละช่อง เพราะของจริงที่คนจดหน้าเครื่องคือ
  *  "Leg press 85.7 ชิด 12*3 / ห่าง 12*3" ซึ่งไม่มีฟอร์มไหนรับได้ครบ */
-export function AddActivitySheet({ open, bookId, onClose }: {
-  open: boolean; bookId: string; onClose: () => void;
+export function AddActivitySheet({ open, bookId, edit, onClose }: {
+  open: boolean; bookId: string; edit?: ActivityEntry; onClose: () => void;
 }) {
   const { state, actions } = useStore();
   const camRef = useRef<HTMLInputElement>(null);
@@ -72,6 +73,36 @@ export function AddActivitySheet({ open, bookId, onClose }: {
   const [eqWeight, setEqWeight] = useState('');
   const [eqReps, setEqReps] = useState('');
   const [eqSets, setEqSets] = useState('');
+  // รูปเดิมที่ผู้ใช้เอาออกระหว่างแก้ไข — ลบจริงตอนกดบันทึก ไม่ใช่ตอนกดกากบาท
+  // จะได้กดยกเลิกแล้วรูปกลับมาครบ
+  const [dropped, setDropped] = useState<string[]>([]);
+
+  // ── สลับระหว่าง "แก้ของเดิม" กับ "จดใหม่" ──
+  // จำไว้ว่ารอบก่อนเปิดมาแก้อันไหน แล้วล้างฟอร์มเฉพาะตอนที่เป้าหมายเปลี่ยนจริง
+  // ถ้าล้างทุกครั้งที่เปิด จะเสียคุณสมบัติ "ปิดแล้วเปิดใหม่ ของที่พิมพ์ไว้ยังอยู่"
+  // ถ้าไม่ล้างเลย เปิดแก้ของเดิมค้างไว้แล้วไปกดจดใหม่ ข้อความเดิมจะติดมาด้วย
+  // แล้วกลายเป็นบันทึกใหม่ที่ผู้ใช้ไม่ได้ตั้งใจ
+  const editKey = edit ? edit.key : '';
+  const lastTarget = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    if (lastTarget.current === editKey) return;
+    lastTarget.current = editKey;
+
+    const h = edit?.head;
+    setMode(h ? (h.kind === 'food' ? 'food' : h.kind === 'note' ? 'note' : 'exercise') : 'exercise');
+    setActivity(h?.data?.activity ?? '');
+    setMinutes(h?.data?.minutes ? String(h.data.minutes) : '');
+    setMeal(h?.data?.meal ?? '');
+    setKcal(typeof h?.data?.kcal === 'number' ? String(h.data.kcal) : '');
+    setNote(h?.body ?? '');
+    setDate(h ? h.at.slice(0, 10) : todayKey());
+    setPhotos([]);
+    setDropped([]);
+    setEqName(''); setEqWeight(''); setEqReps(''); setEqSets('');
+    setConfirmDiscard(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editKey]);
 
   // ครั้งก่อนที่ทำท่านี้ ใช้น้ำหนักเท่าไหร่ — ต้องเห็นตอนกำลังจะจด ไม่ใช่ต้องไปหาเอง
   const previous = useMemo(
@@ -90,13 +121,16 @@ export function AddActivitySheet({ open, bookId, onClose }: {
     [state, bookId, eqName, mode],
   );
 
-  const hasContent = Boolean(note.trim() || photos.length || activity || meal);
+  const keptPhotos = edit ? edit.photos.filter((r) => !dropped.includes(r.id)) : [];
+  const hasContent = Boolean(
+    note.trim() || photos.length || activity || meal || keptPhotos.length,
+  );
 
   const close = () => { setConfirmDiscard(false); onClose(); };
 
   const clear = () => {
     setActivity(''); setMinutes(''); setMeal(''); setKcal('');
-    setNote(''); setPhotos([]); setDate(todayKey());
+    setNote(''); setPhotos([]); setDate(todayKey()); setDropped([]);
     setEqName(''); setEqWeight(''); setEqReps(''); setEqSets('');
     setConfirmDiscard(false);
     onClose();
@@ -126,9 +160,12 @@ export function AddActivitySheet({ open, bookId, onClose }: {
 
     // เที่ยงวันเพื่อกันเขตเวลาทำให้วันเลื่อนไปวันก่อนหน้า — ยกเว้นวันนี้ที่ใช้เวลาจริง
     // เพื่อให้หลายรายการในวันเดียวกันเรียงตามลำดับที่จดจริง
-    const at = date === todayKey()
-      ? new Date().toISOString()
-      : new Date(`${date}T12:00:00`).toISOString();
+    const sameDay = edit && edit.head.at.slice(0, 10) === date;
+    const at = sameDay
+      ? edit.head.at
+      : date === todayKey()
+        ? new Date().toISOString()
+        : new Date(`${date}T12:00:00`).toISOString();
 
     const mins = Number(minutes) || undefined;
     const cal = Number(kcal) || undefined;
@@ -139,20 +176,37 @@ export function AddActivitySheet({ open, bookId, onClose }: {
         ? [meal ? `มื้อ${meal}` : 'อาหาร', cal ? `${cal} แคล` : ''].filter(Boolean).join(' · ')
         : note.trim().split('\n')[0].slice(0, 60) || 'บันทึก';
 
+    const data = mode === 'exercise'
+      ? { activity: activity.trim() || undefined, minutes: mins }
+      : mode === 'food'
+        ? { meal: meal || undefined, kcal: cal }
+        : undefined;
+
+    if (edit) {
+      // แก้ทุกแถวในชุดพร้อมกัน ชื่อกับเวลาคือกุญแจที่ใช้จับกลุ่ม ถ้าแก้ไม่ครบ
+      // บันทึกเดียวจะแตกเป็นสองการ์ดทันทีที่ผู้ใช้แก้ชื่อหรือวันที่
+      const keptIds = edit.ids.filter((id) => !dropped.includes(id));
+      actions.updateRecords(keptIds, { title, body: note.trim(), data, at });
+      if (dropped.length) actions.removeRecords(dropped);
+      // รูปที่เพิ่งใส่เพิ่มระหว่างแก้ไข = แถวใหม่ที่ใช้ชื่อและเวลาเดียวกัน
+      for (const file of photos) {
+        actions.addRecord(bookId, { kind: mode, title, body: '', data, file, important: false, at });
+      }
+      actions.toast('แก้ไขแล้ว');
+      clear();
+      return;
+    }
+
     // ตารางเก็บได้รูปละหนึ่งแถว รูปหลายใบจึงเป็นหลายแถว แต่ทุกแถวใช้เวลาเดียวกัน
     // และชื่อเดียวกัน เพื่อให้หน้าจอจับกลับมารวมเป็นบันทึกเดียวได้ — ถ่ายอาหาร
     // มื้อเดียวสามใบต้องเห็นเป็นมื้อเดียว ไม่ใช่สามรายการเรียงกันลงไป
-    const shots = photos.length ? photos : [undefined];
+    const shots: (string | undefined)[] = photos.length ? photos : [undefined];
     shots.forEach((file, i) => {
       actions.addRecord(bookId, {
         kind: mode,
         title,
         body: i === 0 ? note.trim() : '',
-        data: mode === 'exercise'
-          ? { activity: activity.trim() || undefined, minutes: mins }
-          : mode === 'food'
-            ? { meal: meal || undefined, kcal: cal }
-            : undefined,
+        data,
         file,
         important: false,
         at,
@@ -169,7 +223,7 @@ export function AddActivitySheet({ open, bookId, onClose }: {
   };
 
   return (
-    <Sheet open={open} title="จดบันทึกวันนี้" onClose={cancel}>
+    <Sheet open={open} title={edit ? 'แก้บันทึก' : 'จดบันทึกวันนี้'} onClose={cancel}>
       <Chips options={MODES.map((m) => m.label)} multi={false}
         selected={[MODES.find((m) => m.id === mode)!.label]}
         onToggle={(label) => setMode(MODES.find((m) => m.label === label)!.id)} />
@@ -314,6 +368,52 @@ export function AddActivitySheet({ open, bookId, onClose }: {
 
       {busy > 0 && <p className="subtle" style={{ marginTop: 8 }}>กำลังย่อรูป {busy} ใบ…</p>}
 
+      {/* รูปเดิมของบันทึกนี้ — เอาออกได้ทีละใบ แต่ยังไม่ลบจริงจนกว่าจะกดบันทึก
+          กดกากบาทพลาดแล้วรูปหายทันทีคือของที่เอากลับมาไม่ได้ */}
+      {keptPhotos.length > 0 && (
+        <>
+          <p className="o-label" style={{ marginTop: 12 }}>รูปที่มีอยู่</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {keptPhotos.map((r) => (
+              <span key={r.id} style={{ position: 'relative' }}>
+                {r.file ? (
+                  <img src={r.file} alt={r.title}
+                    style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 14, display: 'block' }} />
+                ) : (
+                  <span style={{
+                    width: 84, height: 84, borderRadius: 14, display: 'grid', placeItems: 'center',
+                    border: '1px dashed var(--color-neutral-400)', fontSize: 12,
+                    color: 'var(--color-neutral-700)', textAlign: 'center', padding: 4,
+                  }}>
+                    รูปที่เก็บไว้
+                  </span>
+                )}
+                <button type="button" aria-label="เอารูปนี้ออก"
+                  onClick={() => setDropped((cur) => [...cur, r.id])}
+                  style={{
+                    position: 'absolute', top: -6, right: -6, width: 26, height: 26,
+                    borderRadius: '50%', border: 0, cursor: 'pointer',
+                    background: 'var(--color-neutral-900)', color: 'var(--color-neutral-100)',
+                    display: 'grid', placeItems: 'center',
+                  }}>
+                  <Icon name="x" size={14} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {edit && dropped.length > 0 && (
+        <p className="subtle" style={{ marginTop: 8 }}>
+          เอารูปออก {dropped.length} ใบ — จะลบจริงตอนกดบันทึก
+          <button type="button" className="o-btn ghost" style={{ marginLeft: 8 }}
+            onClick={() => setDropped([])}>
+            เอากลับคืน
+          </button>
+        </p>
+      )}
+
       {photos.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
           {photos.map((p, i) => (
@@ -360,7 +460,7 @@ export function AddActivitySheet({ open, bookId, onClose }: {
 
       {confirmDiscard ? (
         <div className="o-card dark" style={{ marginTop: 16 }}>
-          <p style={{ margin: '0 0 12px' }}>ทิ้งที่จดไว้?</p>
+          <p style={{ margin: '0 0 12px' }}>{edit ? 'ทิ้งที่แก้ไว้?' : 'ทิ้งที่จดไว้?'}</p>
           <div className="o-row">
             <button type="button" className="o-btn secondary" onClick={close}>
               ปิดไว้ก่อน ของยังอยู่
@@ -371,7 +471,7 @@ export function AddActivitySheet({ open, bookId, onClose }: {
       ) : (
         <button type="button" className="o-btn primary block" style={{ marginTop: 16 }}
           disabled={!hasContent || busy > 0} onClick={save}>
-          จดไว้
+          {edit ? 'บันทึกการแก้ไข' : 'จดไว้'}
         </button>
       )}
     </Sheet>
