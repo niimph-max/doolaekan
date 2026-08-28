@@ -319,3 +319,24 @@ export function equipmentHistory(
     .filter((l) => l.name.toLowerCase().includes(key))
     .slice(0, limit);
 }
+
+/** น้ำหนักที่ใช้ในบรรทัดนั้น = ตัวเลขตัวแรกหลังชื่อเครื่อง
+ *  "Leg press 85.7 ชิด 12*3" → "85.7" — เอาไว้เติมให้ล่วงหน้าตอนจะจดครั้งใหม่ */
+export function lastWeight(line: string): string {
+  const name = equipmentName(line);
+  if (!name) return '';
+  const rest = line.slice(line.indexOf(name) + name.length);
+  return (rest.match(/\d+(?:\.\d+)?/) ?? [''])[0];
+}
+
+/** ประกอบบรรทัดจากช่องที่กรอก — รูปแบบเดียวกับที่ผู้ใช้เขียนเองอยู่แล้ว
+ *  ผลลัพธ์ไปต่อท้ายช่องข้อความ ซึ่งยังแก้ได้อิสระ ไม่ใช่ของตายตัว */
+export function equipmentLine(
+  name: string, weight: string, reps: string, sets: string,
+): string {
+  const parts = [name.trim()];
+  if (weight.trim()) parts.push(weight.trim());
+  if (reps.trim()) parts.push(sets.trim() ? `${reps.trim()}*${sets.trim()}` : reps.trim());
+  else if (sets.trim()) parts.push(`${sets.trim()} เซ็ต`);
+  return parts.join(' ');
+}

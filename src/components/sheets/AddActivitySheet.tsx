@@ -6,7 +6,7 @@ import { Chips } from '../Chips';
 import { Icon } from '../Icon';
 import { EXERCISE_CHIPS, MEAL_CHIPS } from '@/lib/seed';
 import { fmtShortDate, todayKey } from '@/lib/format';
-import { equipmentHistory, knownEquipment, lastExercise } from '@/lib/selectors';
+import { equipmentHistory, equipmentLine, knownEquipment, lastExercise, lastWeight } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { RecordKind } from '@/lib/types';
 
@@ -67,7 +67,11 @@ export function AddActivitySheet({ open, bookId, onClose }: {
   const [photos, setPhotos] = useState<string[]>([]);
   const [busy, setBusy] = useState(0);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [lookup, setLookup] = useState('');
+  // ช่องช่วยพิมพ์รายเครื่อง — ไม่ใช่ช่องที่ต้องกรอกให้ครบก่อนถึงจะบันทึกได้
+  const [eqName, setEqName] = useState('');
+  const [eqWeight, setEqWeight] = useState('');
+  const [eqReps, setEqReps] = useState('');
+  const [eqSets, setEqSets] = useState('');
 
   // ครั้งก่อนที่ทำท่านี้ ใช้น้ำหนักเท่าไหร่ — ต้องเห็นตอนกำลังจะจด ไม่ใช่ต้องไปหาเอง
   const previous = useMemo(
@@ -80,9 +84,10 @@ export function AddActivitySheet({ open, bookId, onClose }: {
     () => (mode === 'exercise' ? knownEquipment(state, bookId, 12) : []),
     [state, bookId, mode],
   );
-  const history = useMemo(
-    () => (mode === 'exercise' ? equipmentHistory(state, bookId, lookup) : []),
-    [state, bookId, lookup, mode],
+  // ครั้งล่าสุดของเครื่องที่กำลังจะจด — โผล่ทันทีที่พิมพ์ชื่อ ไม่ต้องไปกดค้นแยก
+  const eqLast = useMemo(
+    () => (mode === 'exercise' ? equipmentHistory(state, bookId, eqName, 1)[0] : undefined),
+    [state, bookId, eqName, mode],
   );
 
   const hasContent = Boolean(note.trim() || photos.length || activity || meal);
@@ -91,7 +96,8 @@ export function AddActivitySheet({ open, bookId, onClose }: {
 
   const clear = () => {
     setActivity(''); setMinutes(''); setMeal(''); setKcal('');
-    setNote(''); setPhotos([]); setDate(todayKey()); setLookup('');
+    setNote(''); setPhotos([]); setDate(todayKey());
+    setEqName(''); setEqWeight(''); setEqReps(''); setEqSets('');
     setConfirmDiscard(false);
     onClose();
   };
@@ -197,44 +203,82 @@ export function AddActivitySheet({ open, bookId, onClose }: {
             </div>
           )}
 
-          <label className="o-label" htmlFor="act-min" style={{ marginTop: 12 }}>
-            กี่นาที (ไม่ใส่ก็ได้)
-          </label>
-          <input id="act-min" className="o-input" inputMode="numeric" value={minutes}
-            onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ''))}
-            placeholder="45" />
+          {/* ── ช่วยพิมพ์ทีละเครื่อง ──
+              พิมพ์เองทั้งบรรทัดทุกเครื่องมันเยอะเกินไปตอนยืนอยู่หน้าเครื่อง
+              และพิมพ์ชื่อเองทุกครั้งแปลว่าวันหนึ่งจะสะกดไม่เหมือนเดิม แล้วกลาย
+              เป็นคนละเครื่องในสายตาแอป จึงเดาชื่อจากที่เคยจดให้ และเติมน้ำหนัก
+              ครั้งก่อนไว้ให้ล่วงหน้า เหลือแค่แก้ตัวเลข
+              ผลลัพธ์ไปต่อท้ายช่องข้อความข้างล่าง ซึ่งยังพิมพ์แก้เองได้ทุกอย่าง
+              — เป็นเครื่องช่วยพิมพ์ ไม่ใช่ฟอร์มที่ต้องกรอกให้ครบก่อนถึงจะบันทึกได้ */}
+          <div className="o-card" style={{ marginTop: 18 }}>
+            <label className="o-label" htmlFor="act-eq" style={{ marginTop: 0 }}>
+              เพิ่มทีละเครื่อง
+            </label>
+            <input id="act-eq" className="o-input" list="act-eq-list" value={eqName}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEqName(v);
+                // เลือกเครื่องที่เคยจด → เติมน้ำหนักครั้งก่อนไว้ให้ก่อน แก้ต่อได้
+                const prev = equipmentHistory(state, bookId, v, 1)[0];
+                if (prev && !eqWeight) setEqWeight(lastWeight(prev.line));
+              }}
+              placeholder="ชื่อเครื่อง เช่น Leg press" />
+            <datalist id="act-eq-list">
+              {equipment.map((n) => <option key={n} value={n} />)}
+            </datalist>
 
-          {/* ── เครื่องนี้ครั้งก่อนใช้เท่าไหร่ ──
-              คำถามที่ต้องตอบได้ตอนยืนอยู่หน้าเครื่องพอดี ไม่ใช่ต้องเลื่อนหาเอง
-              รายชื่อเครื่องโตขึ้นเองจากบรรทัดที่เคยพิมพ์ ไม่มีอะไรให้ตั้งค่าก่อน */}
-          {equipment.length > 0 && (
-            <div style={{ marginTop: 18 }}>
-              <label className="o-label" htmlFor="act-look">เครื่องนี้ครั้งก่อนใช้เท่าไหร่</label>
-              <input id="act-look" className="o-input" value={lookup}
-                onChange={(e) => setLookup(e.target.value)}
-                placeholder="พิมพ์ชื่อเครื่อง เช่น Leg press" />
-              <Chips options={equipment} multi={false} selected={[lookup]}
-                onToggle={(v) => setLookup((cur) => (cur === v ? '' : v))} />
+            {equipment.length > 0 && (
+              <Chips options={equipment} multi={false} selected={[eqName]}
+                onToggle={(v) => {
+                  const next = eqName === v ? '' : v;
+                  setEqName(next);
+                  const prev = next ? equipmentHistory(state, bookId, next, 1)[0] : undefined;
+                  setEqWeight(prev ? lastWeight(prev.line) : '');
+                }} />
+            )}
 
-              {lookup.trim() && (
-                history.length > 0 ? (
-                  <div className="o-card" style={{ marginTop: 10 }}>
-                    {history.map((h) => (
-                      <p key={h.at + h.line} style={{ margin: '0 0 8px' }}>
-                        <span className="subtle">{fmtShortDate(h.at)} · </span>{h.line}
-                      </p>
-                    ))}
-                    <button type="button" className="o-btn ghost" style={{ marginTop: 4 }}
-                      onClick={() => setNote((cur) => (cur ? `${cur}\n` : '') + history[0].line)}>
-                      เอาบรรทัดล่าสุดมาแก้ต่อ
-                    </button>
-                  </div>
-                ) : (
-                  <p className="subtle" style={{ marginTop: 10 }}>ยังไม่เคยจดเครื่องนี้ไว้</p>
-                )
-              )}
+            {eqName.trim() && (
+              eqLast ? (
+                <p className="subtle" style={{ margin: '10px 0 0' }}>
+                  ครั้งก่อน {fmtShortDate(eqLast.at)} · {eqLast.line}
+                </p>
+              ) : (
+                <p className="subtle" style={{ margin: '10px 0 0' }}>ยังไม่เคยจดเครื่องนี้ไว้</p>
+              )
+            )}
+
+            <div className="o-row" style={{ marginTop: 10, gap: 8 }}>
+              <span style={{ flex: 1.2 }}>
+                <label className="o-label" htmlFor="act-w">น้ำหนัก</label>
+                <input id="act-w" className="o-input" inputMode="decimal" value={eqWeight}
+                  onChange={(e) => setEqWeight(e.target.value.replace(/[^\d.]/g, ''))}
+                  placeholder="85.7" />
+              </span>
+              <span style={{ flex: 1 }}>
+                <label className="o-label" htmlFor="act-r">ครั้ง</label>
+                <input id="act-r" className="o-input" inputMode="numeric" value={eqReps}
+                  onChange={(e) => setEqReps(e.target.value.replace(/\D/g, ''))}
+                  placeholder="12" />
+              </span>
+              <span style={{ flex: 1 }}>
+                <label className="o-label" htmlFor="act-s">เซ็ต</label>
+                <input id="act-s" className="o-input" inputMode="numeric" value={eqSets}
+                  onChange={(e) => setEqSets(e.target.value.replace(/\D/g, ''))}
+                  placeholder="3" />
+              </span>
             </div>
-          )}
+
+            <button type="button" className="o-btn secondary block" style={{ marginTop: 12 }}
+              disabled={!eqName.trim()}
+              onClick={() => {
+                const line = equipmentLine(eqName, eqWeight, eqReps, eqSets);
+                setNote((cur) => (cur.trim() ? `${cur.replace(/\n+$/, '')}\n` : '') + line);
+                setEqName(''); setEqWeight(''); setEqReps(''); setEqSets('');
+              }}>
+              <Icon name="plus" size={18} /> เพิ่มลงบันทึก
+            </button>
+          </div>
+
         </>
       )}
 
@@ -302,6 +346,14 @@ export function AddActivitySheet({ open, bookId, onClose }: {
             <label className="o-label" htmlFor="act-kcal">แคลอรี่ (ไม่ใส่ก็ได้)</label>
             <input id="act-kcal" className="o-input" inputMode="numeric" value={kcal}
               onChange={(e) => setKcal(e.target.value.replace(/\D/g, ''))} placeholder="—" />
+          </span>
+        )}
+        {/* นาทีไม่ใช่ของที่ต้องกรอกก่อนถึงจะจดได้ จึงไม่ควรขวางทางอยู่ข้างบน */}
+        {mode === 'exercise' && (
+          <span style={{ flex: 1 }}>
+            <label className="o-label" htmlFor="act-min">กี่นาที (ไม่ใส่ก็ได้)</label>
+            <input id="act-min" className="o-input" inputMode="numeric" value={minutes}
+              onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ''))} placeholder="45" />
           </span>
         )}
       </div>
