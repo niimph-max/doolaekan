@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ComboField } from '../ComboField';
 import { Icon } from '../Icon';
+import { Kicker } from '../Kicker';
 import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER } from '@/lib/format';
 import { hospitalOfDoctor, mealTimingOf, medFieldOptions } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
@@ -234,7 +235,7 @@ export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
 
   return (
     <div className="screen">
-      <p className="kicker">Doolaekan</p>
+      <Kicker book={book} />
       <h2>ยาของ{book.owner_name}</h2>
       <p className="subtle">
         {filter ? `${meds.length} จาก ${allMeds.length} รายการ · ${filter}` : `${allMeds.length} รายการ`}

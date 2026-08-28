@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Icon } from '../Icon';
+import { Kicker } from '../Kicker';
 import { REFUSE_REASONS } from '@/lib/seed';
 import { MEAL_LABEL, SLOT_LABEL, SLOT_TIME, daysLabel, fmtDate, fmtTime, todayKey } from '@/lib/format';
 import { nextAppointment, todayDoseGroups } from '@/lib/selectors';
@@ -51,7 +52,7 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
 
   return (
     <div className="screen">
-      <p className="kicker">Doolaekan</p>
+      <Kicker book={book} />
       <h2>วันนี้</h2>
       <p className="subtle">{today}</p>
 

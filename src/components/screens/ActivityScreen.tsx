@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Icon } from '../Icon';
+import { Kicker } from '../Kicker';
 import { fmtDate, fmtTime, todayKey } from '@/lib/format';
 import { activityDays, activityEntries } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
@@ -125,7 +126,7 @@ export function ActivityScreen({ book, onAdd, onEdit }: {
 
   return (
     <div className="screen">
-      <p className="kicker">{book.owner_name}</p>
+      <Kicker book={book} />
       <h2>กิจกรรม</h2>
       <p className="subtle">ออกกำลังกาย อาหาร และเรื่องที่อยากจดไว้</p>
 

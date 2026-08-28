@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { ComboField } from '../ComboField';
 import { EscortPicker } from '../EscortPicker';
 import { Icon } from '../Icon';
+import { Kicker } from '../Kicker';
 import { daysLabel, daysUntil, fmtDate } from '@/lib/format';
 import { bookAppointments } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
@@ -177,7 +178,7 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
 
   return (
     <div className="screen">
-      <p className="kicker">Doolaekan</p>
+      <Kicker book={book} />
       <h2>นัดหมอ</h2>
       <p className="subtle">ของ{book.owner_name} · {appts.length} นัด</p>
 

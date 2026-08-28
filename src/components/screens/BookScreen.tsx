@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
+import { Kicker } from '../Kicker';
 import { fmtShortDate, fmtTime } from '@/lib/format';
 import {
   SHARE_LABEL, bookRecords, bookSummary, bookWatchRules, bpHistory, shareLevel, visibleBooks,
@@ -46,7 +47,7 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile, onAddDoc }: {
 
   return (
     <div className="screen">
-      <p className="kicker">Doolaekan</p>
+      <Kicker book={book} />
       <h2>สมุดสุขภาพ</h2>
 
       <div className="o-row" style={{ marginTop: 10 }}>
