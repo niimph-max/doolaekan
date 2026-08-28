@@ -51,7 +51,7 @@ export function ScanSheet({ open, bookId, onClose }: {
       name: name.trim(), how_to_take: how.trim(), prescriber: prescriber.trim(),
       helps: helps.trim(), tag: prescriber.replace('หมอ', '').trim(),
       hospital: hospital.trim(), slots,
-      timing: timing || inferMealTiming(how), photo,
+      timing: timing || inferMealTiming(how),
     });
     if (photo) {
       actions.addRecord(bookId, {

@@ -82,7 +82,7 @@ const toMedication = (r: any): Medication => ({
   prescriber: r.prescriber ?? '', tag: r.tag ?? '', hospital: r.hospital ?? '',
   slots: r.slots ?? [], timing: r.timing ?? '', duplicate_flag: r.duplicate_flag ?? false,
   paused: r.paused ?? false, paused_note: r.paused_note ?? '',
-  photo: r.photo_path ?? undefined,
+  photo: undefined,   // ไม่ได้ดึงคอลัมน์รูปมาแล้ว รูปถุงยาดูได้จากไทม์ไลน์
 });
 
 const toMedLog = (r: any): MedLog => ({
@@ -133,7 +133,12 @@ export const medicationRow = (m: Medication) => ({
   id: m.id, book_id: m.book_id, name: m.name, how_to_take: m.how_to_take,
   helps: m.helps, tag: m.tag, slots: m.slots, timing: m.timing || null,
   hospital: m.hospital || null, prescriber: m.prescriber,
-  photo_path: m.photo ?? null, duplicate_flag: m.duplicate_flag,
+  // คอลัมน์นี้มีไว้เก็บ "ที่อยู่ของไฟล์" ไม่ใช่ตัวรูป
+  // เดิมยัด data URL (รูปเต็มเป็น base64) ลงไปตรงๆ ทำให้แถวยาแต่ละแถวใหญ่หลายเมกะไบต์
+  // แล้วถูกดาวน์โหลดกลับมาทุกครั้งที่เปิดแอป ทั้งที่ไม่มีหน้าไหนเอารูปนั้นไปแสดงเลย
+  // (ชีตสแกนเก็บรูปเดียวกันไว้ในไทม์ไลน์อยู่แล้ว ซึ่งขึ้นที่เก็บไฟล์จริงและถูกต้อง)
+  photo_path: m.photo && !m.photo.startsWith('data:') ? m.photo : null,
+  duplicate_flag: m.duplicate_flag,
   paused: m.paused, paused_note: m.paused_note || null,
 });
 
@@ -173,7 +178,12 @@ export async function fetchAll(userId: string): Promise<CloudData> {
   const [books, doctors, meds, appts, rules, groups, members, shares] = await Promise.all([
     c.from('books').select('*').then((r) => unwrap('อ่านสมุด', r)),
     c.from('doctors').select('*').then((r) => unwrap('อ่านรายชื่อหมอ', r)),
-    c.from('medications').select('*').eq('active', true).then((r) => unwrap('อ่านรายการยา', r)),
+    // ระบุคอลัมน์ให้ครบแทน select('*') เพื่อไม่ให้ photo_path ติดมาด้วย
+    // ของเก่าที่เผลอเก็บรูป base64 ไว้ในคอลัมน์นั้นจะได้ไม่ถูกดาวน์โหลดซ้ำทุกครั้ง
+    c.from('medications')
+      .select('id, book_id, name, how_to_take, helps, tag, slots, prescriber, '
+        + 'timing, hospital, duplicate_flag, paused, paused_note, active')
+      .eq('active', true).then((r) => unwrap('อ่านรายการยา', r)),
     c.from('appointments').select('*').then((r) => unwrap('อ่านนัดหมอ', r)),
     c.from('watch_rules').select('*').then((r) => unwrap('อ่านข้อเฝ้าระวัง', r)),
     c.from('groups').select('*').then((r) => unwrap('อ่านกลุ่ม', r)),
