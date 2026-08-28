@@ -60,17 +60,31 @@ function applyData(s: AppState, data: remote.CloudData, userId: string): AppStat
     ? { ...data, records: s.records, medLogs: s.medLogs }
     : data;
 
-  const myBook = data.books.find((b) => b.is_mine);
-  // เปิดสมุดของบัญชีนี้ได้จริงในเครื่องนี้ — จำไว้ ครั้งหน้าถ้าอ่านกลับมาว่าง
-  // จะได้รู้ว่าเป็นอาการอ่านไม่ติด ไม่ใช่ผู้ใช้ใหม่ แล้วพาไปหน้ารอแทนหน้ากรอก
-  if (myBook) markHadBook(userId);
+  // ── สมุดของเราที่ยังส่งขึ้นคลาวด์ไม่สำเร็จ ห้ามถูกลบทิ้ง ──
+  // เพิ่งกรอกข้อมูลเสร็จแล้วการส่งขึ้นคลาวด์ยังไม่ผ่าน แต่มีการดึงข้อมูลใหม่มาทับ
+  // (เช่นตอนเข้ากลุ่ม หรือมีคนอื่นบันทึกอะไร) รายการจากเซิร์ฟเวอร์ยังไม่มีเล่มนี้
+  // สิ่งที่เพิ่งกรอกจึงหายไปทั้งหมดโดยไม่มีใครรู้ แล้วแอปค้างอยู่ในสภาพครึ่งๆ กลางๆ
+  // คือจำได้ว่าเคยมีสมุด แต่ไม่มีทั้งในเครื่องและบนคลาวด์
+  //
+  // ปลอดภัยเพราะแอปไม่มีทางลบสมุดได้เลย เล่มที่หายจากเซิร์ฟเวอร์จึงแปลว่า
+  // "ยังส่งขึ้นไปไม่ถึง" เสมอ ไม่ใช่ "ถูกลบไปแล้ว"
+  const pendingMine = s.books.filter(
+    (b) => b.is_mine && !data.books.some((d) => d.id === b.id),
+  );
+  const books = pendingMine.length ? [...data.books, ...pendingMine] : data.books;
+
+  // จำว่า "เครื่องนี้เปิดสมุดของบัญชีนี้ได้จริง" เฉพาะเล่มที่ยืนยันจากเซิร์ฟเวอร์แล้ว
+  // ถ้าจำจากเล่มที่ยังส่งไม่สำเร็จ จะไปหลอกหน้ารอว่าเคยมีสมุดทั้งที่ไม่เคยมีจริง
+  if (data.books.some((b) => b.is_mine)) markHadBook(userId);
+
+  const myBook = books.find((b) => b.is_mine);
   return {
-    ...s, ...kept,
+    ...s, ...kept, books,
     ready: true, userId, loadError: '', loadOk: true,
     onboarded: Boolean(myBook),
-    activeBookId: data.books.some((b) => b.id === s.activeBookId)
+    activeBookId: books.some((b) => b.id === s.activeBookId)
       ? s.activeBookId
-      : (myBook?.id ?? data.books[0]?.id ?? ''),
+      : (myBook?.id ?? books[0]?.id ?? ''),
     activeGroupId: data.groups.some((g) => g.id === s.activeGroupId)
       ? s.activeGroupId
       : (data.groups[0]?.id ?? ''),
