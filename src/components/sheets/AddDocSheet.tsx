@@ -60,7 +60,7 @@ export function AddDocSheet({ open, bookId, onClose }: {
 
   return (
     <Sheet open={open} title="เก็บเอกสารจากหมอ" onClose={close}>
-      <label className="o-label" style={{ marginTop: 0 }}>เอกสารอะไร</label>
+      <label className="o-label" style={{ marginTop: 0 }}>เอกสารอะไร (ต้องเลือก)</label>
       <div className="o-chips">
         {KINDS.map((k) => (
           <button key={k} type="button" className="o-chip" aria-pressed={title === k}
@@ -120,6 +120,18 @@ export function AddDocSheet({ open, bookId, onClose }: {
           เก็บเอกสาร
         </button>
       </div>
+
+      {/* ปุ่มที่กดไม่ได้โดยไม่บอกเหตุผล คือทางตัน ผู้ใช้จะนึกว่าแอปพัง
+          ทั้งที่ขาดแค่ข้อมูลอีกอย่างเดียว บอกไปตรงๆ ว่าขาดอะไร */}
+      {(!title.trim() || !pages.length) && (
+        <p className="subtle" style={{ margin: '10px 0 0', textAlign: 'center' }}>
+          {!pages.length && !title.trim()
+            ? 'ยังกดเก็บไม่ได้ — เลือกชื่อเอกสาร และใส่รูปก่อน'
+            : !title.trim()
+              ? 'ยังกดเก็บไม่ได้ — เลือกชื่อเอกสารด้านบนก่อน (หรือพิมพ์เอง)'
+              : 'ยังกดเก็บไม่ได้ — ใส่รูปเอกสารก่อน'}
+        </p>
+      )}
     </Sheet>
   );
 }
