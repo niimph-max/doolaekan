@@ -28,6 +28,7 @@ const emptyState: AppState = {
   userId: '',
   userEmail: '',
   loadError: '',
+  loadOk: false,
   onboarded: false, tab: 'home', actorName: '', bigText: false,
   activeBookId: '', activeGroupId: '',
   books: [], doctors: [], medications: [], medLogs: [],
@@ -65,7 +66,7 @@ function applyData(s: AppState, data: remote.CloudData, userId: string): AppStat
   if (myBook) markHadBook(userId);
   return {
     ...s, ...kept,
-    ready: true, userId, loadError: '',
+    ready: true, userId, loadError: '', loadOk: true,
     onboarded: Boolean(myBook),
     activeBookId: data.books.some((b) => b.id === s.activeBookId)
       ? s.activeBookId

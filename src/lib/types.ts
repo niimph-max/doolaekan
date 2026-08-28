@@ -136,6 +136,9 @@ export interface AppState {
   userEmail: string;
   /** โหลดข้อมูลจากคลาวด์ไม่สำเร็จ — ต่างจาก "โหลดได้แต่ยังไม่มีสมุด" คนละเรื่องกัน */
   loadError: string;
+  /** ดึงข้อมูลจากคลาวด์สำเร็จจริงอย่างน้อยหนึ่งครั้งในรอบนี้
+   *  ใช้แยก "เซิร์ฟเวอร์ตอบแล้วว่าไม่มีสมุด" ออกจาก "ยังไม่ได้คำตอบ" */
+  loadOk: boolean;
   onboarded: boolean;
   tab: Tab;
   actorName: string;
