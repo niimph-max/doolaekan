@@ -293,7 +293,17 @@ export async function upsertProfile(userId: string, displayName: string): Promis
 }
 
 export async function upsertBook(b: Book): Promise<void> {
-  const { error } = await db().from('books').upsert(bookRow(b));
+  // ── ห้ามใช้ upsert กับตารางสมุดเด็ดขาด ──
+  // upsert คือ INSERT ... ON CONFLICT DO UPDATE ซึ่ง Postgres จะตรวจกติกาของ UPDATE
+  // ด้วยเสมอ แม้แถวนั้นยังไม่มีอยู่จริงก็ตาม กติกา update ของสมุดคือ "ต้องเข้าถึง
+  // สมุดเล่มนี้ได้ระดับ full" ซึ่งเป็นไปไม่ได้สำหรับสมุดที่กำลังจะถูกสร้าง เพราะยัง
+  // ไม่มีสมุดให้เข้าถึง ผลคือสร้างสมุดใหม่ไม่ได้เลย และได้ 42501 ที่ชี้ไปผิดทาง
+  // (ฟ้องเรื่องสิทธิ์ ทั้งที่สิทธิ์ถูกทุกอย่าง)
+  //
+  // แยกเป็นสองทางให้ชัด: สร้างใหม่ใช้ insert ล้วนๆ ถ้าชนว่ามีอยู่แล้วค่อยไปทางแก้ไข
+  const { error } = await db().from('books').insert(bookRow(b));
+  if (!error) return;
+  if (error.code === '23505') { await updateBook(b); return; }   // มีเล่มนี้อยู่แล้ว
   check('upsertBook', error);
 }
 
@@ -477,8 +487,10 @@ export async function uploadLocalData(local: CloudData, userId: string): Promise
 
   if (!myBooks.length) return;
 
+  // สมุดต้องผ่าน upsertBook ที่แยก insert/update ไว้แล้ว ไม่ใช่ upsert รวมในลูป
+  for (const b of myBooks) await upsertBook(b);
+
   const steps: { table: string; rows: object[] }[] = [
-    { table: 'books', rows: myBooks.map(bookRow) },
     { table: 'doctors', rows: mine(local.doctors).map(doctorRow) },
     { table: 'medications', rows: mine(local.medications).map(medicationRow) },
     { table: 'watch_rules', rows: mine(local.watchRules).map(watchRuleRow) },

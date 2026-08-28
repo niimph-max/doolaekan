@@ -597,12 +597,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           for (const d of doctors) await remote.upsertDoctor(d);
           for (const g of groups) await remote.insertGroup({ ...g, owner_id: owner });
           for (const sh of shares) await remote.upsertShare(sh);
-        });
 
-        // เข้ากลุ่มด้วยรหัสต้องผ่าน RPC จึงทำแยกหลังจากมีสมุดแล้ว
-        if (input.groupChoice === 'join' && input.inviteCode.trim()) {
-          void actionsRef.current?.joinGroup(input.inviteCode, input.shareLevel);
-        }
+          // ── เข้ากลุ่มต้องรอให้สมุดขึ้นคลาวด์เสร็จก่อนเสมอ ──
+          // เดิมยิงไปพร้อมกัน ซึ่งแพ้ทางสองต่อ: การแชร์สมุดเข้ากลุ่มอ้างถึงสมุดที่ยัง
+          // ไม่มีบนคลาวด์ และการดึงข้อมูลใหม่หลังเข้ากลุ่มจะทับสถานะด้วยรายการสมุด
+          // จากเซิร์ฟเวอร์ซึ่งยังไม่มีเล่มที่เพิ่งกรอก แอปจึงสรุปว่ายังไม่มีสมุด
+          // แล้วเด้งผู้ใช้กลับไปหน้ากรอกข้อมูลทั้งที่เพิ่งกรอกเสร็จหมาดๆ
+          if (input.groupChoice === 'join' && input.inviteCode.trim()) {
+            await actionsRef.current?.joinGroup(input.inviteCode, input.shareLevel);
+          }
+        });
       },
 
       loadDemo: () => setState({ ...demoState(), ready: true }),
