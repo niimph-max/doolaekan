@@ -8,6 +8,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home', label: 'หน้าหลัก', icon: 'heart' },
   { id: 'meds', label: 'ยา', icon: 'pill' },
   { id: 'appts', label: 'นัดหมอ', icon: 'calendar' },
+  { id: 'activity', label: 'กิจกรรม', icon: 'activity' },
   { id: 'book', label: 'สมุด', icon: 'book' },
 ];
 

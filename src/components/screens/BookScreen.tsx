@@ -17,11 +17,16 @@ const FILTERS: { id: 'all' | RecordKind; label: string }[] = [
   { id: 'doc', label: 'เอกสาร' },
 ];
 
+// exercise/food/note อยู่แท็บกิจกรรม ไม่โผล่ในไทม์ไลน์นี้ แต่ต้องมีสีไว้กันพลาด
+// เผื่อวันหลังเปิดให้แสดงร่วมกัน จะได้ไม่กลายเป็นจุดไม่มีสี
 const DOT: Record<RecordKind, string> = {
   doc: 'var(--color-accent)',
   visit: 'var(--color-accent-2)',
   bp: 'var(--color-accent-2)',
   symptom: 'var(--color-neutral-400)',
+  exercise: 'var(--color-neutral-400)',
+  food: 'var(--color-neutral-400)',
+  note: 'var(--color-neutral-400)',
 };
 
 export function BookScreen({ book, onOpenGroup, onOpenProfile, onAddDoc }: {

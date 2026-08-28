@@ -17,6 +17,13 @@ export type CloudData = Pick<
 /** ไทม์ไลน์ย้อนหลังแค่ไหนถึงพอใช้จริง — หน้าจอแสดงรายการล่าสุดกับกราฟความดัน 7 ครั้ง
  *  ดึงมาทั้งตารางไม่มีประโยชน์ และยิ่งใช้ไปนานวันยิ่งหนักจนเปิดแอปไม่ได้ */
 const RECORDS_LIMIT = 300;
+/** บันทึกประจำวัน (ออกกำลังกาย/อาหาร) ดึงแยกโควตาของตัวเอง
+ *
+ *  ถ้ารวมอยู่ในโควตาเดียวกับไทม์ไลน์สุขภาพ การจดทุกวันวันละหลายรายการจะกิน
+ *  โควตาหมดภายในไม่กี่เดือน แล้วอาการกับความดันของเก่าจะค่อยๆ หายไปจากแอป
+ *  โดยไม่มีใครรู้ตัว — ของสองอย่างนี้โตคนละอัตรา จึงต้องแยกโควตากัน */
+const ACTIVITY_LIMIT = 300;
+const ACTIVITY_KINDS = ['exercise', 'food', 'note'];
 /** ประวัติกินยาใช้แค่เช็คว่าวันนี้กินมื้อไหนไปแล้ว ย้อนหลังเดือนเดียวเหลือเฟือ */
 const MED_LOG_DAYS = 30;
 
@@ -208,11 +215,15 @@ export async function fetchAll(userId: string): Promise<CloudData> {
       return [];
     }
   };
-  const [logs, recs] = await Promise.all([
+  const kindList = `(${ACTIVITY_KINDS.join(',')})`;
+  const [logs, health, activity] = await Promise.all([
     optional('อ่านประวัติกินยา', c.from('med_logs').select('*').gte('dose_day', sinceDay)),
-    optional('อ่านไทม์ไลน์', c.from('records').select('*')
+    optional('อ่านไทม์ไลน์', c.from('records').select('*').not('kind', 'in', kindList)
       .order('created_at', { ascending: false }).limit(RECORDS_LIMIT)),
+    optional('อ่านบันทึกประจำวัน', c.from('records').select('*').in('kind', ACTIVITY_KINDS)
+      .order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT)),
   ]);
+  const recs = [...health, ...activity];
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const groupList: Group[] = (groups as any[]).map((g) => ({

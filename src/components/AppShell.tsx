@@ -12,8 +12,10 @@ import { EmergencyCard } from './EmergencyCard';
 import { TodayScreen } from './screens/TodayScreen';
 import { MedsScreen } from './screens/MedsScreen';
 import { ApptsScreen } from './screens/ApptsScreen';
+import { ActivityScreen } from './screens/ActivityScreen';
 import { BookScreen } from './screens/BookScreen';
 import { ActorSheet } from './sheets/ActorSheet';
+import { AddActivitySheet } from './sheets/AddActivitySheet';
 import { AddApptSheet } from './sheets/AddApptSheet';
 import { AddDocSheet } from './sheets/AddDocSheet';
 import { AddMedSheet } from './sheets/AddMedSheet';
@@ -26,7 +28,7 @@ import { activeBook } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import { hasBrokenConfig } from '@/lib/supabase';
 
-type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | 'doc' | null;
+type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | 'doc' | 'activity' | null;
 
 export function AppShell() {
   const {
@@ -108,6 +110,7 @@ export function AppShell() {
           onTidy={() => setSheet('tidy')} />
       )}
       {state.tab === 'appts' && <ApptsScreen book={book} onAdd={() => setSheet('appt')} />}
+      {state.tab === 'activity' && <ActivityScreen book={book} onAdd={() => setSheet('activity')} />}
       {state.tab === 'book' && (
         <BookScreen book={book} onOpenGroup={() => setSheet('group')}
           onOpenProfile={() => setSheet('profile')} onAddDoc={() => setSheet('doc')} />
@@ -118,6 +121,7 @@ export function AppShell() {
       <ActorSheet open={sheet === 'actor'} onClose={close} />
       <SymptomSheet open={sheet === 'symptom'} bookId={book.id} onClose={close} />
       <AddApptSheet open={sheet === 'appt'} bookId={book.id} onClose={close} />
+      <AddActivitySheet open={sheet === 'activity'} bookId={book.id} onClose={close} />
       <AddMedSheet open={sheet === 'med'} bookId={book.id} onClose={close} />
       <AddDocSheet open={sheet === 'doc'} bookId={book.id} onClose={close} />
       <ScanSheet open={sheet === 'scan'} bookId={book.id} onClose={close} />

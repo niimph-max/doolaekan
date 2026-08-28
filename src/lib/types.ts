@@ -4,7 +4,9 @@ export type ShareLevel = 'full' | 'appointments' | 'none';
 export type DoseSlot = 'morning' | 'noon' | 'evening' | 'bedtime' | 'prn';
 /** จังหวะกินเทียบกับมื้ออาหาร — ว่าง = ไม่ระบุ */
 export type MealTiming = '' | 'before' | 'after' | 'with';
-export type RecordKind = 'symptom' | 'bp' | 'doc' | 'visit';
+/** ชนิดบันทึกในไทม์ไลน์
+ *  exercise/food/note = แท็บกิจกรรม (บันทึกประจำวัน) — ดู migration 0011 */
+export type RecordKind = 'symptom' | 'bp' | 'doc' | 'visit' | 'exercise' | 'food' | 'note';
 
 /** หมอหนึ่งคนที่โรงพยาบาลหนึ่งแห่ง — หมอคนเดียวออกตรวจหลายที่ = หลายแถว
  *  ชื่อเดียวกัน แต่ HN เบอร์โทร และเวลาออกตรวจเป็นคนละชุด */
@@ -94,7 +96,16 @@ export interface RecordItem {
   kind: RecordKind;
   title: string;
   body: string;
-  data?: { sys?: number; dia?: number; pulse?: number; tags?: string[] };
+  data?: {
+    sys?: number; dia?: number; pulse?: number; tags?: string[];
+    /** exercise: ท่า/ชนิดที่เลือก เช่น "ยิม" — ใช้หาบันทึกครั้งก่อนของชนิดเดียวกัน */
+    activity?: string;
+    minutes?: number;
+    /** food: มื้อ เช่น "เที่ยง" */
+    meal?: string;
+    /** ไม่บังคับกรอก — ไม่กรอกแล้วต้องไม่ถูกนับเป็น 0 ในยอดรวม */
+    kcal?: number;
+  };
   file?: string;         // ลิงก์สำหรับแสดงผล: data URL (โหมดเครื่องเดียว) หรือ signed URL (คลาวด์)
   file_path?: string;    // path ใน Supabase Storage bucket 'scans'
   at: string;            // ISO
@@ -124,7 +135,7 @@ export interface Group {
   members: GroupMember[];
 }
 
-export type Tab = 'home' | 'meds' | 'appts' | 'book';
+export type Tab = 'home' | 'meds' | 'appts' | 'activity' | 'book';
 
 /** local = เก็บในเครื่องอย่างเดียว, cloud = ต่อ Supabase (auth + realtime + storage) */
 export type StoreMode = 'local' | 'cloud';
