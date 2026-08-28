@@ -25,8 +25,16 @@ export function AddDocSheet({ open, bookId, onClose }: {
   const [date, setDate] = useState(todayKey());
   const [pages, setPages] = useState<string[]>([]);
 
-  const close = () => {
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  /** ปิดชีตเฉยๆ — เก็บรูปที่ถ่ายไว้ต่อ เปิดกลับมาแล้วยังอยู่ครบ
+   *  ถ่ายเอกสารสิบกว่าใบแล้วเผลอปิด ต้องไม่ต้องเริ่มถ่ายใหม่ทั้งหมด */
+  const close = () => { setConfirmDiscard(false); onClose(); };
+
+  /** ล้างทิ้งจริงๆ ใช้เมื่อเก็บสำเร็จ หรือผู้ใช้ยืนยันว่าจะทิ้ง */
+  const clear = () => {
     setTitle(''); setNote(''); setDate(todayKey()); setPages([]);
+    setConfirmDiscard(false);
     onClose();
   };
 
@@ -42,8 +50,12 @@ export function AddDocSheet({ open, bookId, onClose }: {
   };
 
   const save = () => {
-    const name = title.trim();
-    if (!name || !pages.length) return;
+    // ── ไม่บังคับให้ตั้งชื่อ ──
+    // เดิมต้องเลือกชื่อก่อนถึงจะกดเก็บได้ ปุ่มเลยกดไม่ติดโดยไม่บอกเหตุผล
+    // ผู้ใช้ถ่ายรูปมาเป็นสิบใบแล้วกดไม่ได้ จึงทิ้งไปทั้งชุดแล้วถ่ายใหม่
+    // ชื่อเป็นแค่ของช่วยหา ไม่ใช่ของจำเป็น ขาดได้ ตั้งให้เองไปก่อนแล้วแก้ทีหลัง
+    const name = title.trim() || `เอกสารจากหมอ ${date}`;
+    if (!pages.length) return;
     // เวลาเที่ยงวันเพื่อกันเรื่องเขตเวลาทำให้วันเลื่อนไปวันก่อนหน้า
     const at = new Date(`${date}T12:00:00`).toISOString();
     pages.forEach((file, i) => {
@@ -55,12 +67,12 @@ export function AddDocSheet({ open, bookId, onClose }: {
       });
     });
     actions.toast(`เก็บ ${name} แล้ว`);
-    close();
+    clear();
   };
 
   return (
     <Sheet open={open} title="เก็บเอกสารจากหมอ" onClose={close}>
-      <label className="o-label" style={{ marginTop: 0 }}>เอกสารอะไร (ต้องเลือก)</label>
+      <label className="o-label" style={{ marginTop: 0 }}>เอกสารอะไร (ไม่เลือกก็ได้)</label>
       <div className="o-chips">
         {KINDS.map((k) => (
           <button key={k} type="button" className="o-chip" aria-pressed={title === k}
@@ -114,23 +126,36 @@ export function AddDocSheet({ open, bookId, onClose }: {
         onChange={onFiles} style={{ display: 'none' }} />
 
       <div className="o-row" style={{ marginTop: 18 }}>
-        <button type="button" className="o-btn ghost" onClick={close}>ยกเลิก</button>
+        <button type="button" className="o-btn ghost"
+          onClick={() => (pages.length ? setConfirmDiscard(true) : clear())}>
+          ยกเลิก
+        </button>
         <button type="button" className="o-btn primary"
-          disabled={!title.trim() || !pages.length} onClick={save}>
+          disabled={!pages.length} onClick={save}>
           เก็บเอกสาร
         </button>
       </div>
 
       {/* ปุ่มที่กดไม่ได้โดยไม่บอกเหตุผล คือทางตัน ผู้ใช้จะนึกว่าแอปพัง
           ทั้งที่ขาดแค่ข้อมูลอีกอย่างเดียว บอกไปตรงๆ ว่าขาดอะไร */}
-      {(!title.trim() || !pages.length) && (
+      {!pages.length && (
         <p className="subtle" style={{ margin: '10px 0 0', textAlign: 'center' }}>
-          {!pages.length && !title.trim()
-            ? 'ยังกดเก็บไม่ได้ — เลือกชื่อเอกสาร และใส่รูปก่อน'
-            : !title.trim()
-              ? 'ยังกดเก็บไม่ได้ — เลือกชื่อเอกสารด้านบนก่อน (หรือพิมพ์เอง)'
-              : 'ยังกดเก็บไม่ได้ — ใส่รูปเอกสารก่อน'}
+          ยังกดเก็บไม่ได้ — ใส่รูปเอกสารก่อน
         </p>
+      )}
+
+      {/* ทิ้งรูปที่ถ่ายมาแล้วเป็นเรื่องที่เอาคืนไม่ได้ ต้องถามก่อนเสมอ */}
+      {confirmDiscard && (
+        <div className="o-card warn" style={{ marginTop: 14 }}>
+          <strong>ทิ้งรูป {pages.length} แผ่นที่ใส่ไว้?</strong>
+          <p className="subtle" style={{ margin: '4px 0 10px' }}>
+            ถ้าแค่อยากปิดไปทำอย่างอื่นก่อน กดปิดหน้านี้ได้เลย รูปจะยังอยู่
+          </p>
+          <div className="o-row">
+            <button type="button" className="o-btn ghost" onClick={close}>ปิดไว้ก่อน รูปยังอยู่</button>
+            <button type="button" className="o-btn danger" onClick={clear}>ทิ้งรูปทั้งหมด</button>
+          </div>
+        </div>
       )}
     </Sheet>
   );
