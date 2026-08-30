@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
 import { ageFromBirthDate, fmtBirthDate } from '@/lib/format';
-import { bookWatchRules } from '@/lib/selectors';
+import { bookWatchRules, latestTetanus, vaccineDateLabel } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Book } from '@/lib/types';
 
@@ -19,6 +19,8 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
   const docs = state.doctors.filter((d) => d.book_id === book.id);
   const rules = bookWatchRules(state, book.id);
   const age = ageFromBirthDate(book.birth_date) || book.age;
+  // หมอถามเรื่องบาดทะยักทันทีเวลามีแผล จึงต้องอยู่ในบัตรนี้ ไม่ใช่ให้ไปเปิดหาในสมุด
+  const tetanus = latestTetanus(state, book.id);
 
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div style={{ marginBottom: 14 }}>
@@ -69,6 +71,12 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
               {pausedMeds.map((m) => m.name).join(' · ')}
             </Row>
           )}
+
+          <Row label="บาดทะยักเข็มล่าสุด">
+            {tetanus
+              ? `${vaccineDateLabel(tetanus)}${tetanus.data?.vaccine?.dose ? ` · ${tetanus.data.vaccine.dose}` : ''}`
+              : <span className="subtle">ไม่มีข้อมูล</span>}
+          </Row>
 
           <Row label="ข้อเฝ้าระวัง">
             {rules.length

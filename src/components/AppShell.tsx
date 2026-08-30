@@ -18,6 +18,7 @@ import { ActorSheet } from './sheets/ActorSheet';
 import { AddActivitySheet } from './sheets/AddActivitySheet';
 import { AddApptSheet } from './sheets/AddApptSheet';
 import { AddDocSheet } from './sheets/AddDocSheet';
+import { AddVaccineSheet } from './sheets/AddVaccineSheet';
 import { AddMedSheet } from './sheets/AddMedSheet';
 import { GroupSheet } from './sheets/GroupSheet';
 import { ProfileSheet } from './sheets/ProfileSheet';
@@ -26,10 +27,11 @@ import { TidyNamesSheet } from './sheets/TidyNamesSheet';
 import { SymptomSheet } from './sheets/SymptomSheet';
 import { activeBook } from '@/lib/selectors';
 import type { ActivityEntry } from '@/lib/selectors';
+import type { RecordItem } from '@/lib/types';
 import { useStore } from '@/lib/store';
 import { hasBrokenConfig } from '@/lib/supabase';
 
-type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | 'doc' | 'activity' | null;
+type SheetName = 'actor' | 'symptom' | 'appt' | 'med' | 'scan' | 'group' | 'profile' | 'tidy' | 'doc' | 'activity' | 'vaccine' | null;
 
 export function AppShell() {
   const {
@@ -39,6 +41,8 @@ export function AppShell() {
   const [sheet, setSheet] = useState<SheetName>(null);
   const [emergency, setEmergency] = useState(false);
   const [editEntry, setEditEntry] = useState<ActivityEntry | undefined>();
+  const [editVaccine, setEditVaccine] = useState<RecordItem | undefined>();
+  const [apptFrom, setApptFrom] = useState<{ title: string; date: string } | undefined>();
 
   // ใส่ค่า Supabase ไว้แล้วแต่ค่าผิด — ห้ามเงียบๆ ถอยไปโหมดเครื่องเดียว เพราะผู้ใช้ตั้งใจจะต่อคลาวด์
   if (hasBrokenConfig) return <div className="app"><ConfigError /></div>;
@@ -119,18 +123,29 @@ export function AppShell() {
       )}
       {state.tab === 'book' && (
         <BookScreen book={book} onOpenGroup={() => setSheet('group')}
-          onOpenProfile={() => setSheet('profile')} onAddDoc={() => setSheet('doc')} />
+          onOpenProfile={() => setSheet('profile')} onAddDoc={() => setSheet('doc')}
+          onAddVaccine={() => { setEditVaccine(undefined); setSheet('vaccine'); }}
+          onEditVaccine={(rec) => { setEditVaccine(rec); setSheet('vaccine'); }}
+          onAddApptFromVaccine={(rec) => {
+            const v = rec.data?.vaccine;
+            if (!v?.next_due) return;
+            setApptFrom({ title: `ฉีดวัคซีน${v.name}`, date: v.next_due });
+            setSheet('appt');
+          }} />
       )}
 
       <TabBar tab={state.tab} onChange={actions.setTab} />
 
       <ActorSheet open={sheet === 'actor'} onClose={close} />
       <SymptomSheet open={sheet === 'symptom'} bookId={book.id} onClose={close} />
-      <AddApptSheet open={sheet === 'appt'} bookId={book.id} onClose={close} />
+      <AddApptSheet open={sheet === 'appt'} bookId={book.id} preset={apptFrom}
+        onClose={() => { setApptFrom(undefined); close(); }} />
       <AddActivitySheet open={sheet === 'activity'} bookId={book.id} edit={editEntry}
         onClose={close} />
       <AddMedSheet open={sheet === 'med'} bookId={book.id} onClose={close} />
       <AddDocSheet open={sheet === 'doc'} bookId={book.id} onClose={close} />
+      <AddVaccineSheet open={sheet === 'vaccine'} bookId={book.id} edit={editVaccine}
+        onClose={close} />
       <ScanSheet open={sheet === 'scan'} bookId={book.id} onClose={close} />
       <GroupSheet open={sheet === 'group'} onClose={close} />
       <TidyNamesSheet open={sheet === 'tidy'} book={book} onClose={close} />

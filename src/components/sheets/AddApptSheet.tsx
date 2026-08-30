@@ -1,14 +1,18 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { EscortPicker } from '../EscortPicker';
 import { useStore } from '@/lib/store';
 
 const OTHER = '__other__';
 
-export function AddApptSheet({ open, bookId, onClose }: {
-  open: boolean; bookId: string; onClose: () => void;
+export function AddApptSheet({ open, bookId, preset, onClose }: {
+  open: boolean;
+  bookId: string;
+  /** เปิดมาพร้อมชื่อและวันที่ที่รู้อยู่แล้ว เช่น กดจากกำหนดฉีดวัคซีนครั้งหน้า */
+  preset?: { title: string; date: string };
+  onClose: () => void;
 }) {
   const { state, actions } = useStore();
 
@@ -29,6 +33,21 @@ export function AddApptSheet({ open, bookId, onClose }: {
   const [placeChoice, setPlaceChoice] = useState('');
   const [place, setPlace] = useState('');
   const [escort, setEscort] = useState('');
+
+  // เติมค่าที่ส่งมาให้ครั้งเดียวตอนเปิด — ไม่เขียนทับสิ่งที่ผู้ใช้กำลังพิมพ์อยู่
+  const filled = useRef('');
+  useEffect(() => {
+    if (!open || !preset) return;
+    const key = `${preset.title}|${preset.date}`;
+    if (filled.current === key) return;
+    filled.current = key;
+    setTitle(preset.title);
+    setDate(preset.date);
+    // ถ้ามีรายชื่อหมออยู่ ช่องพิมพ์ชื่อจะถูกซ่อนไว้จนกว่าจะเลือก "อื่นๆ"
+    // ชื่อที่เติมมาให้จึงต้องเปิดช่องนั้นด้วย ไม่งั้นผู้ใช้จะเห็นแต่ "เลือกหมอ…"
+    // แล้วไม่รู้เลยว่าตอนนี้นัดนี้ชื่ออะไร
+    setDoctorId(OTHER);
+  }, [open, preset]);
 
   // กติกา: นัดที่ชื่อมี "หัวใจ" ต้องตรวจเลือดล่วงหน้า ≤7 วัน — แอปแนบขั้นตอนให้เอง
   const needsBloodTest = title.includes('หัวใจ');

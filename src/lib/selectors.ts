@@ -379,3 +379,60 @@ export function activityEntries(items: RecordItem[]): ActivityEntry[] {
   }
   return out;
 }
+
+// ─────────────────────────── วัคซีน ───────────────────────────
+
+/** บันทึกที่เป็นวัคซีน — ดูจาก data.vaccine ไม่ใช่จากชนิดบันทึก
+ *  เพราะเก็บไว้ใน jsonb ของชนิด 'visit' เพื่อไม่ต้องแก้โครงฐานข้อมูล */
+export function isVaccine(r: RecordItem): boolean {
+  return Boolean(r.data?.vaccine?.name);
+}
+
+/** วัคซีนของสมุดเล่มหนึ่ง เข็มใหม่อยู่บน
+ *
+ *  นี่คือข้อมูลตลอดชีวิต ไม่ใช่บันทึกประจำวัน จึงต้องอยู่แบบเห็นตลอดในหน้าสมุด
+ *  ไม่ใช่ไหลลงไปในไทม์ไลน์ที่อีกสองปีก็เลื่อนหาไม่เจอแล้ว */
+export function bookVaccines(state: AppState, bookId: string): RecordItem[] {
+  return state.records
+    .filter((r) => r.book_id === bookId && isVaccine(r))
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/** แสดงวันที่ฉีดเท่าที่รู้จริง — รู้แค่ปีก็บอกแค่ปี ไม่เติมวันให้ดูแม่นเกินจริง */
+export function vaccineDateLabel(r: RecordItem): string {
+  const d = new Date(r.at);
+  const year = d.getFullYear() + 543;
+  const p = r.data?.vaccine?.precision ?? 'day';
+  if (p === 'year') return `ปี ${year}`;
+  if (p === 'month') {
+    return `${d.toLocaleDateString('th-TH', { month: 'long' })} ${year}`;
+  }
+  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** เข็มบาดทะยักล่าสุด — หมอถามข้อนี้ทันทีเวลามีแผล จึงต้องอยู่ในบัตรฉุกเฉิน
+ *  ครอบคลุมวัคซีนรวมอย่าง dT ที่มีบาดทะยักอยู่ในนั้นด้วย */
+export function latestTetanus(state: AppState, bookId: string): RecordItem | undefined {
+  return bookVaccines(state, bookId)
+    .find((r) => /บาดทะยัก|tetanus|dT|dTP/i.test(r.data?.vaccine?.name ?? ''));
+}
+
+/** เข็มที่ครบกำหนดแล้วหรือใกล้ครบ (ภายใน 60 วัน) เรียงใกล้ครบก่อน
+ *  ถ้าเข็มถัดไปถูกฉีดไปแล้ว จะมีแถวใหม่ของวัคซีนชื่อเดียวกันที่ใหม่กว่า
+ *  จึงนับเฉพาะเข็มล่าสุดของวัคซีนแต่ละชื่อ ไม่งั้นของเก่าจะค้างเตือนตลอดไป */
+export function vaccinesDue(state: AppState, bookId: string): RecordItem[] {
+  const seen = new Set<string>();
+  const latest: RecordItem[] = [];
+  for (const r of bookVaccines(state, bookId)) {
+    const key = (r.data!.vaccine!.name).trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    latest.push(r);
+  }
+  return latest
+    .filter((r) => {
+      const due = r.data?.vaccine?.next_due;
+      return Boolean(due) && daysUntil(due as string) <= 60;
+    })
+    .sort((a, b) => a.data!.vaccine!.next_due!.localeCompare(b.data!.vaccine!.next_due!));
+}

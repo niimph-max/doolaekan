@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
 import { Kicker } from '../Kicker';
-import { fmtShortDate, fmtTime } from '@/lib/format';
+import { daysUntil, fmtDate, fmtShortDate, fmtTime } from '@/lib/format';
 import {
-  SHARE_LABEL, bookRecords, bookSummary, bookWatchRules, bpHistory, shareLevel, visibleBooks,
+  SHARE_LABEL, bookRecords, bookSummary, bookVaccines, bookWatchRules, bpHistory,
+  isVaccine, shareLevel, vaccineDateLabel, visibleBooks,
 } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Book, RecordItem, RecordKind, ShareLevel } from '@/lib/types';
@@ -30,17 +31,30 @@ const DOT: Record<RecordKind, string> = {
   note: 'var(--color-neutral-400)',
 };
 
-export function BookScreen({ book, onOpenGroup, onOpenProfile, onAddDoc }: {
-  book: Book; onOpenGroup: () => void; onOpenProfile: () => void; onAddDoc: () => void;
+export function BookScreen({
+  book, onOpenGroup, onOpenProfile, onAddDoc,
+  onAddVaccine, onEditVaccine, onAddApptFromVaccine,
+}: {
+  book: Book;
+  onOpenGroup: () => void;
+  onOpenProfile: () => void;
+  onAddDoc: () => void;
+  onAddVaccine: () => void;
+  onEditVaccine: (rec: RecordItem) => void;
+  onAddApptFromVaccine: (rec: RecordItem) => void;
 }) {
   const { state, actions } = useStore();
   const [filter, setFilter] = useState<'all' | RecordKind>('all');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const group = state.groups.find((g) => g.id === state.activeGroupId);
   const books = visibleBooks(state);
   const rules = bookWatchRules(state, book.id);
   const bps = bpHistory(state, book.id);
+  const vaccines = bookVaccines(state, book.id);
   const records = bookRecords(state, book.id)
+    // วัคซีนมีรายการถาวรของตัวเองข้างบนแล้ว ไม่ต้องมาซ้ำในไทม์ไลน์
+    .filter((r) => !isVaccine(r))
     .filter((r) => (filter === 'all' ? true : r.kind === filter));
   const maxSys = Math.max(160, ...bps.map((r) => r.data?.sys ?? 0));
   const myLevel = shareLevel(state, book.id);
@@ -109,6 +123,72 @@ export function BookScreen({ book, onOpenGroup, onOpenProfile, onAddDoc }: {
           ))}
         </div>
       )}
+
+      {/* ── วัคซีนที่เคยฉีด ──
+          ข้อมูลตลอดชีวิต ไม่ใช่บันทึกประจำวัน จึงอยู่แบบเห็นตลอดเหมือนข้อเฝ้าระวัง
+          ไม่ใช่ไหลลงไปในไทม์ไลน์ที่อีกสองปีก็เลื่อนหาไม่เจอ */}
+      <div className="o-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>วัคซีนที่เคยฉีด</h3>
+          <button type="button" className="o-btn ghost" onClick={onAddVaccine}>
+            <Icon name="plus" size={17} /> ลงเข็ม
+          </button>
+        </div>
+
+        {vaccines.length === 0 ? (
+          <p className="subtle" style={{ margin: '10px 0 0' }}>
+            ยังไม่ได้ลงไว้ — จำได้แค่ปีก็ลงได้
+          </p>
+        ) : (
+          vaccines.map((v) => {
+            const due = v.data?.vaccine?.next_due;
+            const overdue = Boolean(due) && daysUntil(due!) < 0;
+            const soon = Boolean(due) && !overdue && daysUntil(due!) <= 60;
+            return (
+              <div key={v.id} style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <strong>{v.data!.vaccine!.name}</strong>
+                  {v.data?.vaccine?.dose && <span className="o-tag">{v.data.vaccine.dose}</span>}
+                </div>
+                <p className="subtle" style={{ margin: '2px 0 0' }}>
+                  {vaccineDateLabel(v)}
+                  {v.data?.vaccine?.place ? ` · ${v.data.vaccine.place}` : ''}
+                </p>
+                {due && (
+                  <p style={{
+                    margin: '4px 0 0',
+                    color: overdue || soon ? 'var(--color-accent-700)' : 'var(--color-neutral-700)',
+                  }}>
+                    {overdue ? 'เลยกำหนดครั้งหน้าแล้ว' : 'ครบกำหนดครั้งหน้า'} {fmtDate(due)}
+                    {' '}
+                    <button type="button" className="o-btn ghost"
+                      onClick={() => onAddApptFromVaccine(v)}>
+                      ตั้งเป็นนัด
+                    </button>
+                  </p>
+                )}
+                <div className="o-row" style={{ marginTop: 8 }}>
+                  <button type="button" className="o-btn ghost" onClick={() => onEditVaccine(v)}>
+                    แก้ไข
+                  </button>
+                  <button type="button" className="o-btn ghost"
+                    onClick={() => {
+                      if (confirmDelete === v.id) {
+                        actions.removeRecords([v.id]);
+                        actions.toast('ลบแล้ว');
+                        setConfirmDelete(null);
+                      } else {
+                        setConfirmDelete(v.id);
+                      }
+                    }}>
+                    {confirmDelete === v.id ? 'แน่ใจนะ? กดอีกครั้งเพื่อลบ' : 'ลบ'}
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {/* กราฟความดัน */}
       {bps.length > 0 && (
