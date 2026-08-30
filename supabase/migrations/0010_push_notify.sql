@@ -115,10 +115,62 @@ create policy notify_outbox_self on notification_outbox for select
 grant all on table notification_prefs to anon, authenticated, service_role;
 grant all on table notification_outbox to anon, authenticated, service_role;
 
+-- ─────────────────────────── จองเครื่องนี้ให้บัญชีที่ล็อกอินอยู่ ───────────────────────────
+-- เครื่องหนึ่งเครื่องมี endpoint เดียว ถ้าเคยเปิดแจ้งเตือนไว้ตอนล็อกอินบัญชีหนึ่ง
+-- แล้วเปลี่ยนไปอีกบัญชีบนเครื่องเดิม (เรื่องปกติมากสำหรับเครื่องกลางที่คนดูแลใช้)
+-- ฝั่งแอปจะเขียนทับแถวเดิมไม่ได้เลย เพราะกติกาสิทธิ์บอกว่าแตะได้เฉพาะแถวของตัวเอง
+--
+-- ลบก่อนแล้วค่อยเพิ่มก็ไม่ช่วย เพราะคำสั่งลบจะถูกปัดตกเงียบๆ (ลบได้ 0 แถว ไม่ error)
+-- แล้วไปตายตอน insert ว่า endpoint ซ้ำ ซึ่งเป็นข้อความที่ไม่มีใครเดาสาเหตุถูก
+--
+-- และจะแก้ด้วยการเลิกบังคับให้ endpoint ไม่ซ้ำก็ไม่ได้ เพราะแถวของบัญชีเก่าจะค้าง
+-- อยู่ แล้วแจ้งเตือนของคนเก่าจะวิ่งไปโผล่บนเครื่องที่ตอนนี้เป็นของอีกคน = ข้อมูล
+-- สุขภาพรั่วข้ามบัญชี
+--
+-- จึงทำเป็นฟังก์ชันที่ทำงานด้วยสิทธิ์ของฐานข้อมูลแทน ผู้เรียกจองเครื่องให้ตัวเอง
+-- ได้อย่างเดียว (เขียน auth.uid() ตายตัว ส่งชื่อคนอื่นเข้ามาไม่ได้) และต้องรู้
+-- ค่า endpoint ของเครื่องนั้นอยู่แล้วจึงจะเรียกได้
+create or replace function claim_push_subscription(
+  p_endpoint text,
+  p_subscription jsonb,
+  p_origin text default null,
+  p_user_agent text default null,
+  p_label text default null
+) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'ต้องเข้าระบบก่อนถึงจะเปิดแจ้งเตือนได้';
+  end if;
+
+  delete from push_subscriptions where endpoint = p_endpoint;
+
+  insert into push_subscriptions
+    (user_id, endpoint, subscription, origin, user_agent, label, updated_at)
+  values
+    (auth.uid(), p_endpoint, p_subscription, p_origin, p_user_agent, p_label, now());
+end;
+$$;
+
+-- ตัวนี้ต่างจากฟังก์ชันภายในตัวอื่น — ฝั่งแอปต้องเรียกได้จริง แต่คนที่ยังไม่เข้า
+-- ระบบเรียกไม่ได้ และเรียกได้ก็จองให้ตัวเองเท่านั้น
+revoke all on function claim_push_subscription(text, jsonb, text, text, text)
+  from public, anon;
+grant execute on function claim_push_subscription(text, jsonb, text, text, text)
+  to authenticated;
+
 -- ─────────────────────────── ใครเห็นสมุดเล่มไหน ───────────────────────────
 -- can_access_book เดิมตอบได้แค่ "ฉันเห็นไหม" (อิง auth.uid()) ซึ่งใช้กับ RLS ได้ดี
 -- แต่ตอนจะเตือนต้องถามกลับด้าน: "สมุดเล่มนี้ ใครบ้างที่ต้องรู้"
-create or replace function book_audience(p_book uuid)
+-- ระดับที่ต่ำที่สุดที่ยอมให้รู้เรื่องนี้ — 'appointments' ใช้ได้กับเรื่องวันนัด
+-- เท่านั้น ส่วนความดันกับสรุปสุขภาพต้องระดับ 'full' เพราะคนที่แชร์แค่วันนัดเปิด
+-- แอปดูค่าความดันไม่ได้อยู่แล้วตามกติกา ถ้าเราส่งไปในแจ้งเตือนก็คือรั่วออกทางอื่น
+-- เคยเป็นแบบรับพารามิเตอร์เดียว การเปลี่ยนลายเซ็นทำให้ create or replace ไม่ทับ
+-- ของเก่าแต่สร้างเพิ่มเป็นตัวที่สอง แล้วจะมีสองตัวที่ตัดสินสิทธิ์ต่างกันอยู่ในฐาน
+-- ข้อมูลเดียวกัน ซึ่งเป็นจุดที่พลาดแล้วข้อมูลรั่วโดยไม่มีใครรู้
+drop function if exists book_audience(uuid);
+
+create or replace function book_audience(p_book uuid, p_level share_level default 'appointments')
 returns table (user_id uuid)
 language sql stable security definer set search_path = public as $$
   select b.owner_id from books b where b.id = p_book
@@ -127,9 +179,10 @@ language sql stable security definer set search_path = public as $$
   from book_shares bs
   join group_members gm on gm.group_id = bs.group_id
   where bs.book_id = p_book
-    and bs.level in ('full', 'appointments');
+    and (bs.level = 'full' or (p_level = 'appointments' and bs.level = 'appointments'));
 $$;
 
+-- สรุปรายวันมีทั้งความดันและยาที่ตกไป จึงนับเฉพาะสมุดที่เห็นได้เต็มระดับ
 create or replace function visible_books(p_user uuid)
 returns table (book_id uuid)
 language sql stable security definer set search_path = public as $$
@@ -139,7 +192,7 @@ language sql stable security definer set search_path = public as $$
   from book_shares bs
   join group_members gm on gm.group_id = bs.group_id
   where gm.user_id = p_user
-    and bs.level in ('full', 'appointments');
+    and bs.level = 'full';
 $$;
 
 -- ─────────────────────────── เข้าคิว ───────────────────────────
@@ -231,7 +284,8 @@ begin
 
   select display_name into v_name from books where id = new.book_id;
 
-  for v_uid in select a.user_id from book_audience(new.book_id) a loop
+  -- ค่าความดันเป็นข้อมูลสุขภาพ ส่งได้เฉพาะคนที่เห็นสมุดเต็มระดับ
+  for v_uid in select a.user_id from book_audience(new.book_id, 'full') a loop
     -- คนที่เพิ่งกดบันทึกยืนอยู่ข้างเครื่องวัดแล้ว เตือนกลับไปหาตัวเองไม่ได้ช่วยอะไร
     continue when v_uid = new.actor_user;
 
@@ -449,6 +503,42 @@ begin
   perform cron.schedule('doolaekan-notify', '*/15 * * * *', 'select public.run_notifications()');
 exception when others then
   raise notice 'ตั้ง cron ไม่สำเร็จ (%) — เปิด pg_cron ที่ Dashboard แล้วรันไฟล์นี้ซ้ำ', sqlerrm;
+end $$;
+
+-- ─────────────────────────── ปิดประตูฟังก์ชันภายใน ───────────────────────────
+-- Postgres ให้สิทธิ์เรียกฟังก์ชันกับทุกคนโดยปริยาย และ Supabase เปิดฟังก์ชันใน
+-- schema public ออกเป็น REST API อัตโนมัติ แปลว่าใครก็ตามที่เปิดเว็บเราแล้วก๊อป
+-- anon key ไป (ซึ่งฝังอยู่ในตัวเว็บ ใครก็เห็น) จะเรียกฟังก์ชันข้างล่างได้ทั้งหมด
+--
+-- ของเดิมอย่าง can_access_book รอดมาได้เพราะถามว่า "ฉันเห็นไหม" (อิง auth.uid())
+-- ส่งชื่อคนอื่นเข้าไปไม่ได้ แต่ฟังก์ชันชุดนี้รับ p_user เป็นพารามิเตอร์ ส่ง uuid
+-- ใครก็ได้เข้าไป — daily_summary_body จะคายสรุปสุขภาพของคนนั้นออกมาทั้งก้อน
+-- และ app_secret จะคายความลับใน Vault ออกมาตรงๆ
+--
+-- ทั้งหมดนี้ถูกเรียกจากใน trigger และ cron ซึ่งทำงานในสิทธิ์ของฐานข้อมูลเอง
+-- ไม่มีใครต้องเรียกจากฝั่งแอปเลยสักตัว จึงปิดได้ทั้งหมดโดยไม่กระทบอะไร
+do $$
+declare fn text;
+begin
+  -- ถ้าตัวไหนล้ม ต้องไม่ทำให้ตัวที่เหลือไม่ถูกปิดตามไปด้วย และต้องดังพอให้เห็น
+  -- เพราะ "ปิดไม่ครบ" หน้าตาเหมือน "ปิดครบ" ทุกประการถ้าไม่มีใครบอก
+  foreach fn in array array[
+    'app_secret(text)',
+    'book_audience(uuid, share_level)',
+    'visible_books(uuid)',
+    'notification_wanted(uuid, text)',
+    'enqueue_notification(uuid, text, text, text, text, text, boolean)',
+    'daily_summary_body(uuid)',
+    'dispatch_notifications()',
+    'enqueue_due_notifications()',
+    'run_notifications()'
+  ] loop
+    begin
+      execute format('revoke all on function public.%s from public, anon, authenticated', fn);
+    exception when others then
+      raise warning 'ปิดสิทธิ์ % ไม่สำเร็จ: % — ฟังก์ชันนี้ยังเรียกจากภายนอกได้', fn, sqlerrm;
+    end;
+  end loop;
 end $$;
 
 -- ─────────────────────────── สวิตช์เปิด ───────────────────────────

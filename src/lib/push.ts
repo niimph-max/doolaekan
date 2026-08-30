@@ -92,15 +92,19 @@ async function saveSubscription(sub: PushSubscription): Promise<void> {
   if (!userId) return;
 
   const json = sub.toJSON();
-  const { error } = await db.from('push_subscriptions').upsert({
-    user_id: userId,
-    endpoint: sub.endpoint,
-    subscription: json,
-    origin: window.location.origin,
-    user_agent: navigator.userAgent.slice(0, 300),
-    label: guessDeviceLabel(),
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'endpoint' });
+
+  // ── ห้ามเขียนตารางตรงๆ ตรงนี้ ──
+  // เครื่องหนึ่งเครื่องมี endpoint เดียว ถ้าเคยเปิดแจ้งเตือนไว้ตอนล็อกอินบัญชีหนึ่ง
+  // แล้วเปลี่ยนไปอีกบัญชีบนเครื่องเดิม แถวเดิมเป็นของคนอื่น กติกาสิทธิ์จึงห้ามทั้ง
+  // เขียนทับและลบ — ลบจะเงียบๆ ได้ 0 แถวแล้วไปตายตอน insert ว่า endpoint ซ้ำ
+  // ให้ฐานข้อมูลเป็นคนจัดการแทน มันจองเครื่องนี้ให้บัญชีที่ล็อกอินอยู่ได้อย่างเดียว
+  const { error } = await db.rpc('claim_push_subscription', {
+    p_endpoint: sub.endpoint,
+    p_subscription: json,
+    p_origin: window.location.origin,
+    p_user_agent: navigator.userAgent.slice(0, 300),
+    p_label: guessDeviceLabel(),
+  });
 
   if (error) throw new Error(error.message);
 }
