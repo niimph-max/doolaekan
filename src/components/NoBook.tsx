@@ -57,24 +57,6 @@ export function NoBook() {
     return () => { done = true; };
   }, [state.userId]);
 
-  // ลองดึงเองเงียบๆ ก่อน เพราะสาเหตุที่พบบ่อยที่สุดหายเองได้ในไม่กี่วินาที
-  useEffect(() => {
-    if (creating || tries >= AUTO_TRIES) return;
-    const t = setTimeout(async () => {
-      setBusy(true);
-      await actions.retryLoad();
-      setBusy(false);
-      setTries((n) => n + 1);
-    }, tries === 0 ? 1200 : 3000);
-    return () => clearTimeout(t);
-  }, [tries, creating, actions]);
-
-  // นาฬิกาแยกอีกตัว เดินตามเวลาจริง ไม่รอผลของคำขอที่อาจค้าง
-  useEffect(() => {
-    const t = setTimeout(() => setSettled(true), SETTLE_MS);
-    return () => clearTimeout(t);
-  }, []);
-
   // ── ผู้ใช้ใหม่จริงๆ ไม่ต้องผ่านห้องรอเลย ──
   // ห้องรอมีไว้กันคนที่ "มีสมุดอยู่แล้วแต่อ่านไม่ติด" ไม่ให้ตกไปหน้ากรอกข้อมูลใหม่
   // คนที่เพิ่งสมัครไม่มีอะไรต้องกัน แต่กลับต้องมานั่งรอของที่ไม่มีวันมา
@@ -83,7 +65,36 @@ export function NoBook() {
   // และยืนยันกับเซิร์ฟเวอร์เข้าระบบแล้วว่าเรายังเป็นเราอยู่ (authOk) — สองอย่างนี้
   // รวมกันแปลว่า "ไม่มีสมุด" เป็นคำตอบจริง ไม่ใช่อาการอ่านไม่ติด
   const surelyNew = !knew && state.loadOk && authOk === true;
-  if (creating || surelyNew) return <Onboarding />;
+  const showForm = creating || surelyNew;
+
+  // ลองดึงเองเงียบๆ ก่อน เพราะสาเหตุที่พบบ่อยที่สุดหายเองได้ในไม่กี่วินาที
+  //
+  // ── ต้องหยุดทันทีที่พาไปหน้ากรอกข้อมูลแล้ว ──
+  // หน้ากรอกข้อมูลเป็นลูกของหน้านี้ ตัวหน้านี้จึงยังทำงานอยู่เบื้องหลังตลอดเวลาที่
+  // ผู้ใช้กำลังพิมพ์ ถ้าปล่อยให้วนดึงต่อ ทุกรอบที่ข้อมูลกลับมาจะทำให้ฟอร์มถูกวาด
+  // ใหม่ทั้งหน้าขณะมือกำลังพิมพ์ ซึ่งเป็นเหตุที่ผู้ใช้ใหม่เจอจอกระตุกเฉพาะครั้งแรก
+  // แล้วหายเองหลังผ่านไปสิบวินาที (พอวนครบก็หยุดไปเอง)
+  //
+  // ตรงนี้ปลอดภัยเพราะกว่าจะถึงหน้ากรอกข้อมูลได้ ต้องผ่าน surelyNew มาก่อน
+  // ซึ่งแปลว่าเซิร์ฟเวอร์ตอบมาแล้วจริงๆ ว่าไม่มีสมุด การดึงซ้ำจึงไม่มีอะไรให้ได้
+  useEffect(() => {
+    if (showForm || tries >= AUTO_TRIES) return;
+    const t = setTimeout(async () => {
+      setBusy(true);
+      await actions.retryLoad();
+      setBusy(false);
+      setTries((n) => n + 1);
+    }, tries === 0 ? 1200 : 3000);
+    return () => clearTimeout(t);
+  }, [tries, showForm, actions]);
+
+  // นาฬิกาแยกอีกตัว เดินตามเวลาจริง ไม่รอผลของคำขอที่อาจค้าง
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(true), SETTLE_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (showForm) return <Onboarding />;
 
   const trying = !settled;
 
