@@ -115,3 +115,23 @@ export function uid(): string {
     return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
+
+/** ไฟล์นี้เป็น PDF หรือไม่ — ดูได้ทั้งจาก data URL ตอนเพิ่งเลือกมา
+ *  และจาก path ใน Storage ตอนโหลดกลับมาทีหลัง
+ *
+ *  ต้องแยกให้ออก เพราะ PDF เปิดในแท็ก img ไม่ได้ ถ้าปนกันผู้ใช้จะเห็นรูปแตก
+ *  แทนที่จะเป็นเอกสารที่เพิ่งเก็บไป */
+export function isPdf(fileOrPath?: string): boolean {
+  if (!fileOrPath) return false;
+  return fileOrPath.startsWith('data:application/pdf')
+    || /\.pdf(\?|$)/i.test(fileOrPath);
+}
+
+/** ขนาดไฟล์จาก data URL — บอกตามจริง ไฟล์เล็กบอกเป็น KB ไม่ปัดขึ้นเป็น 1 MB
+ *  ตัวเลขที่ปัดจนผิดความจริงคือสิ่งที่แอปนี้พยายามเลี่ยงมาตลอด */
+export function dataUrlSize(dataUrl: string): string {
+  const bytes = Math.round((dataUrl.split(',')[1]?.length ?? 0) * 0.75);
+  if (bytes < 1024) return `${bytes} ไบต์`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}

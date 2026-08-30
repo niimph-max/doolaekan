@@ -3,11 +3,16 @@
 import React, { useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
-import { todayKey } from '@/lib/format';
+import { dataUrlSize, isPdf, todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
 
 /** ประเภทที่เจอบ่อย ให้แตะเลือกแทนพิมพ์ พิมพ์เองก็ยังได้ */
 const KINDS = ['ผลตรวจเลือด', 'ผลตรวจตา', 'ผลเอกซเรย์', 'ใบรับรองแพทย์', 'ใบเสร็จ'];
+
+/** PDF ที่โรงพยาบาลส่งมาทางอีเมลชัดกว่าการถ่ายรูปกระดาษเยอะ และเป็นต้นฉบับจริง
+ *  แต่ย่อขนาดไม่ได้เหมือนรูป จึงกินพื้นที่เก็บไฟล์มากกว่ามาก เตือนไว้ให้เห็น
+ *  ตอนที่ไฟล์ใหญ่จริงๆ ไม่ใช่ปล่อยให้รู้ตัวตอนพื้นที่เต็ม */
+const BIG_FILE_MB = 3;
 
 /** เก็บเอกสารจากหมอ — ผลตรวจเลือด ผลตรวจตา ฯลฯ
  *
@@ -95,15 +100,30 @@ export function AddDocSheet({ open, bookId, onClose }: {
       <input id="doc-note" className="o-input" placeholder="เช่น หมอบอกไขมันลดลง"
         value={note} onChange={(e) => setNote(e.target.value)} />
 
-      <label className="o-label">รูปเอกสาร</label>
+      <label className="o-label">รูปเอกสาร หรือไฟล์ PDF</label>
       {pages.length > 0 && (
         <div className="o-card" style={{ marginTop: 0 }}>
           {pages.map((src, i) => (
             <div key={src.slice(-24)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 0' }}>
-              {}
-              <img src={src} alt={`แผ่นที่ ${i + 1}`}
-                style={{ width: 54, height: 54, objectFit: 'cover', borderRadius: 10, flex: '0 0 54px' }} />
-              <span style={{ flex: 1 }}>แผ่นที่ {i + 1}</span>
+              {isPdf(src) ? (
+                <span style={{
+                  width: 54, height: 54, borderRadius: 10, flex: '0 0 54px',
+                  display: 'grid', placeItems: 'center',
+                  border: '1.5px solid var(--color-neutral-400)',
+                  fontSize: 12, fontWeight: 700, color: 'var(--color-neutral-700)',
+                }}>PDF</span>
+              ) : (
+                <img src={src} alt={`แผ่นที่ ${i + 1}`}
+                  style={{ width: 54, height: 54, objectFit: 'cover', borderRadius: 10, flex: '0 0 54px' }} />
+              )}
+              <span style={{ flex: 1 }}>
+                แผ่นที่ {i + 1}
+                {isPdf(src) && (
+                  <span className="subtle" style={{ display: 'block', fontSize: 13 }}>
+                    ไฟล์ PDF · {dataUrlSize(src)}
+                  </span>
+                )}
+              </span>
               <button type="button" className="o-btn ghost" style={{ padding: '4px 12px', minHeight: 32 }}
                 onClick={() => setPages((cur) => cur.filter((_, n) => n !== i))}>
                 <Icon name="x" size={15} /> เอาออก
@@ -117,13 +137,20 @@ export function AddDocSheet({ open, bookId, onClose }: {
           <Icon name="camera" size={18} /> ถ่ายรูป
         </button>
         <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>
-          เลือกรูป
+          เลือกรูป / PDF
         </button>
       </div>
       <input ref={camRef} type="file" accept="image/*" capture="environment" multiple
         onChange={onFiles} style={{ display: 'none' }} />
-      <input ref={pickRef} type="file" accept="image/*" multiple
+      <input ref={pickRef} type="file" accept="image/*,application/pdf" multiple
         onChange={onFiles} style={{ display: 'none' }} />
+
+      {pages.some((src) => isPdf(src) && (src.length * 0.75) / 1024 / 1024 > BIG_FILE_MB) && (
+        <p className="o-hint">
+          มีไฟล์ PDF ที่ใหญ่กว่า {BIG_FILE_MB} MB — เก็บได้ปกติ แต่ไฟล์ใหญ่กินพื้นที่
+          มากกว่ารูปถ่ายหลายเท่า ถ้าเป็นเอกสารหน้าเดียว ถ่ายรูปเอาจะเบากว่ามาก
+        </p>
+      )}
 
       <div className="o-row" style={{ marginTop: 18 }}>
         <button type="button" className="o-btn ghost"

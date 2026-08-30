@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
 import { Kicker } from '../Kicker';
-import { daysUntil, fmtDate, fmtShortDate, fmtTime } from '@/lib/format';
+import { daysUntil, fmtDate, fmtShortDate, fmtTime, isPdf } from '@/lib/format';
 import {
   SHARE_LABEL, bookRecords, bookSummary, bookVaccines, bookWatchRules, bpHistory,
   isVaccine, shareLevel, vaccineDateLabel, visibleBooks,
@@ -269,6 +269,16 @@ function RecordPhoto({ record }: { record: RecordItem }) {
   const [loading, setLoading] = useState(false);
 
   if (record.file) {
+    // PDF เปิดในแท็ก img ไม่ได้ ถ้าใช้ทางเดียวกับรูปจะเห็นเป็นรูปแตก
+    // จึงให้เป็นปุ่มเปิดในแท็บใหม่ ซึ่งเบราว์เซอร์ทุกตัวเปิด PDF ได้อยู่แล้ว
+    if (isPdf(record.file) || isPdf(record.file_path)) {
+      return (
+        <a className="o-btn ghost block" style={{ marginTop: 8, textDecoration: 'none' }}
+          href={record.file} target="_blank" rel="noreferrer">
+          <Icon name="book" size={18} /> เปิดไฟล์ PDF
+        </a>
+      );
+    }
     return (
       <a href={record.file} target="_blank" rel="noreferrer">
         <img src={record.file} alt={record.title} className="scan-img" />
