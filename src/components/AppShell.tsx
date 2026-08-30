@@ -67,10 +67,16 @@ export function AppShell() {
     return (
       <div className="app">
         {signedIn ? <NoBook /> : <Onboarding />}
+        {/* ── แถบนี้ต้องไม่ตรึงตำแหน่ง ──
+            เดิมลอยอยู่ล่างสุดตลอดเวลา ซึ่งบนมือถือจะไปเกาะขอบคีย์บอร์ดตอนที่
+            ผู้ใช้กำลังพิมพ์ แล้วบังช่องที่พิมพ์อยู่พอดี ผู้ใช้ใหม่รายงานอาการนี้
+            มาแล้วตอนกรอกสมุดเล่มแรก
+            อยู่ท้ายหน้าตามปกติก็พอ — คนหาปุ่มออกจากระบบตอนที่ตั้งใจหาอยู่แล้ว
+            ไม่ใช่ของที่ต้องเห็นตลอดเวลาจนยอมให้ไปทับของอื่น */}
         <div style={{
-          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 55, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
-          maxWidth: 'calc(100vw - 32px)',
+          display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
+          padding: '8px 16px calc(24px + env(safe-area-inset-bottom))',
+          maxWidth: 480, margin: '0 auto',
         }}>
           {hasLocalToUpload && (
             <button type="button" className="o-btn secondary"

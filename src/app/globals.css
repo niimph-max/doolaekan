@@ -281,9 +281,8 @@ button { font-family: inherit; font-size: inherit; }
 .full.over {
   position: fixed; inset: 0; z-index: 50; overflow-y: auto;
 }
-/* หน้าเปิดใช้ครั้งแรกมีแถบบอกอีเมล/ออกจากระบบลอยทับอยู่ล่างสุด
-   ต้องเว้นที่ให้พอ ไม่งั้นมันไปทับปุ่มของขั้นตอนสุดท้ายจนกดไม่ได้
-   (เว้นสองบรรทัด เผื่ออีเมลยาวจนแถบตัดขึ้นบรรทัดใหม่บนจอแคบ) */
-.full.has-footer .full-inner { padding-bottom: 120px; }
+/* แถบอีเมล/ออกจากระบบไม่ลอยทับแล้ว (ไปอยู่ท้ายหน้าตามปกติ เพราะตอนตรึงไว้
+   มันไปเกาะขอบคีย์บอร์ดแล้วบังช่องที่กำลังพิมพ์) จึงเหลือเว้นที่ไว้พอหายใจ */
+.full.has-footer .full-inner { padding-bottom: 16px; }
 .full.card-bg { background: #ebddc5; }
 .full-inner { max-width: 480px; margin: 0 auto; }
