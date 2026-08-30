@@ -30,7 +30,7 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
   );
 
   return (
-    <div className="full card-bg" style={{ fontSize: zoom ? '1.25em' : '1em' }}>
+    <div className="full over card-bg" style={{ fontSize: zoom ? '1.25em' : '1em' }}>
       <div className="full-inner">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <button type="button" className="o-btn ghost" onClick={onClose}>
