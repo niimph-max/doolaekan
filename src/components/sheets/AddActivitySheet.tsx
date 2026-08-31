@@ -6,37 +6,11 @@ import { Chips } from '../Chips';
 import { Icon } from '../Icon';
 import { EXERCISE_CHIPS, MEAL_CHIPS } from '@/lib/seed';
 import { fmtShortDate, todayKey } from '@/lib/format';
+import { shrinkPhoto } from '@/lib/photo';
 import { equipmentHistory, equipmentLine, knownEquipment, lastExercise, lastWeight } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { ActivityEntry } from '@/lib/selectors';
 import type { RecordKind } from '@/lib/types';
-
-/** ย่อรูปก่อนเก็บ
- *
- *  รูปอาหารมีไว้ให้จำได้ว่ากินอะไร ไม่ได้มีไว้อ่านตัวหนังสือเล็กๆ แบบผลตรวจเลือด
- *  จึงย่อได้โดยไม่เสียประโยชน์ และรูปคือของหนักที่สุดในแอปนี้ — เคยกิน egress
- *  ไป 32 GB มาแล้วเพราะเก็บรูปเต็มขนาด ของที่จดทุกวันยิ่งต้องเบา */
-const MAX_SIDE = 1000;
-const QUALITY = 0.72;
-
-function shrink(dataUrl: string): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext('2d');
-      // ย่อไม่ได้ก็ยังต้องเก็บรูปให้ได้ ดีกว่าทิ้งของที่ผู้ใช้เพิ่งถ่ายมา
-      if (!ctx) { resolve(dataUrl); return; }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', QUALITY));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
 
 type Mode = Extract<RecordKind, 'exercise' | 'food' | 'note'>;
 
@@ -143,7 +117,7 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
     for (const file of files) {
       const reader = new FileReader();
       reader.onload = async () => {
-        const small = await shrink(String(reader.result));
+        const small = await shrinkPhoto(String(reader.result));
         setPhotos((cur) => [...cur, small]);
         setBusy((n) => n - 1);
       };
