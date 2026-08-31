@@ -16,7 +16,7 @@ const FILTERS: { id: 'all' | RecordKind; label: string }[] = [
   { id: 'all', label: 'ทั้งหมด' },
   { id: 'symptom', label: 'อาการ' },
   { id: 'bp', label: 'ความดัน' },
-  { id: 'doc', label: 'เอกสาร' },
+  { id: 'doc', label: 'พบหมอ/เอกสาร' },
 ];
 
 // exercise/food/note อยู่แท็บกิจกรรม ไม่โผล่ในไทม์ไลน์นี้ แต่ต้องมีสีไว้กันพลาด
@@ -215,16 +215,16 @@ export function BookScreen({
         </div>
       )}
 
-      {/* ── ปุ่มเก็บเอกสารต้องอยู่บนไทม์ไลน์ ไม่ใช่ใต้ ──
+      {/* ── ปุ่มบันทึกการพบหมอต้องอยู่บนไทม์ไลน์ ไม่ใช่ใต้ ──
           เดิมอยู่ล่างสุดของหน้า ต้องเลื่อนผ่านบันทึกทั้งหมดกว่าจะเจอ ซึ่งยิ่งใช้
           ไปนานวันยิ่งไกลขึ้นเรื่อยๆ ไม่มีวันสั้นลง ผู้ใช้บอกตรงๆ ว่าหายากมาก
           ปุ่มที่ต้องกดบ่อยต้องอยู่ที่เดิมเสมอ ไม่ใช่ขยับหนีไปตามจำนวนข้อมูล */}
       <h3 style={{ fontSize: 19, margin: '22px 0 10px' }}>ไทม์ไลน์</h3>
       <button type="button" className="o-btn primary block" onClick={onAddDoc}>
-        <Icon name="camera" size={20} /> เก็บเอกสารจากหมอ
+        <Icon name="camera" size={20} /> พบหมอ / เอกสาร
       </button>
       <p className="subtle" style={{ margin: '8px 0 14px', textAlign: 'center' }}>
-        ผลตรวจเลือด ผลตรวจตา — ใส่วันที่บนใบจริงได้ เอกสารเก่าจะได้เรียงถูกที่
+        ไปหาหมอ ฉีดยา ทำแผล หรือเก็บผลตรวจ — ไม่มีรูปก็บันทึกได้
       </p>
 
       <div className="o-chips" style={{ marginBottom: 14 }}>

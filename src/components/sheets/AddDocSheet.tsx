@@ -4,21 +4,27 @@ import React, { useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
 import { dataUrlSize, isPdf, todayKey } from '@/lib/format';
+import { VISIT_CHIPS } from '@/lib/seed';
 import { useStore } from '@/lib/store';
 
-/** ประเภทที่เจอบ่อย ให้แตะเลือกแทนพิมพ์ พิมพ์เองก็ยังได้ */
-const KINDS = ['ผลตรวจเลือด', 'ผลตรวจตา', 'ผลเอกซเรย์', 'ใบรับรองแพทย์', 'ใบเสร็จ'];
+/** ชนิดเอกสารที่เจอบ่อย ให้แตะเลือกแทนพิมพ์ พิมพ์เองก็ยังได้
+ *  อยู่ต่อจากเรื่องที่ไปทำมา เพราะการไปหาหมอหนึ่งครั้งมักได้มาทั้งสองอย่าง */
+const KINDS = [...VISIT_CHIPS, 'ผลตรวจเลือด', 'ผลตรวจตา', 'ผลเอกซเรย์', 'ใบรับรองแพทย์', 'ใบเสร็จ'];
 
 /** PDF ที่โรงพยาบาลส่งมาทางอีเมลชัดกว่าการถ่ายรูปกระดาษเยอะ และเป็นต้นฉบับจริง
  *  แต่ย่อขนาดไม่ได้เหมือนรูป จึงกินพื้นที่เก็บไฟล์มากกว่ามาก เตือนไว้ให้เห็น
  *  ตอนที่ไฟล์ใหญ่จริงๆ ไม่ใช่ปล่อยให้รู้ตัวตอนพื้นที่เต็ม */
 const BIG_FILE_MB = 3;
 
-/** เก็บเอกสารจากหมอ — ผลตรวจเลือด ผลตรวจตา ฯลฯ
+/** พบหมอ / เอกสาร — ทั้งเรื่องที่ไปทำมา และกระดาษที่ถือกลับบ้าน
  *
  *  ของเดิมเป็นปุ่มเลือกไฟล์อย่างเดียว ตั้งชื่อว่า "เอกสารจากหมอ" ทุกใบเหมือนกันหมด
  *  และลงวันที่เป็นวันที่กดเสมอ ซึ่งใช้ไม่ได้กับการย้อนไปเก็บผลตรวจครั้งก่อนๆ
- *  เพราะทุกใบจะกองอยู่ที่วันเดียวกันและแยกไม่ออกว่าใบไหนคืออะไร */
+ *  เพราะทุกใบจะกองอยู่ที่วันเดียวกันและแยกไม่ออกว่าใบไหนคืออะไร
+ *
+ *  และไม่บังคับว่าต้องมีรูป — ไปฉีดยามาแล้วไม่ได้กระดาษอะไรติดมือกลับมาเลย
+ *  เป็นเรื่องปกติ แต่ยังเป็นเรื่องที่ต้องจดไว้ ถ้าบังคับให้มีรูปก่อนถึงจะกดได้
+ *  คนจะถ่ายรูปอะไรก็ได้มาใส่ให้ผ่าน แล้วสมุดจะเต็มไปด้วยรูปที่ไม่มีความหมาย */
 export function AddDocSheet({ open, bookId, onClose }: {
   open: boolean; bookId: string; onClose: () => void;
 }) {
@@ -31,6 +37,8 @@ export function AddDocSheet({ open, bookId, onClose }: {
   const [pages, setPages] = useState<string[]>([]);
 
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const hasContent = Boolean(pages.length || title.trim() || note.trim());
 
   /** ปิดชีตเฉยๆ — เก็บรูปที่ถ่ายไว้ต่อ เปิดกลับมาแล้วยังอยู่ครบ
    *  ถ่ายเอกสารสิบกว่าใบแล้วเผลอปิด ต้องไม่ต้องเริ่มถ่ายใหม่ทั้งหมด */
@@ -59,25 +67,28 @@ export function AddDocSheet({ open, bookId, onClose }: {
     // เดิมต้องเลือกชื่อก่อนถึงจะกดเก็บได้ ปุ่มเลยกดไม่ติดโดยไม่บอกเหตุผล
     // ผู้ใช้ถ่ายรูปมาเป็นสิบใบแล้วกดไม่ได้ จึงทิ้งไปทั้งชุดแล้วถ่ายใหม่
     // ชื่อเป็นแค่ของช่วยหา ไม่ใช่ของจำเป็น ขาดได้ ตั้งให้เองไปก่อนแล้วแก้ทีหลัง
-    const name = title.trim() || `เอกสารจากหมอ ${date}`;
-    if (!pages.length) return;
+    if (!hasContent) return;
+    // ไม่มีรูปแปลว่าเป็นการบันทึกว่าไปทำอะไรมา ไม่ใช่การเก็บกระดาษ
+    // ชื่อตั้งต้นจึงต้องบอกตามนั้น ไม่ใช่เรียกว่าเอกสารทั้งที่ไม่มีเอกสารสักใบ
+    const name = title.trim() || `${pages.length ? 'เอกสารจากหมอ' : 'พบหมอ'} ${date}`;
     // เวลาเที่ยงวันเพื่อกันเรื่องเขตเวลาทำให้วันเลื่อนไปวันก่อนหน้า
     const at = new Date(`${date}T12:00:00`).toISOString();
-    pages.forEach((file, i) => {
+    const sheets: (string | undefined)[] = pages.length ? pages : [undefined];
+    sheets.forEach((file, i) => {
       actions.addRecord(bookId, {
         kind: 'doc',
-        title: pages.length > 1 ? `${name} (แผ่น ${i + 1}/${pages.length})` : name,
+        title: sheets.length > 1 ? `${name} (แผ่น ${i + 1}/${sheets.length})` : name,
         body: note.trim(),
         file, at, important: true,
       });
     });
-    actions.toast(`เก็บ ${name} แล้ว`);
+    actions.toast(`บันทึก ${name} แล้ว`);
     clear();
   };
 
   return (
-    <Sheet open={open} title="เก็บเอกสารจากหมอ" onClose={close}>
-      <label className="o-label" style={{ marginTop: 0 }}>เอกสารอะไร (ไม่เลือกก็ได้)</label>
+    <Sheet open={open} title="พบหมอ / เอกสาร" onClose={close}>
+      <label className="o-label" style={{ marginTop: 0 }}>เรื่องอะไร (ไม่เลือกก็ได้)</label>
       <div className="o-chips">
         {KINDS.map((k) => (
           <button key={k} type="button" className="o-chip" aria-pressed={title === k}
@@ -89,18 +100,19 @@ export function AddDocSheet({ open, bookId, onClose }: {
       <input id="doc-title" className="o-input" style={{ marginTop: 10 }}
         placeholder="หรือพิมพ์ชื่อเอง" value={title} onChange={(e) => setTitle(e.target.value)} />
 
-      <label className="o-label" htmlFor="doc-date">วันที่ของเอกสาร</label>
+      <label className="o-label" htmlFor="doc-date">วันที่</label>
       <input id="doc-date" className="o-input" type="date" value={date}
         onChange={(e) => setDate(e.target.value)} />
       <p className="subtle" style={{ margin: '6px 0 0' }}>
-        ใส่วันที่บนใบจริงได้เลย เอกสารเก่าจะได้เรียงถูกที่
+        วันที่ไปหาหมอ หรือวันที่บนใบจริง ของเก่าจะได้เรียงถูกที่
       </p>
 
       <label className="o-label" htmlFor="doc-note">โน้ต (ไม่ใส่ก็ได้)</label>
-      <input id="doc-note" className="o-input" placeholder="เช่น หมอบอกไขมันลดลง"
+      <textarea id="doc-note" className="o-textarea" rows={3}
+        placeholder="เช่น หมอบอกไขมันลดลง นัดอีก 3 เดือน"
         value={note} onChange={(e) => setNote(e.target.value)} />
 
-      <label className="o-label">รูปเอกสาร หรือไฟล์ PDF</label>
+      <label className="o-label">รูปเอกสาร หรือไฟล์ PDF (ไม่ใส่ก็ได้)</label>
       {pages.length > 0 && (
         <div className="o-card" style={{ marginTop: 0 }}>
           {pages.map((src, i) => (
@@ -154,33 +166,35 @@ export function AddDocSheet({ open, bookId, onClose }: {
 
       <div className="o-row" style={{ marginTop: 18 }}>
         <button type="button" className="o-btn ghost"
-          onClick={() => (pages.length ? setConfirmDiscard(true) : clear())}>
+          onClick={() => (hasContent ? setConfirmDiscard(true) : clear())}>
           ยกเลิก
         </button>
         <button type="button" className="o-btn primary"
-          disabled={!pages.length} onClick={save}>
-          เก็บเอกสาร
+          disabled={!hasContent} onClick={save}>
+          บันทึก
         </button>
       </div>
 
       {/* ปุ่มที่กดไม่ได้โดยไม่บอกเหตุผล คือทางตัน ผู้ใช้จะนึกว่าแอปพัง
           ทั้งที่ขาดแค่ข้อมูลอีกอย่างเดียว บอกไปตรงๆ ว่าขาดอะไร */}
-      {!pages.length && (
+      {!hasContent && (
         <p className="subtle" style={{ margin: '10px 0 0', textAlign: 'center' }}>
-          ยังกดเก็บไม่ได้ — ใส่รูปเอกสารก่อน
+          ยังกดบันทึกไม่ได้ — เลือกเรื่อง พิมพ์โน้ต หรือใส่รูป อย่างน้อยหนึ่งอย่าง
         </p>
       )}
 
       {/* ทิ้งรูปที่ถ่ายมาแล้วเป็นเรื่องที่เอาคืนไม่ได้ ต้องถามก่อนเสมอ */}
       {confirmDiscard && (
         <div className="o-card warn" style={{ marginTop: 14 }}>
-          <strong>ทิ้งรูป {pages.length} แผ่นที่ใส่ไว้?</strong>
+          <strong>
+            {pages.length ? `ทิ้งรูป ${pages.length} แผ่นที่ใส่ไว้?` : 'ทิ้งที่กรอกไว้?'}
+          </strong>
           <p className="subtle" style={{ margin: '4px 0 10px' }}>
-            ถ้าแค่อยากปิดไปทำอย่างอื่นก่อน กดปิดหน้านี้ได้เลย รูปจะยังอยู่
+            ถ้าแค่อยากปิดไปทำอย่างอื่นก่อน กดปิดหน้านี้ได้เลย ของจะยังอยู่
           </p>
           <div className="o-row">
-            <button type="button" className="o-btn ghost" onClick={close}>ปิดไว้ก่อน รูปยังอยู่</button>
-            <button type="button" className="o-btn danger" onClick={clear}>ทิ้งรูปทั้งหมด</button>
+            <button type="button" className="o-btn ghost" onClick={close}>ปิดไว้ก่อน ของยังอยู่</button>
+            <button type="button" className="o-btn danger" onClick={clear}>ทิ้งทั้งหมด</button>
           </div>
         </div>
       )}
