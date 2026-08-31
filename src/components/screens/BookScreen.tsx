@@ -215,8 +215,18 @@ export function BookScreen({
         </div>
       )}
 
-      {/* ไทม์ไลน์ */}
+      {/* ── ปุ่มเก็บเอกสารต้องอยู่บนไทม์ไลน์ ไม่ใช่ใต้ ──
+          เดิมอยู่ล่างสุดของหน้า ต้องเลื่อนผ่านบันทึกทั้งหมดกว่าจะเจอ ซึ่งยิ่งใช้
+          ไปนานวันยิ่งไกลขึ้นเรื่อยๆ ไม่มีวันสั้นลง ผู้ใช้บอกตรงๆ ว่าหายากมาก
+          ปุ่มที่ต้องกดบ่อยต้องอยู่ที่เดิมเสมอ ไม่ใช่ขยับหนีไปตามจำนวนข้อมูล */}
       <h3 style={{ fontSize: 19, margin: '22px 0 10px' }}>ไทม์ไลน์</h3>
+      <button type="button" className="o-btn primary block" onClick={onAddDoc}>
+        <Icon name="camera" size={20} /> เก็บเอกสารจากหมอ
+      </button>
+      <p className="subtle" style={{ margin: '8px 0 14px', textAlign: 'center' }}>
+        ผลตรวจเลือด ผลตรวจตา — ใส่วันที่บนใบจริงได้ เอกสารเก่าจะได้เรียงถูกที่
+      </p>
+
       <div className="o-chips" style={{ marginBottom: 14 }}>
         {FILTERS.map((f) => (
           <button key={f.id} type="button" className="o-chip" aria-pressed={filter === f.id}
@@ -250,13 +260,6 @@ export function BookScreen({
         ))
       )}
 
-      <button type="button" className="o-btn primary block" style={{ marginTop: 10 }}
-        onClick={onAddDoc}>
-        <Icon name="camera" size={20} /> เก็บเอกสารจากหมอ
-      </button>
-      <p className="subtle" style={{ margin: '8px 0 0', textAlign: 'center' }}>
-        ผลตรวจเลือด ผลตรวจตา — ใส่วันที่บนใบจริงได้ เอกสารเก่าจะได้เรียงถูกที่
-      </p>
     </div>
   );
 }
