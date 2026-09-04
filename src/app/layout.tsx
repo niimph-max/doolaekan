@@ -10,19 +10,20 @@ import { StoreProvider } from '@/lib/store';
 const mitr = Mitr({ subsets: ['thai', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--font-mitr' });
 const sarabun = Sarabun({ subsets: ['thai', 'latin'], weight: ['400', '600', '700'], display: 'swap', variable: '--font-sarabun' });
 
-// Next เติม basePath ให้ asset ของตัวเองอัตโนมัติ แต่ไม่เติมให้ manifest/icons ใน metadata
-const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-
+// ── อ้างแบบสัมพัทธ์เสมอ ห้ามขึ้นต้นด้วย / ──
+// ที่อยู่ที่ขึ้นต้นด้วย / ผูกกับรากเว็บ ซึ่งใช้ได้ที่เดียวเท่านั้น พอเว็บถูกวางไว้
+// ใต้ /doolaekan/ หรือหน้า HTML กับไฟล์มาจาก build คนละรอบ ทุกอย่างจะ 404 พร้อมกัน
+// แบบสัมพัทธ์อ้างจากตำแหน่งของหน้าเอง จึงถูกต้องทุกที่โดยไม่ต้องรู้ว่าอยู่ที่ไหน
 export const metadata: Metadata = {
   title: 'Doolaekan — สมุดสุขภาพ',
   description: 'บันทึกยา นัดหมอ ความดัน และอาการของคนที่บ้าน แชร์กันในครอบครัวเมื่อยินยอม',
-  manifest: `${base}/manifest.webmanifest`,
+  manifest: 'manifest.webmanifest',
   icons: {
     icon: [
-      { url: `${base}/icon-192.png`, sizes: '192x192', type: 'image/png' },
-      { url: `${base}/icon-512.png`, sizes: '512x512', type: 'image/png' },
+      { url: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: 'icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: `${base}/apple-touch-icon.png`,
+    apple: 'apple-touch-icon.png',
   },
   appleWebApp: { capable: true, title: 'Doolaekan', statusBarStyle: 'default' },
 };
