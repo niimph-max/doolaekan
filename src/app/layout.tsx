@@ -10,20 +10,24 @@ import { StoreProvider } from '@/lib/store';
 const mitr = Mitr({ subsets: ['thai', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--font-mitr' });
 const sarabun = Sarabun({ subsets: ['thai', 'latin'], weight: ['400', '600', '700'], display: 'swap', variable: '--font-sarabun' });
 
-// ── อ้างแบบสัมพัทธ์เสมอ ห้ามขึ้นต้นด้วย / ──
-// ที่อยู่ที่ขึ้นต้นด้วย / ผูกกับรากเว็บ ซึ่งใช้ได้ที่เดียวเท่านั้น พอเว็บถูกวางไว้
-// ใต้ /doolaekan/ หรือหน้า HTML กับไฟล์มาจาก build คนละรอบ ทุกอย่างจะ 404 พร้อมกัน
-// แบบสัมพัทธ์อ้างจากตำแหน่งของหน้าเอง จึงถูกต้องทุกที่โดยไม่ต้องรู้ว่าอยู่ที่ไหน
+// Next เติม basePath ให้ asset ของตัวเองอัตโนมัติ แต่ไม่เติมให้ manifest/icons ใน metadata
+//
+// เคยลองเปลี่ยนเป็นอ้างแบบสัมพัทธ์ (ไม่ขึ้นต้นด้วย /) ตอนไล่หาสาเหตุที่ย้ายโดเมนแล้วพัง
+// แต่ใช้ไม่ได้ เพราะแบบสัมพัทธ์อ้างจากตำแหน่งของหน้า พอมีหน้าที่อยู่ลึกลงไปอย่าง
+// /welcome/ ไอคอนจะกลายเป็น /welcome/icon-192.png ซึ่งไม่มีอยู่จริง
+// ต้องผูกกับรากเว็บเท่านั้น และ basePath ก็ถูกต้องอยู่แล้วหลังแก้ workflow
+const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 export const metadata: Metadata = {
   title: 'Doolaekan — สมุดสุขภาพ',
   description: 'บันทึกยา นัดหมอ ความดัน และอาการของคนที่บ้าน แชร์กันในครอบครัวเมื่อยินยอม',
-  manifest: 'manifest.webmanifest',
+  manifest: `${base}/manifest.webmanifest`,
   icons: {
     icon: [
-      { url: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: `${base}/icon-192.png`, sizes: '192x192', type: 'image/png' },
+      { url: `${base}/icon-512.png`, sizes: '512x512', type: 'image/png' },
     ],
-    apple: 'apple-touch-icon.png',
+    apple: `${base}/apple-touch-icon.png`,
   },
   appleWebApp: { capable: true, title: 'Doolaekan', statusBarStyle: 'default' },
 };

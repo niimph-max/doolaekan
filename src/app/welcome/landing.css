@@ -1,0 +1,83 @@
+/* หน้าแนะนำแอปสำหรับคนนอก — คนละโครงกับตัวแอป
+   ตัวแอปกว้างไม่เกิน 480px เพราะใช้บนมือถือ แต่หน้านี้คนเปิดจากคอมด้วย
+   จึงกว้างได้ แต่ยังคุมความยาวบรรทัดไม่ให้อ่านยาก */
+.lp {
+  --lp-max: 780px;
+  color: var(--color-text);
+}
+.lp-in { max-width: var(--lp-max); margin: 0 auto; padding: 0 22px; }
+
+/* ── ส่วนหัว ── */
+.lp-hero {
+  text-align: center;
+  padding: 56px 0 44px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--color-brand-bg) 0%, transparent 62%),
+    var(--color-bg);
+}
+.lp-hero h1 {
+  font-size: clamp(30px, 6.4vw, 46px);
+  line-height: 1.24;
+  margin: 22px 0 0;
+  letter-spacing: -.01em;
+}
+.lp-lead {
+  font-size: clamp(16.5px, 2.4vw, 19px);
+  color: var(--color-neutral-700);
+  margin: 14px auto 0;
+  max-width: 34em;
+}
+.lp-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 26px; padding: 15px 32px;
+  min-height: var(--tap);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent); color: var(--color-bg);
+  font-family: var(--font-heading); font-size: 18px;
+  text-decoration: none;
+}
+.lp-cta:hover { background: var(--color-accent-600); }
+.lp-free { margin-top: 12px; font-size: 14.5px; color: var(--color-neutral-600); }
+
+/* ── ทำไมถึงทำแอปนี้ ── */
+.lp-why {
+  background: var(--color-surface);
+  padding: 44px 0;
+}
+.lp-why p { font-size: clamp(17px, 2.5vw, 20px); line-height: 1.62; margin: 0; }
+.lp-why p + p { margin-top: 14px; }
+.lp-why strong { color: var(--color-accent-700); }
+
+/* ── สิ่งที่จดได้ ── */
+.lp-sec { padding: 46px 0; }
+.lp-sec h2 { font-size: clamp(23px, 4vw, 30px); margin-bottom: 6px; }
+.lp-sec > .lp-in > .subtle { margin: 0 0 22px; }
+
+.lp-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+}
+.lp-card {
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 22px;
+  padding: 18px 20px;
+}
+.lp-card h3 { font-size: 18px; margin-bottom: 4px; }
+.lp-card p { margin: 0; font-size: 15px; color: var(--color-neutral-700); line-height: 1.55; }
+
+/* ── สัญญาว่าจะไม่ทำ ── */
+.lp-promise { background: var(--color-accent-900); color: var(--color-accent-200); padding: 46px 0; }
+.lp-promise h2 { color: var(--color-accent-100); }
+.lp-promise .subtle { color: var(--color-accent-300); }
+.lp-list { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 14px; }
+.lp-list li { display: flex; gap: 12px; align-items: flex-start; line-height: 1.55; }
+.lp-tick { flex: 0 0 auto; color: var(--color-accent-400); font-weight: 700; }
+
+/* ── ท้ายหน้า ── */
+.lp-end { text-align: center; padding: 50px 0 26px; }
+.lp-end h2 { font-size: clamp(22px, 3.6vw, 28px); }
+.lp-foot {
+  text-align: center; padding: 0 22px 40px;
+  font-size: 13.5px; color: var(--color-neutral-600);
+}

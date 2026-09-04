@@ -25,12 +25,13 @@ export function RegisterSW() {
     };
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
+    // ต้องผูกกับรากเว็บ ไม่ใช่สัมพัทธ์ ไม่งั้นเปิดจากหน้าที่อยู่ลึกลงไป (เช่น /welcome/)
+    // จะไปลงทะเบียน /welcome/sw.js ซึ่งไม่มีอยู่ และ scope จะครอบแค่หน้านั้น
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
     let reg: ServiceWorkerRegistration | null = null;
-    // อ้างแบบสัมพัทธ์ เบราว์เซอร์จะเทียบจากที่อยู่ของหน้าเอง ทำให้ใช้ได้ทั้งตอนอยู่ที่
-    // รากโดเมนและตอนอยู่ใต้ /doolaekan/ โดยไม่ต้องรู้ล่วงหน้าว่าอยู่ที่ไหน
     // updateViaCache: 'none' สำคัญมาก — ไม่งั้นเบราว์เซอร์เก็บ sw.js ไว้ใน HTTP cache
     // ได้ถึง 24 ชั่วโมง เช็คหารุ่นใหม่กี่ครั้งก็เจอแต่ไฟล์เดิม แอปเลยค้างรุ่นเก่าทั้งวัน
-    navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' })
+    navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/`, updateViaCache: 'none' })
       .then((r) => { reg = r; return r.update(); })
       .catch(() => { /* ติดตั้งไม่ได้ก็ยังใช้แอปได้ตามปกติ */ });
 
