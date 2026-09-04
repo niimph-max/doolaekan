@@ -11,10 +11,17 @@
 
 ต้องมีสองตัวพร้อมกัน เพราะโหมดตัวอย่างกับโหมดคลาวด์เดินคนละทาง
 
+**ก่อนอื่น: ย้าย `.env.local` ออกไปก่อน** — ถ้าไฟล์นี้อยู่ Next จะเอาค่าในนั้นมาใช้
+ทับค่าที่ล้างไว้หน้าบรรทัดคำสั่ง แล้วได้แอปโหมดคลาวด์แทนโหมดตัวอย่างแบบเงียบๆ
+ทดสอบจะตกทุกตัวโดยที่ไม่มีอะไรบอกว่าทำไม ย้ายไปนอกโปรเจกต์ด้วย เพราะ
+`.gitignore` จับแค่ชื่อ `.env.local` เป๊ะๆ ถ้าเปลี่ยนชื่อไว้ในโปรเจกต์จะหลุดเข้า git
+
 ```bash
-# 4200 — โหมดตัวอย่าง (ไม่ใส่ค่า Supabase = แอปขึ้นปุ่ม "ดูโหมดตัวอย่างก่อน")
-NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= npx next build
-cp -r out /tmp/out-local
+mv .env.local /tmp/env.local.away     # เสร็จแล้วอย่าลืมย้ายกลับ
+
+# 4200 — โหมดตัวอย่าง (ไม่มีค่า Supabase = แอปขึ้นปุ่ม "ดูโหมดตัวอย่างก่อน")
+npx next build
+rm -rf /tmp/out-local && cp -r out /tmp/out-local
 (cd /tmp/out-local && npx serve -l 4200 .) &
 
 # 4201 — โหมดคลาวด์ปลอม สำหรับทดสอบทางที่ต้องล็อกอิน/ต่อเน็ต
@@ -22,11 +29,19 @@ cp -r out /tmp/out-local
 NEXT_PUBLIC_SUPABASE_URL='https://offline-test.supabase.co' \
 NEXT_PUBLIC_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.offline-test-key' \
 npx next build
-cp -r out /tmp/out-cloud
+rm -rf /tmp/out-cloud && cp -r out /tmp/out-cloud
 (cd /tmp/out-cloud && npx serve -l 4201 .) &
 
-# แล้ว build โหมดตัวอย่างกลับไว้ที่ out/ ถ้าจะเอาไป deploy ต่อ
+mv /tmp/env.local.away .env.local     # ย้ายกลับ
 ```
+
+**ตรวจก่อนรันเสมอว่าเสิร์ฟของถูกตัว** — เปิด `http://localhost:4200/` แล้วต้องเห็นปุ่ม
+"ดูโหมดตัวอย่างก่อน" ถ้าเห็นหน้าใส่อีเมลแทน แปลว่ากำลังเสิร์ฟ build ผิดโหมด
+รันต่อไปก็ตกทั้งชุดโดยไม่ได้บอกอะไรเลยว่าโค้ดพัง
+
+และถ้าจะฆ่าเซิร์ฟเวอร์เก่า **อย่าใช้ `pkill -f "serve -l 4200"` ตรงๆ** — บรรทัดคำสั่ง
+ของ shell ที่รัน pkill ก็มีข้อความนั้นอยู่ด้วย มันจะฆ่าตัวเองก่อนที่คำสั่งถัดไปจะได้รัน
+แล้วโฟลเดอร์ที่เสิร์ฟจะค้างเป็นของเก่าโดยไม่รู้ตัว ใช้ `pkill -f "serve -l 42[0]0"` แทน
 
 กุญแจที่เก็บใบเข้าระบบใน localStorage ของโหมดคลาวด์คือ
 `sb-offline-test-auth-token` — สคริปต์ที่ต้องล็อกอินจะเขียนใบปลอมลงไปเอง
