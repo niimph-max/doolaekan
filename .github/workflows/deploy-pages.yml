@@ -37,8 +37,24 @@ jobs:
       # วางไฟล์ public/CNAME ที่มีชื่อโดเมนบรรทัดเดียวเมื่อไหร่ (ดู CNAME.example)
       # deploy รอบถัดไปจะสลับไปเสิร์ฟที่รากโดเมนนั้นให้เอง และ GitHub Pages อ่าน
       # ไฟล์เดียวกันนี้เป็นค่า custom domain ด้วย จึงไม่มีทางตั้งสองที่แล้วไม่ตรงกัน
-      - name: อ่านโดเมนจาก CNAME
-        run: echo "CUSTOM_DOMAIN=$(cat public/CNAME 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_ENV"
+      # ── คำนวณด้วย shell ห้ามใช้สูตร ${{ }} แบบสามทาง ──
+      # เดิมเขียนว่า  ${{ env.CUSTOM_DOMAIN != '' && '' || format('/{0}', ...) }}
+      # ซึ่งเป็นกับดักคลาสสิก: ค่ากลางเป็นค่าว่าง ซึ่ง GitHub Actions นับเป็นเท็จ
+      # สูตรจึงตกไปใช้ค่าหลังสุดเสมอ ไม่มีทางได้ค่าว่างเลยสักครั้ง
+      # ผลคือมีไฟล์ CNAME แล้วแต่ basePath ยังเป็น /<ชื่อ repo> อยู่ หน้าเว็บเลย
+      # สั่งไปโหลด /<ชื่อ repo>/_next/... ขณะที่ไฟล์จริงอยู่ที่ราก → 404 ทุกไฟล์
+      # → แอปไม่เริ่มทำงาน ค้างที่หน้า "กำลังเปิดสมุด…" โดยไม่มี error อะไรเลย
+      - name: อ่านโดเมนจาก CNAME แล้วตั้ง basePath
+        run: |
+          DOMAIN=$(cat public/CNAME 2>/dev/null | tr -d '[:space:]')
+          echo "CUSTOM_DOMAIN=$DOMAIN" >> "$GITHUB_ENV"
+          if [ -n "$DOMAIN" ]; then
+            echo "NEXT_PUBLIC_BASE_PATH=" >> "$GITHUB_ENV"
+            echo "โดเมนของตัวเอง: $DOMAIN — เสิร์ฟที่ราก basePath ว่าง"
+          else
+            echo "NEXT_PUBLIC_BASE_PATH=/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
+            echo "ไม่มี CNAME — เสิร์ฟที่ /${{ github.event.repository.name }}/ บน github.io"
+          fi
 
       # ไม่มี secret แล้ว build ผ่านได้เหมือนกัน แต่จะได้แอปโหมดเครื่องเดียวที่ต่อคลาวด์ไม่ได้
       # ถ้าปล่อยไป ผู้ใช้จะเจอหน้า onboarding แทนหน้าเข้าสู่ระบบโดยไม่รู้สาเหตุ — หยุดตรงนี้ดีกว่า
@@ -64,10 +80,7 @@ jobs:
 
       - name: Build
         env:
-          # โดเมนของตัวเองเสิร์ฟที่ราก ส่วน github.io เสิร์ฟที่ /<ชื่อ repo>/
-          # อ่านจากไฟล์ CNAME ให้เป็นค่าเดียวกันเสมอ ถ้าตั้งสองที่แล้วไม่ตรงกัน
-          # ไฟล์ทั้งเว็บจะชี้ผิดที่ทั้งหมดและเปิดไม่ขึ้นเลยสักหน้า
-          NEXT_PUBLIC_BASE_PATH: ${{ env.CUSTOM_DOMAIN != '' && '' || format('/{0}', github.event.repository.name) }}
+          # NEXT_PUBLIC_BASE_PATH ตั้งมาจากขั้นตอนข้างบนแล้ว ผ่าน GITHUB_ENV
           # ประทับเลขรุ่นไว้ในตัวแอป จะได้ตอบได้ว่าเครื่องนี้กำลังรันของรอบไหน
           NEXT_PUBLIC_BUILD: ${{ github.run_number }}·${{ github.sha }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -82,6 +95,21 @@ jobs:
           sed -i "s/__BUILD__/${{ github.run_number }}/" out/sw.js
           grep -q "const BUILD = '${{ github.run_number }}'" out/sw.js \
             || { echo "::error::ประทับเลขรุ่นลง sw.js ไม่สำเร็จ"; exit 1; }
+
+      # ── ด่านตรวจว่าหน้าเว็บชี้ไฟล์ถูกที่จริง ──
+      # ความผิดพลาดแบบนี้ไม่มีอะไรเตือนเลย build ผ่าน deploy ผ่าน หน้าเว็บเปิดขึ้น
+      # แต่ไฟล์ทุกอันตอบ 404 แล้วแอปค้างที่หน้ากำลังโหลดโดยไม่มี error
+      # กว่าจะรู้ว่าพังคือตอนที่คนทั้งบ้านใช้ไม่ได้แล้ว จึงต้องตรวจตรงนี้ทุกครั้ง
+      - name: ตรวจว่าหน้าเว็บชี้ไฟล์ถูกที่
+        run: |
+          want="${NEXT_PUBLIC_BASE_PATH}/_next/"
+          if ! grep -q "\"${want}" out/index.html; then
+            echo "::error::index.html ไม่ได้ชี้ไปที่ ${want} — basePath กับตำแหน่งที่จะวางไม่ตรงกัน"
+            echo "ที่พบจริงในหน้าเว็บ:"
+            grep -o '"[^"]*_next/static/chunks/[^"]*"' out/index.html | head -3
+            exit 1
+          fi
+          echo "หน้าเว็บชี้ไปที่ ${want} ถูกต้อง"
 
       - run: touch out/.nojekyll
 
