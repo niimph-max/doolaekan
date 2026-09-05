@@ -11,6 +11,7 @@ import { Icon } from '../Icon';
 import { ageFromBirthDate, todayKey } from '@/lib/format';
 import { buildLabel } from '@/lib/build';
 import { DeleteAccount } from '../DeleteAccount';
+import { PushSettings } from '../PushSettings';
 import { useStore } from '@/lib/store';
 import type { Book, Doctor } from '@/lib/types';
 
@@ -234,6 +235,8 @@ export function ProfileSheet({ open, book, onClose }: {
       </button>
 
       <WatchRuleEditor book={book} />
+
+      <PushSettings />
 
       <button type="button" className="o-btn primary block" style={{ marginTop: 22 }} onClick={onClose}>
         เสร็จแล้ว

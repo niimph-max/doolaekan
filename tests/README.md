@@ -28,6 +28,7 @@ rm -rf /tmp/out-local && cp -r out /tmp/out-local
 # ค่าพวกนี้ไม่ได้ต่อไปที่ไหนจริง สคริปต์ดักคำขอทุกอันด้วย Playwright route
 NEXT_PUBLIC_SUPABASE_URL='https://offline-test.supabase.co' \
 NEXT_PUBLIC_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.offline-test-key' \
+NEXT_PUBLIC_VAPID_PUBLIC_KEY='BO8VkQ0CwBeZPNqlV_aioLIn3qsMKhm9OwLIC4B3twZQi66BgTbKeY6wglSak6Pv8qda8T6ZZCPrpLfuvxaTJbs' \
 npx next build
 rm -rf /tmp/out-cloud && cp -r out /tmp/out-cloud
 (cd /tmp/out-cloud && npx serve -l 4201 .) &
@@ -42,6 +43,10 @@ mv /tmp/env.local.away .env.local     # ย้ายกลับ
 และถ้าจะฆ่าเซิร์ฟเวอร์เก่า **อย่าใช้ `pkill -f "serve -l 4200"` ตรงๆ** — บรรทัดคำสั่ง
 ของ shell ที่รัน pkill ก็มีข้อความนั้นอยู่ด้วย มันจะฆ่าตัวเองก่อนที่คำสั่งถัดไปจะได้รัน
 แล้วโฟลเดอร์ที่เสิร์ฟจะค้างเป็นของเก่าโดยไม่รู้ตัว ใช้ `pkill -f "serve -l 42[0]0"` แทน
+
+กุญแจ VAPID ในบรรทัดข้างบนเป็นของทิ้ง สร้างมาเพื่อทดสอบโดยเฉพาะ ไม่ได้ใช้ที่ไหนจริง
+มีไว้ให้ส่วนตั้งค่าแจ้งเตือนโผล่ขึ้นมาบน 4201 เท่านั้น (ไม่ใส่ = ทั้งส่วนหายไปตามที่ออกแบบ)
+ของจริงสร้างด้วย `npm run vapid` และเก็บเป็น secret ไม่ใช่ในไฟล์นี้
 
 กุญแจที่เก็บใบเข้าระบบใน localStorage ของโหมดคลาวด์คือ
 `sb-offline-test-auth-token` — สคริปต์ที่ต้องล็อกอินจะเขียนใบปลอมลงไปเอง
@@ -80,6 +85,7 @@ node tests/visit.js            # ทีละตัว เห็นรายล�
 | `keyboard.js` | 4201 | คีย์บอร์ดเด้งแล้วหน้าไม่กระตุก ไม่มีอะไรตรึงบังช่องพิมพ์ |
 | `flicker.js` | 4201 | ช่องพิมพ์ไม่ถูกสร้างใหม่ซ้ำๆ ค่าที่พิมพ์และโฟกัสไม่หลุด (`FLAKY=1` จำลองเน็ตล้มเป็นช่วงๆ) |
 | `boot-flicker.js` | 4201 | ตอนเปิดแอปครั้งแรก หน้าไม่สลับไปมาหลายรอบ |
+| `push.js` | **4201** | ตั้งค่าแจ้งเตือน — บันทึกไม่ขึ้นต้องเด้งกลับและบอกเหตุผล, ตั้งค่าเป็นของบัญชีไม่ใช่ของเครื่อง, เครื่องที่สมัครไว้ที่อยู่เดิมต้องบอกว่าใช้ไม่ได้แล้ว |
 
 ## ข้อควรรู้
 

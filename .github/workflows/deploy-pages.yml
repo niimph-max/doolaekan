@@ -85,6 +85,10 @@ jobs:
           NEXT_PUBLIC_BUILD: ${{ github.run_number }}·${{ github.sha }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # กุญแจสาธารณะ VAPID — ไม่ใส่ = เรื่องแจ้งเตือนหายไปจากแอปเงียบๆ ตั้งใจให้เป็นแบบนั้น
+          # จะได้เปิดใช้วันที่พร้อมจริงโดยไม่ต้องแก้โค้ด (ใส่ secret แล้ว deploy รอบเดียว)
+          # ตัวนี้เป็นกุญแจ "สาธารณะ" จริงๆ ฝังในหน้าเว็บได้ ตัวลับอยู่ที่ Edge Function เท่านั้น
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
         run: npm run build
 
       # กัน Jekyll ทิ้งโฟลเดอร์ _next (ชื่อขึ้นต้นด้วย _ จะถูกข้าม)

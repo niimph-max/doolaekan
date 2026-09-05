@@ -12,6 +12,7 @@ import {
   markHadBook,
   saveCloudCache, saveLastUserId, savePrefs, saveLocal,
 } from './storage';
+import { syncPushSubscription } from './push';
 import * as remote from './remote';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 
@@ -460,6 +461,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       sb.removeChannel(channel);
     };
   }, [state.mode, state.userId, refresh]);
+
+  // ── ที่อยู่รับแจ้งเตือนของเครื่องนี้ ──
+  // เบราว์เซอร์เปลี่ยนที่อยู่รับ push ให้เองเป็นระยะ service worker สมัครใหม่ให้แล้ว
+  // แต่ส่งขึ้นฐานข้อมูลเองไม่ได้เพราะไม่มีใบเข้าระบบ ถ้าไม่มีใครเก็บที่อยู่ใหม่ให้
+  // แจ้งเตือนจะเงียบไปเฉยๆ ทั้งที่ปุ่มในแอปยังขึ้นว่า "เปิดอยู่"
+  useEffect(() => {
+    if (state.mode !== 'cloud' || !state.userId) return;
+    void syncPushSubscription();
+  }, [state.mode, state.userId]);
 
   // ── เขียนกลับลงเครื่อง ──
   useEffect(() => {

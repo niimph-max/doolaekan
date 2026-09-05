@@ -16,6 +16,7 @@ export type PushState =
   | 'unsupported'    // เบราว์เซอร์นี้ทำไม่ได้
   | 'need-install'   // iPhone/iPad: ต้องเพิ่มลงหน้าจอหลักก่อน
   | 'blocked'        // เคยกดปฏิเสธไว้ ต้องไปปลดในตั้งค่าเบราว์เซอร์เอง
+  | 'not-ready'      // service worker ยังไม่พร้อม จึงยังตอบไม่ได้ว่าเปิดอยู่ไหม
   | 'off'
   | 'on';
 
@@ -56,7 +57,14 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
     // ready รอตัวที่ "เข้าคุมแล้ว" — ตอนเพิ่งเปิดแอปครั้งแรก service worker
     // ยังติดตั้งไม่เสร็จ ถ้าไปหยิบ getRegistration() ตรงๆ จะได้ null แล้วปุ่มจะขึ้นว่า
     // เครื่องนี้ทำไม่ได้ ทั้งที่แค่ยังไม่พร้อม
-    return await navigator.serviceWorker.ready;
+    //
+    // แต่ ready ไม่มีวันตอบกลับเลยถ้าติดตั้งไม่สำเร็จ (ไม่ error ไม่ timeout — รอเฉยๆ
+    // ตลอดกาล) ปล่อยไว้ = หน้าตั้งค่าค้างอยู่ที่ "กำลังตรวจ…" ไม่มีวันเปลี่ยน
+    // ซึ่งเป็นอาการเดียวกับตอนโดเมนพัง: ดูเหมือนกำลังโหลด ทั้งที่ตายไปแล้ว
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => { setTimeout(() => resolve(null), 8000); }),
+    ]);
   } catch {
     return null;
   }
@@ -69,7 +77,11 @@ export async function pushState(): Promise<PushState> {
   if (Notification.permission === 'denied') return 'blocked';
 
   const reg = await registration();
-  const sub = await reg?.pushManager.getSubscription();
+  // ตอบไม่ได้ ไม่เท่ากับ ปิดอยู่ — ถ้าขึ้นว่า "ยังไม่ได้เปิด" ทั้งที่ความจริงเปิดไว้แล้ว
+  // ผู้ใช้จะกดเปิดซ้ำแล้วเจอ error ที่ไม่มีใครเดาสาเหตุถูก
+  if (!reg) return 'not-ready';
+
+  const sub = await reg.pushManager.getSubscription();
   return sub ? 'on' : 'off';
 }
 
@@ -208,4 +220,46 @@ export async function savePrefs(patch: Partial<NotifyPrefs>): Promise<void> {
   }, { onConflict: 'user_id' });
 
   if (error) throw new Error(error.message);
+}
+
+export interface PushDevice {
+  endpoint: string;
+  label: string;
+  origin: string;
+  updatedAt: string;
+  /** เครื่องที่กำลังเปิดแอปอยู่ตอนนี้ */
+  isThisDevice: boolean;
+  /** สมัครไว้ตอนแอปยังอยู่ที่อยู่เดิม — ที่อยู่นั้นส่งไม่ถึงแล้ว ต้องกดเปิดใหม่บนเครื่องนั้น */
+  stale: boolean;
+}
+
+/** เครื่องทั้งหมดของบัญชีนี้ที่เปิดแจ้งเตือนไว้
+ *
+ *  มีไว้ตอบคำถามที่เกิดจริงทุกครั้ง: "ทำไมแม่ไม่ได้รับ" — คำตอบมักคือเครื่องนั้น
+ *  ยังไม่เคยกดเปิด หรือเปิดไว้ตั้งแต่แอปยังอยู่ที่อยู่เดิม ถ้าไม่แสดงตรงนี้
+ *  จะเดาไม่ออกเลยว่าต้องไปทำอะไรที่เครื่องไหน */
+export async function myPushDevices(): Promise<PushDevice[]> {
+  const db = getSupabase();
+  if (!db) return [];
+
+  const { data, error } = await db
+    .from('push_subscriptions')
+    .select('endpoint, label, origin, updated_at')
+    .order('updated_at', { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const here = supported() ? await (await registration())?.pushManager.getSubscription() : null;
+  const origin = typeof window === 'undefined' ? '' : window.location.origin;
+
+  return (data ?? []).map((r: {
+    endpoint: string; label: string | null; origin: string | null; updated_at: string;
+  }) => ({
+    endpoint: r.endpoint,
+    label: r.label || 'เครื่องที่ไม่ได้ตั้งชื่อ',
+    origin: r.origin ?? '',
+    updatedAt: r.updated_at,
+    isThisDevice: Boolean(here && here.endpoint === r.endpoint),
+    // ไม่รู้ที่อยู่เดิม (แถวเก่าก่อนมีคอลัมน์นี้) ไม่ใช่หลักฐานว่าใช้ไม่ได้ — อย่าเดาให้เขา
+    stale: Boolean(r.origin && origin && r.origin !== origin),
+  }));
 }
