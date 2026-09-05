@@ -7,7 +7,13 @@
 //          (--no-verify-jwt เพราะคนเรียกคือฐานข้อมูล ไม่ใช่ผู้ใช้ที่ถือ JWT
 //           ประตูจึงเป็น header x-notify-secret แทน)
 //
-// secret ที่ต้องตั้ง (Dashboard → Edge Functions → Secrets):
+//          deploy จากหน้า Dashboard ไม่มีธงนี้ให้ใส่ ต้องไปปิดเองทีหลังที่
+//          Edge Functions → notify → Settings → Verify JWT ไม่งั้นฐานข้อมูล
+//          จะโดนปัดตกด้วย 401 UNAUTHORIZED_NO_AUTH_HEADER ตั้งแต่หน้าประตู
+//          โดยที่โค้ดในไฟล์นี้ไม่ได้เริ่มทำงานเลยสักบรรทัด
+//
+// secret ที่ต้องตั้ง (Dashboard → Edge Functions → Secrets) — คนละหน้ากับการ deploy
+// โค้ด ลืมข้อนี้จะได้ 503 พร้อมชื่อ secret ที่ขาดไป:
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  — สร้างด้วย `npm run vapid` ที่ repo
 //   VAPID_SUBJECT                        — 'mailto:<อีเมลเรา>'
 //   NOTIFY_SECRET                        — ต้องตรงกับ vault ชื่อ notify_secret
