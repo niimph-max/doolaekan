@@ -84,6 +84,8 @@ export interface Appointment {
   time: string;          // 'HH:mm'
   place: string;
   escort: string;
+  /** เรื่องที่ต้องจำนอกจากวันเวลา เช่น งดน้ำงดอาหาร เอาผลเลือดไปด้วย — ไม่บังคับ */
+  note: string;
   blood_test_before: boolean;
   blood_test_done: boolean;
   photo?: string;        // ลิงก์สำหรับแสดงผล (data URL ในเครื่อง / signed URL บนคลาวด์)

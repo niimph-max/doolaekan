@@ -71,6 +71,9 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
           <p className="subtle" style={{ margin: '2px 0 8px' }}>
             {fmtDate(next.date)} · {next.time} น.{next.place ? ` · ${next.place}` : ''}
           </p>
+          {next.note && (
+            <p style={{ margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>{next.note}</p>
+          )}
           <p style={{ margin: 0, color: 'var(--color-accent-700)' }}>
             เตือนล่วงหน้า 1 วัน + เช้าวันนัด{next.escort ? ` · ${next.escort}พาไป` : ''}
           </p>

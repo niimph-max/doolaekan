@@ -68,10 +68,10 @@ export function demoState(): Omit<AppState, 'ready'> {
   ];
 
   const appointments: Appointment[] = [
-    { id: 'a1', book_id: 'b_dad', title: 'หมอหัวใจ — เตี่ย', date: d(4), time: '09:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', blood_test_before: true, blood_test_done: true },
-    { id: 'a2', book_id: 'b_dad', title: 'หมอตา — เตี่ย', date: d(83), time: '10:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'น้องสอง', blood_test_before: false, blood_test_done: false },
-    { id: 'a3', book_id: 'b_mom', title: 'หมอหัวใจ — แม่', date: d(20), time: '10:30', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', blood_test_before: true, blood_test_done: false },
-    { id: 'a4', book_id: 'b_me', title: 'หมอฟัน — ฉัน', date: d(11), time: '17:00', place: 'คลินิกฟันดี', escort: '', blood_test_before: false, blood_test_done: false },
+    { id: 'a1', book_id: 'b_dad', title: 'หมอหัวใจ — เตี่ย', date: d(4), time: '09:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', note: 'งดน้ำงดอาหารหลังเที่ยงคืน เอาผลเลือดใบเดิมไปด้วย', blood_test_before: true, blood_test_done: true },
+    { id: 'a2', book_id: 'b_dad', title: 'หมอตา — เตี่ย', date: d(83), time: '10:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'น้องสอง', note: '', blood_test_before: false, blood_test_done: false },
+    { id: 'a3', book_id: 'b_mom', title: 'หมอหัวใจ — แม่', date: d(20), time: '10:30', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', note: '', blood_test_before: true, blood_test_done: false },
+    { id: 'a4', book_id: 'b_me', title: 'หมอฟัน — ฉัน', date: d(11), time: '17:00', place: 'คลินิกฟันดี', escort: '', note: '', blood_test_before: false, blood_test_done: false },
   ];
 
   const records: RecordItem[] = [

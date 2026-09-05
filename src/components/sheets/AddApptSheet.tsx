@@ -33,6 +33,7 @@ export function AddApptSheet({ open, bookId, preset, onClose }: {
   const [placeChoice, setPlaceChoice] = useState('');
   const [place, setPlace] = useState('');
   const [escort, setEscort] = useState('');
+  const [note, setNote] = useState('');
 
   // เติมค่าที่ส่งมาให้ครั้งเดียวตอนเปิด — ไม่เขียนทับสิ่งที่ผู้ใช้กำลังพิมพ์อยู่
   const filled = useRef('');
@@ -54,7 +55,7 @@ export function AddApptSheet({ open, bookId, preset, onClose }: {
 
   const close = () => {
     setDoctorId(''); setTitle(''); setDate(''); setTime('');
-    setPlaceChoice(''); setPlace(''); setEscort('');
+    setPlaceChoice(''); setPlace(''); setEscort(''); setNote('');
     onClose();
   };
 
@@ -83,7 +84,7 @@ export function AddApptSheet({ open, bookId, preset, onClose }: {
     if (!title.trim() || !date) return;
     actions.addAppointment(bookId, {
       title: title.trim(), date, time: time || '09:00', place: place.trim(),
-      escort, blood_test_before: needsBloodTest,
+      escort, note: note.trim(), blood_test_before: needsBloodTest,
     });
     actions.toast(needsBloodTest ? 'เพิ่มนัดแล้ว + แนบขั้นตรวจเลือดล่วงหน้าให้' : 'เพิ่มนัดแล้ว แจ้งเตือนล่วงหน้า 1 วัน');
     close();
@@ -150,6 +151,13 @@ export function AddApptSheet({ open, bookId, preset, onClose }: {
 
       <label className="o-label">ใครพาไป</label>
       <EscortPicker value={escort} onChange={setEscort} />
+
+      {/* หมายเหตุ — ใบนัดจริงมีเรื่องต้องจำนอกจากวันเวลาเสมอ ถ้าไม่มีที่ให้จด
+          คนจะไปยัดรวมในชื่อนัด แล้วชื่อบนการ์ดจะยาวจนอ่านไม่รู้เรื่อง */}
+      <label className="o-label" htmlFor="ap-note">หมายเหตุ (ใส่หรือไม่ก็ได้)</label>
+      <textarea id="ap-note" className="o-textarea" rows={3}
+        placeholder="เช่น งดน้ำงดอาหารหลังเที่ยงคืน · เอาผลเลือดใบเดิมไปด้วย · จอดตึก B"
+        value={note} onChange={(e) => setNote(e.target.value)} />
 
       {needsBloodTest && (
         <p className="subtle" style={{ marginTop: 14, color: 'var(--color-accent-700)' }}>

@@ -102,6 +102,7 @@ const toAppointment = (r: any): Appointment => ({
   id: r.id, book_id: r.book_id, title: r.title,
   date: r.appt_date, time: (r.appt_time ?? '09:00').slice(0, 5),
   place: r.place ?? '', escort: r.escort_name ?? '',
+  note: r.note ?? '',
   blood_test_before: r.blood_test_before ?? false,
   blood_test_done: Boolean(r.blood_test_done_at),
   photo_path: r.photo_path ?? undefined,
@@ -158,6 +159,7 @@ export const medLogRow = (l: MedLog) => ({
 export const appointmentRow = (a: Appointment) => ({
   id: a.id, book_id: a.book_id, title: a.title, appt_date: a.date,
   appt_time: a.time || null, place: a.place, escort_name: a.escort || null,
+  note: a.note || null,
   blood_test_before: a.blood_test_before,
   blood_test_done_at: a.blood_test_done ? a.date : null,
   photo_path: a.photo_path ?? null,

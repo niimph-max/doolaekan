@@ -73,6 +73,11 @@ function EditAppt({ appt, book, onDone }: { appt: Appointment; book: Book; onDon
       <ComboField id={`ap-place-${appt.id}`} label="สถานที่" value={draft.place}
         options={places} placeholder="เลือกสถานที่…" onChange={(place) => set({ place })} />
 
+      <label className="o-label" htmlFor={`ap-note-${appt.id}`}>หมายเหตุ (ใส่หรือไม่ก็ได้)</label>
+      <textarea id={`ap-note-${appt.id}`} className="o-textarea" rows={3}
+        placeholder="เช่น งดน้ำงดอาหารหลังเที่ยงคืน · เอาผลเลือดใบเดิมไปด้วย"
+        value={draft.note} onChange={(e) => set({ note: e.target.value })} />
+
       <label className="o-label">ขั้นตรวจเลือดล่วงหน้า</label>
       <div className="o-chips">
         <button type="button" className="o-chip" aria-pressed={draft.blood_test_before}
@@ -88,7 +93,8 @@ function EditAppt({ appt, book, onDone }: { appt: Appointment; book: Book; onDon
           onClick={() => {
             actions.updateAppointment(appt.id, {
               title: draft.title.trim(), date: draft.date, time: draft.time || '09:00',
-              place: draft.place.trim(), blood_test_before: draft.blood_test_before,
+              place: draft.place.trim(), note: draft.note.trim(),
+              blood_test_before: draft.blood_test_before,
             });
             actions.toast('แก้นัดแล้ว');
             onDone();
@@ -216,6 +222,9 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
                   <p className="subtle" style={{ margin: '2px 0 0' }}>
                     {fmtDate(a.date)} · {a.time} น.{a.place ? ` · ${a.place}` : ''}
                   </p>
+                  {a.note && editingId !== a.id && (
+                    <p style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{a.note}</p>
+                  )}
                 </div>
                 <button type="button" className="o-btn ghost"
                   style={{ padding: '6px 14px', minHeight: 34, flex: '0 0 auto' }}
