@@ -518,6 +518,58 @@ export async function signedUrl(bucket: 'scans' | 'med-photos', path: string): P
 }
 
 export const BUCKET_SCANS = SCANS;
+
+/** ── ลบบัญชีพร้อมข้อมูลทั้งหมด ──
+ *
+ *  โครงฐานข้อมูลผูกกันเป็นทอดๆ ด้วย on delete cascade อยู่แล้ว
+ *    auth.users → profiles → books → ยา/หมอ/นัด/บันทึก/กฎเฝ้าระวัง/การแชร์
+ *                          → group_members
+ *  ลบแถว profiles ของตัวเองแถวเดียว ข้อมูลทั้งหมดจึงหายตามไปเอง
+ *  และ policy profiles_self (for all, id = auth.uid()) อนุญาตให้ทำได้อยู่แล้ว
+ *  ไม่ต้องเพิ่มสิทธิ์อะไรใหม่
+ *
+ *  ที่ cascade ไม่ครอบคลุมคือ "ไฟล์ใน Storage" ต้องลบเองก่อน เพราะเป็นคนละระบบ
+ *  จึงต้องรวบที่อยู่ไฟล์ทั้งหมดมาลบก่อนที่แถวข้อมูลจะหายไป ไม่งั้นไฟล์จะค้าง
+ *  อยู่ในที่เก็บโดยไม่มีใครรู้ว่าเป็นของใคร และกินพื้นที่ไปตลอดกาล
+ *
+ *  ส่วนแถวใน auth.users (ตัวอีเมลที่ใช้เข้าระบบ) ลบจากฝั่งแอปไม่ได้ ต้องมีฟังก์ชัน
+ *  ฝั่งฐานข้อมูล — ดู supabase/migrations/0012_delete_account.sql
+ *  ถ้ายังไม่ได้รันไฟล์นั้น ข้อมูลจะถูกลบครบ แต่อีเมลยังเข้าระบบได้ (เจอสมุดเปล่า)
+ *  ฟังก์ชันนี้จึงคืนค่ามาบอกว่าลบบัญชีได้จริงไหม เพื่อให้หน้าจอพูดตรงกับที่เกิดขึ้น */
+export async function deleteMyAccount(userId: string): Promise<{ authRemoved: boolean }> {
+  const c = db();
+
+  // ── 1. รวบที่อยู่ไฟล์ทั้งหมดของสมุดที่เราเป็นเจ้าของ ──
+  const { data: books } = await c.from('books').select('id').eq('owner_id', userId);
+  const bookIds = (books ?? []).map((b: { id: string }) => b.id);
+
+  if (bookIds.length) {
+    const [recs, appts, meds] = await Promise.all([
+      c.from('records').select('file_path').in('book_id', bookIds).not('file_path', 'is', null),
+      c.from('appointments').select('photo_path').in('book_id', bookIds).not('photo_path', 'is', null),
+      c.from('medications').select('photo_path').in('book_id', bookIds).not('photo_path', 'is', null),
+    ]);
+    const scans = [
+      ...((recs.data ?? []) as { file_path: string }[]).map((r) => r.file_path),
+      ...((appts.data ?? []) as { photo_path: string }[]).map((r) => r.photo_path),
+    ].filter(Boolean);
+    const medPhotos = ((meds.data ?? []) as { photo_path: string }[])
+      .map((r) => r.photo_path).filter(Boolean);
+
+    // ลบไฟล์ไม่สำเร็จ ไม่ควรขวางการลบข้อมูล — ผู้ใช้ขอลบบัญชีแล้วต้องได้ลบ
+    // ไฟล์ที่ค้างเป็นเรื่องที่ตามเก็บทีหลังได้ แต่ข้อมูลที่ลบไม่ออกคือการไม่ทำตามที่ขอ
+    if (scans.length) await c.storage.from(SCANS).remove(scans).catch(() => undefined);
+    if (medPhotos.length) await c.storage.from('med-photos').remove(medPhotos).catch(() => undefined);
+  }
+
+  // ── 2. ลบแถว profile ของตัวเอง — ที่เหลือหายตาม cascade ──
+  const { error } = await c.from('profiles').delete().eq('id', userId);
+  check('ลบข้อมูลบัญชี', error);
+
+  // ── 3. ลบตัวบัญชีเข้าระบบ ถ้าฝั่งฐานข้อมูลเตรียมฟังก์ชันไว้แล้ว ──
+  const { error: rpcError } = await c.rpc('delete_my_account');
+  return { authRemoved: !rpcError };
+}
 export const BUCKET_MED_PHOTOS = MED_PHOTOS;
 
 // ─────────────────────────── ย้ายข้อมูลในเครื่องขึ้นคลาวด์ ───────────────────────────

@@ -101,6 +101,11 @@ interface Actions {
   loadDemo: () => void;
   resetAll: () => void;
   signOut: () => Promise<void>;
+  /** ลบบัญชีพร้อมข้อมูลทั้งหมด — กู้คืนไม่ได้
+   *  คืนค่าว่าลบตัวบัญชีเข้าระบบได้ด้วยไหม เพื่อให้หน้าจอบอกตรงกับที่เกิดขึ้นจริง */
+  deleteAccount: () => Promise<{ ok: boolean; authRemoved: boolean; error?: string }>;
+  /** ปิดหน้าแจ้งผลการลบบัญชี กลับไปหน้าเข้าใช้งานตามปกติ */
+  clearDeletedNotice: () => void;
   retryLoad: () => Promise<void>;
   uploadLocalData: () => Promise<void>;
   /** ส่งทุกอย่างที่อยู่ในเครื่องขึ้นคลาวด์อีกครั้ง — ใช้ตอนที่เคยบันทึกไม่สำเร็จ
@@ -688,6 +693,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ]);
         }
       },
+
+      /** ── ลบบัญชีพร้อมข้อมูลทั้งหมด ──
+       *  ลบคลาวด์ให้เสร็จก่อน แล้วค่อยล้างเครื่อง ถ้าลบคลาวด์ไม่สำเร็จต้องไม่ล้างเครื่อง
+       *  เพราะผู้ใช้จะเหลือแอปว่างเปล่าโดยที่ข้อมูลยังอยู่บนคลาวด์ครบ แล้วเข้าใจผิด
+       *  ว่าลบไปแล้ว ทั้งที่ยังไม่ได้ลบ */
+      deleteAccount: async () => {
+        const userId = stateRef.current.userId;
+        if (stateRef.current.mode !== 'cloud' || !userId) {
+          return { ok: false, authRemoved: false, error: 'ยังไม่ได้เข้าระบบ' };
+        }
+        let authRemoved = false;
+        try {
+          ({ authRemoved } = await remote.deleteMyAccount(userId));
+        } catch (e) {
+          return { ok: false, authRemoved: false, error: (e as Error).message };
+        }
+        intentionalSignOut.current = true;
+        clearCloudCache(userId);
+        clearLocal();
+        saveLastUserId('');
+        clearAuthStorage();
+        // ค้างผลไว้บนจอ ไม่งั้นผู้ใช้เด้งกลับหน้าใส่อีเมลโดยไม่รู้ว่าลบสำเร็จไหม
+        setState({ ...emptyState, ready: true, deleted: authRemoved ? 'full' : 'data' });
+        const sb = getSupabase();
+        if (sb) {
+          await Promise.race([
+            sb.auth.signOut({ scope: 'local' }).catch(() => { /* ล้างเองไปแล้ว */ }),
+            new Promise((resolve) => setTimeout(resolve, REFRESH_TIMEOUT_MS)),
+          ]);
+        }
+        return { ok: true, authRemoved };
+      },
+
+      clearDeletedNotice: () => setState((st) => ({ ...st, deleted: undefined })),
 
       resyncToCloud: async () => {
         const s = stateRef.current;

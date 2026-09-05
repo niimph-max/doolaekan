@@ -224,7 +224,13 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      <p className="lp-foot">Doolaekan (ดูแลกัน) · สมุดสุขภาพครอบครัว ใช้ฟรี</p>
+      <p className="lp-foot">
+        Doolaekan (ดูแลกัน) · สมุดสุขภาพครอบครัว ใช้ฟรี
+        {' · '}
+        <Link href="/privacy" style={{ color: 'var(--color-neutral-700)' }}>
+          นโยบายความเป็นส่วนตัว
+        </Link>
+      </p>
     </main>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
 import { AvatarPicker } from '../Avatar';
@@ -9,6 +10,7 @@ import { ConnectionCheck } from '../ConnectionCheck';
 import { Icon } from '../Icon';
 import { ageFromBirthDate, todayKey } from '@/lib/format';
 import { buildLabel } from '@/lib/build';
+import { DeleteAccount } from '../DeleteAccount';
 import { useStore } from '@/lib/store';
 import type { Book, Doctor } from '@/lib/types';
 
@@ -256,6 +258,15 @@ export function ProfileSheet({ open, book, onClose }: {
             onClick={() => { void actions.signOut(); }}>
             ออกจากระบบ
           </button>
+
+          {/* ── ลบบัญชี ──
+              อยู่ล่างสุดใต้ปุ่มออกจากระบบ เป็นของที่หาเจอเมื่อตั้งใจหา
+              แต่ไม่ขวางทางใครในการใช้งานปกติ (Google Play บังคับให้มี) */}
+          <DeleteAccount />
+
+          <p className="subtle" style={{ marginTop: 16, textAlign: 'center', fontSize: 13.5 }}>
+            <Link href="/privacy">นโยบายความเป็นส่วนตัว</Link>
+          </p>
         </>
       )}
     </Sheet>

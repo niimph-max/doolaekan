@@ -1,0 +1,36 @@
+/* หน้านโยบาย — เนื้อความล้วน ต้องอ่านสบายตาบนมือถือ
+   คุมความยาวบรรทัดไว้ ไม่ให้ตากวาดไกลจนหลงบรรทัด */
+.pv { padding: 30px 0 10px; }
+.pv .lp-in { max-width: 640px; }
+.pv h1 { font-size: clamp(26px, 5vw, 34px); margin-bottom: 6px; }
+.pv h2 {
+  font-size: clamp(19px, 3vw, 22px);
+  margin: 32px 0 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-neutral-300);
+}
+.pv p { margin: 0 0 12px; line-height: 1.68; }
+.pv ul { margin: 0 0 14px; padding-left: 22px; }
+.pv li { margin-bottom: 8px; line-height: 1.62; }
+.pv strong { color: var(--color-accent-700); }
+
+/* สรุปบนสุด — คนส่วนใหญ่อ่านแค่ตรงนี้ ต้องครบพอที่จะตัดสินใจได้ */
+.pv-tldr {
+  margin: 22px 0 6px; padding: 20px 24px;
+  background: var(--color-brand-bg);
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 24%, transparent);
+}
+.pv-tldr h2 { margin: 0 0 10px; padding-top: 0; border-top: 0; font-size: 20px; }
+.pv-tldr ul { margin: 0; }
+.pv-tldr strong { color: var(--color-brand); }
+
+.pv-no {
+  padding: 14px 18px;
+  background: var(--color-neutral-100);
+  border-radius: 16px;
+  border: 1px solid var(--color-neutral-300);
+}
+
+.pv-back { font-size: 15px; }
+.pv-back a { color: var(--color-accent-700); }

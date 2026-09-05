@@ -25,6 +25,8 @@ import { ProfileSheet } from './sheets/ProfileSheet';
 import { ScanSheet } from './sheets/ScanSheet';
 import { TidyNamesSheet } from './sheets/TidyNamesSheet';
 import { SymptomSheet } from './sheets/SymptomSheet';
+import { DeletedNotice } from './DeletedNotice';
+
 import { activeBook } from '@/lib/selectors';
 import type { ActivityEntry } from '@/lib/selectors';
 import type { RecordItem } from '@/lib/types';
@@ -48,6 +50,9 @@ export function AppShell() {
   if (hasBrokenConfig) return <div className="app"><ConfigError /></div>;
 
   if (!state.ready) return <div className="app" aria-busy="true"><Splash /></div>;
+
+  // เพิ่งลบบัญชีไป — ต้องบอกผลก่อน ห้ามเด้งกลับหน้าใส่อีเมลเงียบๆ
+  if (state.deleted) return <div className="app"><DeletedNotice kind={state.deleted} /></div>;
 
   // ต่อคลาวด์แล้วแต่ยังไม่ได้เข้าระบบ
   if (state.mode === 'cloud' && !state.userId) {
