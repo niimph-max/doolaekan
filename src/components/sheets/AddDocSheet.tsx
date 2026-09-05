@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
 import { dataUrlSize, isPdf, todayKey } from '@/lib/format';
+import { shrinkDoc } from '@/lib/photo';
 import { VISIT_CHIPS } from '@/lib/seed';
 import { useStore } from '@/lib/store';
 
@@ -35,6 +36,7 @@ export function AddDocSheet({ open, bookId, onClose }: {
   const [note, setNote] = useState('');
   const [date, setDate] = useState(todayKey());
   const [pages, setPages] = useState<string[]>([]);
+  const [busy, setBusy] = useState(0);
 
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
@@ -52,12 +54,29 @@ export function AddDocSheet({ open, bookId, onClose }: {
   };
 
   // ผลตรวจเลือดมักมีหลายแผ่น เลือกทีเดียวหลายไฟล์ได้ ไม่ต้องกดซ้ำทีละใบ
+  //
+  // ── ย่อรูปก่อนเก็บ ──
+  // เดิมเก็บเต็มขนาดที่ได้จากมือถือ ใบละ 3-8 MB ซึ่งเท่ากับรูปอาหารสามสิบใบ
+  // เป็นตัวกินพื้นที่ที่แท้จริงของแอปนี้ และแอปนี้แจกฟรี ทุกไบต์คือเงินที่
+  // เจ้าของจ่ายแทนคนอื่น ย่อที่ 1600px แล้วยังอ่านตัวเลขบนใบผลเลือดออกชัด
+  //
+  // PDF ย่อไม่ได้ ต้องเก็บตามเดิม — และเป็นต้นฉบับจริงจากโรงพยาบาลอยู่แล้ว
   const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
+    setBusy((n) => n + files.length);
     for (const file of files) {
       const reader = new FileReader();
-      reader.onload = () => setPages((cur) => [...cur, String(reader.result)]);
+      reader.onload = async () => {
+        const raw = String(reader.result);
+        const kept = isPdf(raw) ? raw : await shrinkDoc(raw);
+        setPages((cur) => [...cur, kept]);
+        setBusy((n) => n - 1);
+      };
+      reader.onerror = () => {
+        actions.toast('อ่านไฟล์ไม่ได้');
+        setBusy((n) => n - 1);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -157,6 +176,8 @@ export function AddDocSheet({ open, bookId, onClose }: {
       <input ref={pickRef} type="file" accept="image/*,application/pdf" multiple
         onChange={onFiles} style={{ display: 'none' }} />
 
+      {busy > 0 && <p className="subtle" style={{ marginTop: 8 }}>กำลังย่อรูป {busy} ใบ…</p>}
+
       {pages.some((src) => isPdf(src) && (src.length * 0.75) / 1024 / 1024 > BIG_FILE_MB) && (
         <p className="o-hint">
           มีไฟล์ PDF ที่ใหญ่กว่า {BIG_FILE_MB} MB — เก็บได้ปกติ แต่ไฟล์ใหญ่กินพื้นที่
@@ -170,7 +191,7 @@ export function AddDocSheet({ open, bookId, onClose }: {
           ยกเลิก
         </button>
         <button type="button" className="o-btn primary"
-          disabled={!hasContent} onClick={save}>
+          disabled={!hasContent || busy > 0} onClick={save}>
           บันทึก
         </button>
       </div>

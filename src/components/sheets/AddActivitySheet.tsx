@@ -96,6 +96,8 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
   );
 
   const keptPhotos = edit ? edit.photos.filter((r) => !dropped.includes(r.id)) : [];
+  // บันทึกเก่าที่ทำไว้ก่อนมีกติกานี้อาจมีหลายรูป — ไม่ไปลบให้ แค่ไม่ให้เพิ่มอีก
+  const photoCount = photos.length + keptPhotos.length;
   const hasContent = Boolean(
     note.trim() || photos.length || activity || meal || keptPhotos.length,
   );
@@ -110,11 +112,25 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
     onClose();
   };
 
+  // ── บันทึกประจำวันใส่ได้รูปเดียว ──
+  // แอปนี้แจกฟรี พื้นที่เก็บรูปคือเงินที่เจ้าของจ่ายแทนผู้ใช้ทุกคน และรูปอาหาร
+  // กับรูปในยิมมีไว้ให้จำได้ว่าวันนั้นทำอะไร ใบเดียวก็ทำหน้าที่นั้นได้แล้ว
+  // (ต่างจากเอกสารจากหมอ ที่ผลตรวจใบเดียวมักมีหลายแผ่นจริงๆ จึงยังใส่ได้หลายใบ)
+  //
+  // มีรูปอยู่แล้วจะไม่เขียนทับให้เงียบๆ — ของที่ผู้ใช้เพิ่งถ่ายห้ามหายเพราะกดพลาด
+  // บอกไปตรงๆ ว่าต้องเอาใบเดิมออกก่อน
   const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    setBusy((n) => n + files.length);
-    for (const file of files) {
+    if (!files.length) return;
+    if (photoCount > 0) {
+      actions.toast('ใส่ได้รูปเดียว — เอารูปเดิมออกก่อนถ้าจะเปลี่ยน');
+      return;
+    }
+    if (files.length > 1) actions.toast('ใส่ได้รูปเดียว — เก็บใบแรกให้');
+    const only = files.slice(0, 1);
+    setBusy((n) => n + only.length);
+    for (const file of only) {
       const reader = new FileReader();
       reader.onload = async () => {
         const small = await shrinkPhoto(String(reader.result));
@@ -328,17 +344,25 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
           : mode === 'food' ? 'ข้าวมันไก่ ไม่กินหนัง' : ''} />
 
       {/* ── รูป ── */}
-      <input ref={camRef} type="file" accept="image/*" capture="environment" multiple
+      <input ref={camRef} type="file" accept="image/*" capture="environment"
         hidden onChange={onFiles} />
-      <input ref={pickRef} type="file" accept="image/*" multiple hidden onChange={onFiles} />
+      <input ref={pickRef} type="file" accept="image/*" hidden onChange={onFiles} />
       <div className="o-row" style={{ marginTop: 12 }}>
-        <button type="button" className="o-btn secondary" onClick={() => camRef.current?.click()}>
+        <button type="button" className="o-btn secondary" disabled={photoCount > 0}
+          onClick={() => camRef.current?.click()}>
           <Icon name="camera" size={19} /> ถ่ายรูป
         </button>
-        <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>
+        <button type="button" className="o-btn ghost" disabled={photoCount > 0}
+          onClick={() => pickRef.current?.click()}>
           เลือกรูป
         </button>
       </div>
+      {/* ปุ่มที่กดไม่ได้ต้องบอกเหตุผลเสมอ ไม่งั้นผู้ใช้นึกว่าแอปพัง */}
+      <p className="o-hint">
+        {photoCount > 0
+          ? 'ใส่ได้รูปเดียว — กดกากบาทที่รูปเพื่อเปลี่ยนเป็นใบอื่น'
+          : 'ใส่ได้รูปเดียว'}
+      </p>
 
       {busy > 0 && <p className="subtle" style={{ marginTop: 8 }}>กำลังย่อรูป {busy} ใบ…</p>}
 

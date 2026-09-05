@@ -128,15 +128,16 @@ Lat pulldown 25 kg *12*3
   }
   await chip(sheet, 'กลางวัน').click();
   await sheet.locator('#act-note').fill('ข้าวมันไก่ ไม่กินหนัง');
-  await sheet.locator('input[type=file]').last().setInputFiles(['/tmp/food1.jpg', '/tmp/food2.jpg']);
+  // ตั้งแต่คุมพื้นที่เก็บรูป บันทึกประจำวันใส่ได้รูปเดียว (ดู photolimit.js)
+  await sheet.locator('input[type=file]').last().setInputFiles(['/tmp/food1.jpg']);
   await p.waitForTimeout(1500);
-  check('ใส่รูปได้ทีละหลายใบ', (await sheet.locator('.screen img, img[alt^="รูปที่"]').count()) >= 2);
+  check('ใส่รูปได้', (await sheet.locator('img[alt^="รูปที่"]').count()) === 1);
   await sheet.getByRole('button', { name: 'จดไว้', exact: true }).click();
   await p.waitForTimeout(800);
 
   body = await p.locator('.screen').innerText();
   check('อาหารขึ้นในบันทึก', /มื้อกลางวัน/.test(body) && /ข้าวมันไก่/.test(body));
-  check('รูปสองใบของมื้อเดียว = การ์ดเดียว ไม่แตกเป็นสองรายการ',
+  check('มื้อเดียว = การ์ดเดียว ไม่แตกเป็นหลายรายการ',
     (body.match(/มื้อกลางวัน/g) || []).length === 1);
   check('รูปย่อเป็นแถวเล็ก ไม่กินเต็มความกว้างจอ',
     await p.locator('.screen .o-card img').first().evaluate((i) => i.clientWidth <= 140));
