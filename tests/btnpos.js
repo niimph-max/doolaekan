@@ -33,6 +33,39 @@ const { chromium } = require('../node_modules/playwright-core');
   await p.keyboard.press('Escape');
   await p.waitForTimeout(400);
 
+  console.log('\n  --- แท็บนัดหมอ ---');
+  await p.locator('.tabbar button', { hasText: 'นัดหมอ' }).click();
+  await p.waitForTimeout(700);
+  const addAppt = p.getByRole('button', { name: 'เพิ่มนัดใหม่' });
+  const ab = await addAppt.boundingBox();
+  const firstAppt = await p.locator('.screen .o-card').first().boundingBox();
+  const lastAppt = await p.locator('.screen .o-card').last().boundingBox();
+  console.log(`  ปุ่มอยู่ที่ ${Math.round(ab.y)}px · นัดแรก ${Math.round(firstAppt.y)}px`
+    + ` · นัดสุดท้าย ${Math.round(lastAppt.y)}px`);
+  check('ปุ่มเพิ่มนัดอยู่เหนือนัดใบแรก', ab.y < firstAppt.y);
+  check('มีปุ่มเพิ่มนัดปุ่มเดียว ไม่ได้ทิ้งของเดิมไว้ล่างจอ', await addAppt.count() === 1);
+
+  console.log('\n  --- แท็บยา ---');
+  await p.locator('.tabbar button', { hasText: 'ยา' }).click();
+  await p.waitForTimeout(700);
+  const scan = p.getByRole('button', { name: 'สแกนถุงยาใหม่' });
+  const sb = await scan.boundingBox();
+  const firstMed = await p.locator('.screen .o-card:not(.warn)').first().boundingBox();
+  const lastMed = await p.locator('.screen .o-card:not(.warn)').last().boundingBox();
+  console.log(`  ปุ่มอยู่ที่ ${Math.round(sb.y)}px · ยาตัวแรก ${Math.round(firstMed.y)}px`
+    + ` · ยาตัวสุดท้าย ${Math.round(lastMed.y)}px`);
+  check('ปุ่มสแกนถุงยาอยู่เหนือยาตัวแรก', sb.y < firstMed.y);
+  check('ปุ่มพิมพ์เพิ่มยาเองก็อยู่เหนือด้วย',
+    (await p.getByRole('button', { name: 'พิมพ์เพิ่มยาเอง' }).boundingBox()).y < firstMed.y);
+
+  // คำเตือนยาซ้ำต้องไม่ถูกปุ่มดันตกจอ — ยาซ้ำข้ามหมอคือเคสที่อันตรายที่สุด
+  const warn = p.locator('.screen .o-card.warn').first();
+  if (await warn.count() > 0) {
+    check('คำเตือนยาซ้ำยังอยู่เหนือปุ่ม', (await warn.boundingBox()).y < sb.y);
+  } else {
+    console.log('  · สมุดตัวอย่างนี้ไม่มีคำเตือนยาซ้ำ ข้ามข้อนั้น');
+  }
+
   await p.screenshot({
     path: 'shots/btnpos.png',
   });

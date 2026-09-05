@@ -275,6 +275,18 @@ export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
         </div>
       )}
 
+      {/* ── ปุ่มเพิ่มยาต้องอยู่เหนือรายการ ไม่ใช่ใต้ ──
+          เดิมอยู่ล่างสุด ต้องเลื่อนผ่านยาทุกตัวกว่าจะเจอ ซึ่งยิ่งยาเยอะยิ่งไกล
+          ไม่มีวันสั้นลง เหมือนที่เคยแก้ไปแล้วในหน้าสมุด
+          แต่ต้องอยู่ "ใต้" คำเตือนยาซ้ำเสมอ เพราะยาซ้ำข้ามหมอคือเคสที่อันตราย
+          ที่สุดในแอปนี้ ห้ามให้ปุ่มที่กดบ่อยดันคำเตือนนั้นตกจอไป */}
+      <button type="button" className="o-btn primary block" style={{ marginTop: 16 }} onClick={onScan}>
+        <Icon name="camera" size={20} /> สแกนถุงยาใหม่
+      </button>
+      <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }} onClick={onAddMed}>
+        <Icon name="plus" size={20} /> พิมพ์เพิ่มยาเอง
+      </button>
+
       <div style={{ marginTop: 16 }}>
         {meds.length === 0 && (
           filter ? (
@@ -296,12 +308,6 @@ export function MedsScreen({ book, onScan, onAddMed, onTidy }: {
         ))}
       </div>
 
-      <button type="button" className="o-btn primary block" style={{ marginTop: 6 }} onClick={onScan}>
-        <Icon name="camera" size={20} /> สแกนถุงยาใหม่
-      </button>
-      <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }} onClick={onAddMed}>
-        <Icon name="plus" size={20} /> พิมพ์เพิ่มยาเอง
-      </button>
       {groups.length > 1 && (
         <button type="button" className="o-btn ghost block" style={{ marginTop: 10 }} onClick={onTidy}>
           จัดระเบียบชื่อหมอ / แผนก / โรงพยาบาล

@@ -182,6 +182,14 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
       <h2>นัดหมอ</h2>
       <p className="subtle">ของ{book.owner_name} · {appts.length} นัด</p>
 
+      {/* ── ปุ่มเพิ่มนัดต้องอยู่เหนือรายการ ไม่ใช่ใต้ ──
+          เดิมอยู่ล่างสุด ต้องเลื่อนผ่านนัดทั้งหมดกว่าจะเจอ ซึ่งยิ่งใช้ไปนานวัน
+          ยิ่งไกลขึ้นเรื่อยๆ ไม่มีวันสั้นลง เหมือนที่เคยแก้ไปแล้วในหน้าสมุด
+          ปุ่มที่ต้องกดบ่อยต้องอยู่ที่เดิมเสมอ ไม่ใช่ขยับหนีตามจำนวนข้อมูล */}
+      <button type="button" className="o-btn primary block" style={{ marginTop: 14 }} onClick={onAdd}>
+        <Icon name="plus" size={20} /> เพิ่มนัดใหม่
+      </button>
+
       <div style={{ marginTop: 16 }}>
         {appts.length === 0 && (
           <button type="button" className="o-empty" onClick={onAdd}>
@@ -224,10 +232,6 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
           );
         })}
       </div>
-
-      <button type="button" className="o-btn primary block" onClick={onAdd}>
-        <Icon name="plus" size={20} /> เพิ่มนัดใหม่
-      </button>
     </div>
   );
 }
