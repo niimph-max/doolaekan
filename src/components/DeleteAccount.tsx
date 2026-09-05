@@ -51,11 +51,15 @@ export function DeleteAccount() {
   }
 
   if (step === 'idle') {
+    // ปุ่มแคบกว่าปุ่มอื่นตั้งใจ — ไม่ควรกว้างเต็มบรรทัดเท่าปุ่มออกจากระบบ
+    // เพราะกดพลาดแล้วเสียหายคนละระดับกัน แต่ต้องอยู่กลางบรรทัด ไม่ใช่เกยซ้าย
     return (
-      <button type="button" className="o-btn ghost" style={{ marginTop: 4 }}
-        onClick={() => { setStep('confirm'); setTyped(''); setFail(''); }}>
-        ลบบัญชีและข้อมูลทั้งหมด
-      </button>
+      <div style={{ marginTop: 8, textAlign: 'center' }}>
+        <button type="button" className="o-btn ghost"
+          onClick={() => { setStep('confirm'); setTyped(''); setFail(''); }}>
+          ลบบัญชีและข้อมูลทั้งหมด
+        </button>
+      </div>
     );
   }
 
