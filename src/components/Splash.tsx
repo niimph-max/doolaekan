@@ -14,7 +14,10 @@ export function Splash() {
   }, []);
 
   return (
-    <div className="full" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    // ป้ายนี้เป็นตัวชี้ให้ตัวกู้ใน layout รู้ว่า "จอยังเป็นหน้ารออยู่"
+    // ห้ามใช้วิธีอ่านข้อความบนจอแทน เพราะ textContent ของ body รวมข้อความในแท็ก
+    // script ด้วย ตัวกู้จึงจะเจอคำที่ตัวเองเขียนไว้แล้วนึกว่าแอปค้างตลอดเวลา
+    <div className="full" data-boot-splash="" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="full-inner" style={{ textAlign: 'center' }}>
         <Logo size={96} />
         <p className="subtle" style={{ marginTop: 18 }}>
