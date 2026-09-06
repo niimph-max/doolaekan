@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Icon } from './Icon';
+import { isNativeApp } from '@/lib/native';
 import { useStore } from '@/lib/store';
 import {
   pushConfigured, pushState, enablePush, disablePush, myPushDevices,
@@ -34,6 +35,10 @@ export function PushSettings() {
   const [fail, setFail] = useState('');
 
   const cloud = state.mode === 'cloud' && Boolean(state.userId);
+  // ในแอปไม่ได้ใช้กุญแจ VAPID เลย (ส่งผ่าน APNs) การไม่มีกุญแจจึงต้องไม่ทำให้
+  // ทั้งส่วนนี้หายไปจากแอปตามไปด้วย
+  const native = isNativeApp();
+  const available = native || pushConfigured;
 
   const reload = useCallback(async () => {
     setPs(await pushState());
@@ -43,12 +48,12 @@ export function PushSettings() {
   }, []);
 
   useEffect(() => {
-    if (!pushConfigured || !cloud) return;
+    if (!available || !cloud) return;
     void reload();
     void loadPrefs().then(setPrefs).catch(() => setPrefs(defaultPrefs));
-  }, [cloud, reload]);
+  }, [available, cloud, reload]);
 
-  if (!pushConfigured || !cloud) return null;
+  if (!available || !cloud) return null;
 
   const setPref = async (patch: Partial<NotifyPrefs>) => {
     const before = prefs ?? defaultPrefs;
@@ -69,8 +74,13 @@ export function PushSettings() {
     try {
       const next = await enablePush();
       setPs(next);
-      if (next === 'blocked') setFail('เบราว์เซอร์ปฏิเสธไว้ — ต้องไปปลดในตั้งค่าของเบราว์เซอร์เอง');
-      else if (next !== 'on') setFail('ยังไม่ได้อนุญาต — กด "อนุญาต" ตอนเบราว์เซอร์ถามด้วย');
+      if (next === 'blocked') {
+        setFail(native
+          ? 'เครื่องนี้ปฏิเสธไว้ — ต้องไปปลดที่ ตั้งค่า → Doolaekan → การแจ้งเตือน'
+          : 'เบราว์เซอร์ปฏิเสธไว้ — ต้องไปปลดในตั้งค่าของเบราว์เซอร์เอง');
+      } else if (next !== 'on') {
+        setFail('ยังไม่ได้อนุญาต — กด "อนุญาต" ตอนเครื่องถามด้วย');
+      }
       else setDevices(await myPushDevices().catch(() => null));
     } catch (e) {
       setFail(`เปิดไม่สำเร็จ — ${(e as Error).message}`);
@@ -124,8 +134,11 @@ export function PushSettings() {
         <div className="o-card warn" style={{ padding: 16 }}>
           <strong>เครื่องนี้ปิดกั้นแจ้งเตือนไว้</strong>
           <p className="subtle" style={{ margin: '6px 0 0' }}>
-            เคยกด “ไม่อนุญาต” ไว้ แอปขอใหม่เองไม่ได้ ต้องไปเปิดในตั้งค่าเบราว์เซอร์ —
-            แตะรูปแม่กุญแจข้างที่อยู่เว็บ แล้วเปิดการแจ้งเตือน จากนั้นกลับมาที่หน้านี้
+            {native
+              ? 'เคยกด “ไม่อนุญาต” ไว้ แอปขอใหม่เองไม่ได้ ต้องไปเปิดที่ '
+                + 'ตั้งค่า → Doolaekan → การแจ้งเตือน แล้วกลับมาที่หน้านี้'
+              : 'เคยกด “ไม่อนุญาต” ไว้ แอปขอใหม่เองไม่ได้ ต้องไปเปิดในตั้งค่าเบราว์เซอร์ — '
+                + 'แตะรูปแม่กุญแจข้างที่อยู่เว็บ แล้วเปิดการแจ้งเตือน จากนั้นกลับมาที่หน้านี้'}
           </p>
         </div>
       )}

@@ -1,5 +1,7 @@
 'use client';
 
+import { isNativeApp } from './native';
+import { nativeDisable, nativeEnable, nativeState, nativeSync, savedToken } from './pushNative';
 import { getSupabase } from './supabase';
 
 /** กุญแจสาธารณะ VAPID — ตั้งตอน build จาก secret NEXT_PUBLIC_VAPID_PUBLIC_KEY
@@ -9,6 +11,7 @@ import { getSupabase } from './supabase';
  *  (ทุกเครื่องต้องกดเปิดเองอยู่ดี เพราะเบราว์เซอร์ไม่ให้สมัครแทนกัน) */
 const vapidKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '').trim();
 
+/** ฝั่งเว็บพร้อมใช้ไหม — ในแอปไม่ต้องใช้กุญแจนี้เลย ดู pushState() */
 export const pushConfigured = Boolean(vapidKey);
 
 export type PushState =
@@ -71,6 +74,10 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
 }
 
 export async function pushState(): Promise<PushState> {
+  // ในแอปเดินคนละเส้นทางตั้งแต่ต้น — ไม่มี service worker ไม่มี VAPID
+  // กุญแจ VAPID ที่ยังไม่ได้ใส่ตอน build จึงต้องไม่ปิดเรื่องนี้ทิ้งไปด้วย
+  if (isNativeApp()) return nativeState();
+
   if (!pushConfigured) return 'unconfigured';
   if (!supported()) return 'unsupported';
   if (iosNeedsInstall()) return 'need-install';
@@ -122,6 +129,8 @@ async function saveSubscription(sub: PushSubscription): Promise<void> {
 }
 
 export async function enablePush(): Promise<PushState> {
+  if (isNativeApp()) return nativeEnable();
+
   const state = await pushState();
   if (state !== 'off') return state;
 
@@ -150,6 +159,8 @@ export async function enablePush(): Promise<PushState> {
 }
 
 export async function disablePush(): Promise<void> {
+  if (isNativeApp()) return nativeDisable();
+
   const reg = await registration();
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return;
@@ -165,6 +176,11 @@ export async function disablePush(): Promise<void> {
  *  แต่ส่งขึ้นฐานข้อมูลเองไม่ได้เพราะไม่มีใบเข้าระบบ ถ้าไม่มีใครเก็บให้
  *  แจ้งเตือนจะเงียบไปเฉยๆ โดยที่ผู้ใช้ยังเห็นว่าปุ่ม "เปิดอยู่" */
 export async function syncPushSubscription(): Promise<void> {
+  if (isNativeApp()) {
+    await nativeSync().catch(() => { /* รอบหน้าค่อยลองใหม่ */ });
+    return;
+  }
+
   if (!pushConfigured || !supported()) return;
   if (Notification.permission !== 'granted') return;
 
@@ -248,7 +264,11 @@ export async function myPushDevices(): Promise<PushDevice[]> {
     .order('updated_at', { ascending: false });
   if (error) throw new Error(error.message);
 
-  const here = supported() ? await (await registration())?.pushManager.getSubscription() : null;
+  // "เครื่องนี้" หน้าตาไม่เหมือนกันสองฝั่ง — ในแอปคือ device token ที่จำไว้
+  // ในเบราว์เซอร์คือที่อยู่ที่ service worker ถืออยู่
+  const hereEndpoint = isNativeApp()
+    ? savedToken()
+    : (supported() ? (await (await registration())?.pushManager.getSubscription())?.endpoint ?? '' : '');
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
 
   return (data ?? []).map((r: {
@@ -258,8 +278,9 @@ export async function myPushDevices(): Promise<PushDevice[]> {
     label: r.label || 'เครื่องที่ไม่ได้ตั้งชื่อ',
     origin: r.origin ?? '',
     updatedAt: r.updated_at,
-    isThisDevice: Boolean(here && here.endpoint === r.endpoint),
+    isThisDevice: Boolean(hereEndpoint && hereEndpoint === r.endpoint),
     // ไม่รู้ที่อยู่เดิม (แถวเก่าก่อนมีคอลัมน์นี้) ไม่ใช่หลักฐานว่าใช้ไม่ได้ — อย่าเดาให้เขา
-    stale: Boolean(r.origin && origin && r.origin !== origin),
+    // และแถวของแอป (origin = 'app') ไม่ผูกกับโดเมน ย้ายโดเมนไม่กระทบ
+    stale: r.origin === 'app' ? false : Boolean(r.origin && origin && r.origin !== origin),
   }));
 }

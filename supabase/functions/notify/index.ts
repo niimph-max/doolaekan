@@ -17,9 +17,14 @@
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  — สร้างด้วย `npm run vapid` ที่ repo
 //   VAPID_SUBJECT                        — 'mailto:<อีเมลเรา>'
 //   NOTIFY_SECRET                        — ต้องตรงกับ vault ชื่อ notify_secret
+//
+// ถ้าจะส่งเข้าแอปบนไอโฟนด้วย ต้องมีอีกชุด (ดู apns.ts) — ขาดชุดไหนก็ส่งได้เฉพาะ
+// อีกทาง ไม่ล้มทั้งฟังก์ชัน และเหตุผลจะถูกบันทึกไว้ที่ last_error ของข้อความนั้น
+//   APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_PRIVATE_KEY, APNS_ENV
 
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { apnsMissing, sendApns } from './apns.ts';
 
 /** ส่งทีละกี่ข้อความต่อการเรียกหนึ่งครั้ง — เหลือค้างก็ได้ cron รอบหน้าเก็บต่อ */
 const BATCH = 200;
@@ -42,12 +47,24 @@ interface SubRow {
   user_id: string;
   endpoint: string;
   subscription: unknown;
+  /** 'web' = เบราว์เซอร์ผ่าน service worker, 'apns' = แอปบนไอโฟน */
+  kind: string;
 }
 
 const env = (k: string) => Deno.env.get(k) ?? '';
 
+/** ขาดอะไรถึงขั้นทำงานไม่ได้เลย — NOTIFY_SECRET คือประตู ไม่มีก็ไม่ต้องเริ่ม
+ *
+ *  ส่วนกุญแจของแต่ละทางส่ง (VAPID ของเว็บ / APNs ของไอโฟน) ไม่นับตรงนี้
+ *  เพราะขาดทางใดทางหนึ่งไม่ควรทำให้อีกทางส่งไม่ได้ตามไปด้วย — เคยเป็นแบบนั้น
+ *  แล้ววันที่เพิ่ง deploy แอปขึ้นสโตร์ แจ้งเตือนฝั่งเว็บที่เคยใช้ได้จะดับไปด้วย */
 function ready(): string {
-  for (const k of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT', 'NOTIFY_SECRET']) {
+  if (!env('NOTIFY_SECRET')) return 'ยังไม่ได้ตั้ง secret NOTIFY_SECRET';
+  return '';
+}
+
+function webPushMissing(): string {
+  for (const k of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT']) {
     if (!env(k)) return `ยังไม่ได้ตั้ง secret ${k}`;
   }
   return '';
@@ -66,7 +83,16 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'ไม่ได้รับอนุญาต' }, 401);
   }
 
-  webpush.setVapidDetails(env('VAPID_SUBJECT'), env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
+  // ตั้งค่าให้ทางที่พร้อมเท่านั้น ทางที่ยังไม่พร้อมจะถูกบันทึกเหตุผลไว้รายข้อความ
+  const webGap = webPushMissing();
+  const apnsGap = apnsMissing();
+  if (!webGap) {
+    webpush.setVapidDetails(env('VAPID_SUBJECT'), env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
+  }
+  if (webGap && apnsGap) {
+    // ไม่มีทางส่งสักทาง บอกให้ครบทั้งสองอย่างในทีเดียว จะได้ไม่ต้องไล่แก้ทีละรอบ
+    return json({ ok: false, reason: `${webGap} · ${apnsGap}` }, 503);
+  }
 
   const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
     auth: { persistSession: false },
@@ -89,7 +115,7 @@ Deno.serve(async (req) => {
 
   const { data: subs } = await db
     .from('push_subscriptions')
-    .select('id, user_id, endpoint, subscription')
+    .select('id, user_id, endpoint, subscription, kind')
     .in('user_id', userIds);
 
   const byUser = new Map<string, SubRow[]>();
@@ -125,6 +151,19 @@ Deno.serve(async (req) => {
     });
 
     const results = await Promise.all(targets.map(async (t) => {
+      // ── ไอโฟนที่ลงแอปจากสโตร์ ──
+      if (t.kind === 'apns') {
+        if (apnsGap) return { ok: false, error: apnsGap };
+        const r = await sendApns(t.endpoint, {
+          title: row.title, body: row.body,
+          url: row.url ?? undefined, urgent: row.urgent, tag: row.kind,
+        });
+        if (r.dead) dead.push(t.id);
+        return { ok: r.ok, error: r.error };
+      }
+
+      // ── เบราว์เซอร์ ──
+      if (webGap) return { ok: false, error: webGap };
       try {
         await webpush.sendNotification(
           t.subscription as webpush.PushSubscription,

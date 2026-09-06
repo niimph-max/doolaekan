@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { isNativeApp } from '@/lib/native';
 
 /** ลงทะเบียน service worker ให้ติดตั้งลงหน้าจอได้ (PWA) และเปิดใช้ตอนเน็ตหลุด
  *
@@ -12,6 +13,10 @@ import { useEffect } from 'react';
 export function RegisterSW() {
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') return;
+    // ในแอปไม่ต้องมี service worker เลย ไฟล์ทั้งชุดถูกฝังมาในตัวแอปอยู่แล้ว
+    // ถ้าปล่อยให้ลงทะเบียน จะกลายเป็นสองระบบแคชทับกันบนของชุดเดียวกัน
+    // แล้วอัปเดตแอปครั้งหน้าจะได้ของเก่าปนใหม่โดยไม่มีใครรู้ว่าเพราะอะไร
+    if (isNativeApp()) return;
     if (!('serviceWorker' in navigator)) return;
 
     // ติดตั้งครั้งแรกก็นับเป็นการเปลี่ยนตัวคุมเหมือนกัน แต่ของบนจอใหม่อยู่แล้ว
