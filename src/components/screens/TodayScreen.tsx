@@ -161,6 +161,13 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
         );
       })}
 
+      {/* ── บอกซ้ำว่ากำลังลงสมุดใคร ──
+          บรรทัดบนสุดของหน้าเลื่อนพ้นจอไปตั้งแต่การ์ดยาใบที่สองแล้ว พอเลื่อนลงมา
+          ถึงตรงนี้จึงไม่เหลืออะไรบอกเลยว่าที่กำลังจะกดบันทึกลงสมุดของใคร
+          เกิดขึ้นจริงแล้ว: คนในบ้านเปิดสมุดของพ่อค้างไว้ แล้วจดความดันของตัวเอง
+          ลงไป — ปุ่มจดอาการกับช่องกรอกความดันอยู่ใต้บรรทัดนี้ทั้งคู่ */}
+      <Kicker book={book} style={{ margin: '22px 0 8px' }} />
+
       {/* จดอาการ */}
       <button type="button" className="o-card" onClick={onOpenSymptom}
         style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', border: 0, textAlign: 'left' }}>

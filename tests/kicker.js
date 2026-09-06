@@ -19,6 +19,21 @@ const { chromium } = require('../node_modules/playwright-core');
     check(`แท็บ ${tab} → "${k}"`, /^Doolaekan · .+/i.test(k));
   }
 
+  // ── หน้าหลักต้องบอกซ้ำตรงกลางหน้า ──
+  // บรรทัดบนสุดเลื่อนพ้นจอไปตั้งแต่การ์ดยาใบที่สอง พอเลื่อนลงมาถึงปุ่มจดอาการ
+  // กับช่องกรอกความดัน จะไม่เหลืออะไรบอกเลยว่ากำลังลงสมุดของใคร
+  await p.locator('.tabbar button', { hasText: 'หน้าหลัก' }).click();
+  await p.waitForTimeout(400);
+  const kickers = (await p.locator('.screen .kicker').allInnerTexts()).map((t) => t.trim());
+  check(`หน้าหลักบอกชื่อสมุดสองที่: ${JSON.stringify(kickers)}`, kickers.length === 2);
+  check('สองที่บอกชื่อเดียวกัน', kickers[0] === kickers[1]);
+
+  const symptomTop = await p.getByRole('button', { name: /จดอาการวันนี้/ }).boundingBox();
+  const secondTop = await p.locator('.screen .kicker').nth(1).boundingBox();
+  check('อยู่เหนือปุ่มจดอาการ ไม่ใช่ใต้', secondTop.y < symptomTop.y);
+  check('อยู่เหนือช่องกรอกความดันด้วย',
+    secondTop.y < (await p.locator('input[aria-label="ความดันตัวบน"]').boundingBox()).y);
+
   // สลับสมุด แล้วบรรทัดบนต้องเปลี่ยนตาม
   await p.locator('.tabbar button', { hasText: 'สมุด' }).click();
   await p.waitForTimeout(500);
