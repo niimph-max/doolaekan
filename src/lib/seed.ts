@@ -89,6 +89,20 @@ export function demoState(): Omit<AppState, 'ready'> {
     { id: 'r12', book_id: 'b_mom', kind: 'bp', title: 'ความดัน 124/74 · ชีพจร 70', body: '', data: { sys: 124, dia: 74, pulse: 70 }, at: ago(3, 8, 5), actor_name: 'พี่แจ๋ว', important: false },
     { id: 'r13', book_id: 'b_mom', kind: 'bp', title: 'ความดัน 122/72 · ชีพจร 68', body: '', data: { sys: 122, dia: 72, pulse: 68 }, at: ago(1), actor_name: 'พี่แจ๋ว', important: false },
     { id: 'r14', book_id: 'b_me', kind: 'visit', title: 'ขูดหินปูน', body: 'คลินิกฟันดี', at: ago(74, 18, 30), actor_name: 'พี่หนึ่ง', important: false },
+
+    // บันทึกประจำวัน — เดิมโหมดตัวอย่างไม่มีสักรายการ คนที่กด "ดูโหมดตัวอย่างก่อน"
+    // แล้วเปิดแท็บกิจกรรมจึงเจอหน้าว่างเปล่า ทั้งที่เป็นแท็บที่ใช้บ่อยที่สุดแท็บหนึ่ง
+    //
+    // ทุกรายการเป็นของ "วันก่อนๆ" ไม่ใช่วันนี้โดยตั้งใจ — ยอดสรุปของวันนี้จึงเริ่ม
+    // จากศูนย์เสมอ ทั้งสำหรับคนที่กดลองเล่นและสำหรับ tests/activity.js ที่ตรวจว่า
+    // ยอดแคลกับนาทีตรงกับสิ่งที่เพิ่งจดจริง ถ้าเอามาไว้วันนี้ ตัวเลขจะบวกกับของ
+    // ตัวอย่างจนไม่มีใครรู้ว่าเลขที่เห็นมาจากไหน
+    { id: 'r15', book_id: 'b_dad', kind: 'exercise', title: 'เดินรอบหมู่บ้าน', body: 'เดินช้าๆ แดดร่ม พักสองรอบ', data: { activity: 'เดิน', minutes: 25 }, at: ago(1, 6, 40), actor_name: 'เตี่ย', important: false },
+    { id: 'r16', book_id: 'b_dad', kind: 'food', title: 'ข้าวต้มปลา', body: 'ไม่ใส่น้ำปลาเพิ่ม', data: { meal: 'เช้า', kcal: 320 }, at: ago(1, 7, 50), actor_name: 'พี่แจ๋ว', important: false },
+    { id: 'r17', book_id: 'b_dad', kind: 'food', title: 'ก๋วยเตี๋ยวไก่ฉีก', body: '', data: { meal: 'เที่ยง' }, at: ago(1, 12, 20), actor_name: 'พี่แจ๋ว', important: false },
+    { id: 'r18', book_id: 'b_dad', kind: 'note', title: 'นอนหลับดีขึ้น', body: 'ตื่นกลางดึกครั้งเดียว ตั้งแต่เปลี่ยนเวลากินยาความดัน', at: ago(2, 21, 30), actor_name: 'เตี่ย', important: false },
+    { id: 'r19', book_id: 'b_dad', kind: 'exercise', title: 'กายภาพเข่า', body: 'ยืดเข่าตามที่หมอให้มา 3 ชุด', data: { activity: 'กายภาพ', minutes: 15 }, at: ago(2, 17, 10), actor_name: 'เตี่ย', important: false },
+    { id: 'r20', book_id: 'b_mom', kind: 'exercise', title: 'รำวงตอนเช้าที่ศาลา', body: '', data: { activity: 'เต้น', minutes: 40 }, at: ago(1, 6, 30), actor_name: 'แม่', important: false },
   ];
 
   const watchRules: WatchRule[] = [
