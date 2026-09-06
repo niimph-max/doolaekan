@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Chips } from '../Chips';
 import { Icon } from '../Icon';
+import { hasNativeCamera, shootPhoto } from '@/lib/camera';
+import { readAsDataUrl } from '@/lib/photo';
 import { DOSE_CHIPS, VACCINE_CHIPS } from '@/lib/seed';
 import { todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
@@ -77,14 +79,26 @@ export function AddVaccineSheet({ open, bookId, edit, onClose }: {
     onClose();
   };
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setPhoto(String(reader.result));
-    reader.onerror = () => actions.toast('อ่านไฟล์รูปไม่ได้');
-    reader.readAsDataURL(file);
+    try {
+      setPhoto(await readAsDataUrl(file));
+    } catch {
+      actions.toast('อ่านไฟล์รูปไม่ได้');
+    }
+  };
+
+  /** ในแอปใช้กล้องของเครื่องจริง ในเบราว์เซอร์กดผ่านช่องเลือกไฟล์ที่ซ่อนไว้ */
+  const shoot = async () => {
+    if (!hasNativeCamera()) { camRef.current?.click(); return; }
+    try {
+      const dataUrl = await shootPhoto();
+      if (dataUrl) setPhoto(dataUrl);     // ว่าง = กดยกเลิก ไม่ใช่ความผิดพลาด
+    } catch (e) {
+      actions.toast(`เปิดกล้องไม่ได้ — ${(e as Error).message}`);
+    }
   };
 
   /** วันที่ที่จะเก็บจริง — ความละเอียดที่ไม่รู้ให้ตกไปกลางช่วงนั้น
@@ -198,7 +212,7 @@ export function AddVaccineSheet({ open, bookId, edit, onClose }: {
           <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
           <input ref={pickRef} type="file" accept="image/*" hidden onChange={onFile} />
           <div className="o-row" style={{ marginTop: 14 }}>
-            <button type="button" className="o-btn secondary" onClick={() => camRef.current?.click()}>
+            <button type="button" className="o-btn secondary" onClick={() => void shoot()}>
               <Icon name="camera" size={19} /> ถ่ายบัตรวัคซีน
             </button>
             <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>

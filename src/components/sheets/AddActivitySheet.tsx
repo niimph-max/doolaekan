@@ -6,7 +6,8 @@ import { Chips } from '../Chips';
 import { Icon } from '../Icon';
 import { EXERCISE_CHIPS, MEAL_CHIPS } from '@/lib/seed';
 import { fmtShortDate, todayKey } from '@/lib/format';
-import { shrinkPhoto } from '@/lib/photo';
+import { hasNativeCamera, shootPhoto } from '@/lib/camera';
+import { readAsDataUrl, shrinkPhoto } from '@/lib/photo';
 import { equipmentHistory, equipmentLine, knownEquipment, lastExercise, lastWeight } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { ActivityEntry } from '@/lib/selectors';
@@ -119,29 +120,43 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
   //
   // มีรูปอยู่แล้วจะไม่เขียนทับให้เงียบๆ — ของที่ผู้ใช้เพิ่งถ่ายห้ามหายเพราะกดพลาด
   // บอกไปตรงๆ ว่าต้องเอาใบเดิมออกก่อน
-  const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = '';
-    if (!files.length) return;
+  /** ทางเดียวที่รับรูป ไม่ว่าจะมาจากกล้องของเครื่องหรือจากช่องเลือกไฟล์
+   *  กติกา "ใส่ได้รูปเดียว" จึงอยู่ที่เดียว ไม่ต้องเขียนซ้ำสองทาง */
+  const useImage = async (dataUrl: string) => {
     if (photoCount > 0) {
       actions.toast('ใส่ได้รูปเดียว — เอารูปเดิมออกก่อนถ้าจะเปลี่ยน');
       return;
     }
-    if (files.length > 1) actions.toast('ใส่ได้รูปเดียว — เก็บใบแรกให้');
-    const only = files.slice(0, 1);
-    setBusy((n) => n + only.length);
-    for (const file of only) {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const small = await shrinkPhoto(String(reader.result));
-        setPhotos((cur) => [...cur, small]);
-        setBusy((n) => n - 1);
-      };
-      reader.onerror = () => {
-        actions.toast('อ่านไฟล์รูปไม่ได้');
-        setBusy((n) => n - 1);
-      };
-      reader.readAsDataURL(file);
+    setBusy((n) => n + 1);
+    try {
+      const small = await shrinkPhoto(dataUrl);
+      setPhotos((cur) => [...cur, small]);
+    } catch {
+      actions.toast('ใช้รูปนี้ไม่ได้ ลองรูปอื่น');
+    }
+    setBusy((n) => n - 1);
+  };
+
+  const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (!files.length) return;
+    if (files.length > 1 && photoCount === 0) actions.toast('ใส่ได้รูปเดียว — เก็บใบแรกให้');
+    try {
+      await useImage(await readAsDataUrl(files[0]));
+    } catch {
+      actions.toast('อ่านไฟล์รูปไม่ได้');
+    }
+  };
+
+  /** ในแอปใช้กล้องของเครื่องจริง ในเบราว์เซอร์กดผ่านช่องเลือกไฟล์ที่ซ่อนไว้ */
+  const shoot = async () => {
+    if (!hasNativeCamera()) { camRef.current?.click(); return; }
+    try {
+      const dataUrl = await shootPhoto();
+      if (dataUrl) await useImage(dataUrl);     // ว่าง = กดยกเลิก ไม่ใช่ความผิดพลาด
+    } catch (e) {
+      actions.toast(`เปิดกล้องไม่ได้ — ${(e as Error).message}`);
     }
   };
 
@@ -349,7 +364,7 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
       <input ref={pickRef} type="file" accept="image/*" hidden onChange={onFiles} />
       <div className="o-row" style={{ marginTop: 12 }}>
         <button type="button" className="o-btn secondary" disabled={photoCount > 0}
-          onClick={() => camRef.current?.click()}>
+          onClick={() => void shoot()}>
           <Icon name="camera" size={19} /> ถ่ายรูป
         </button>
         <button type="button" className="o-btn ghost" disabled={photoCount > 0}

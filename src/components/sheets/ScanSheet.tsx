@@ -4,6 +4,8 @@ import React, { useRef, useState } from 'react';
 import { ComboField } from '../ComboField';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
+import { hasNativeCamera, shootPhoto } from '@/lib/camera';
+import { readAsDataUrl } from '@/lib/photo';
 import { MEAL_LABEL, MEAL_ORDER, SLOT_LABEL, SLOT_ORDER, inferMealTiming } from '@/lib/format';
 import { hospitalOfDoctor, medFieldOptions } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
@@ -31,12 +33,26 @@ export function ScanSheet({ open, bookId, onClose }: {
     onClose();
   };
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
+    e.target.value = '';
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setPhoto(String(reader.result));
-    reader.readAsDataURL(f);
+    try {
+      setPhoto(await readAsDataUrl(f));
+    } catch {
+      actions.toast('อ่านไฟล์รูปไม่ได้');
+    }
+  };
+
+  /** ในแอปใช้กล้องของเครื่องจริง ในเบราว์เซอร์กดผ่านช่องเลือกไฟล์ที่ซ่อนไว้ */
+  const shoot = async () => {
+    if (!hasNativeCamera()) { fileRef.current?.click(); return; }
+    try {
+      const dataUrl = await shootPhoto();
+      if (dataUrl) setPhoto(dataUrl);     // ว่าง = กดยกเลิก ไม่ใช่ความผิดพลาด
+    } catch (e) {
+      actions.toast(`เปิดกล้องไม่ได้ — ${(e as Error).message}`);
+    }
   };
 
   // เตือนล่วงหน้าถ้าตัวยาหลักซ้ำกับที่มีอยู่แล้วในสมุดเล่มนี้
@@ -67,7 +83,7 @@ export function ScanSheet({ open, bookId, onClose }: {
     <Sheet open={open} title="สแกนถุงยาใหม่" onClose={close}>
       {!photo ? (
         <>
-          <button type="button" onClick={() => fileRef.current?.click()}
+          <button type="button" onClick={() => void shoot()}
             style={{
               width: '100%', aspectRatio: '4 / 3', borderRadius: 24, cursor: 'pointer',
               border: '2px dashed var(--color-accent-500)', background: 'var(--color-neutral-200)',

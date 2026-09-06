@@ -4,6 +4,8 @@ import React, { useRef, useState } from 'react';
 import { ComboField } from '../ComboField';
 import { EscortPicker } from '../EscortPicker';
 import { Icon } from '../Icon';
+import { hasNativeCamera, shootPhoto } from '@/lib/camera';
+import { readAsDataUrl } from '@/lib/photo';
 import { Kicker } from '../Kicker';
 import { daysLabel, daysUntil, fmtDate } from '@/lib/format';
 import { bookAppointments } from '@/lib/selectors';
@@ -256,16 +258,31 @@ function ApptPhoto({ appt }: { appt: Appointment }) {
   // เก็บไว้แล้วแต่ยังไม่ได้ดึงรูปมา — ดึงตอนกดดูเท่านั้น รูปเป็นของหนักที่สุดในแอป
   const stored = Boolean(appt.photo_path) && !appt.photo;
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const useImage = (dataUrl: string) => {
+    actions.setAppointmentPhoto(appt.id, dataUrl);
+    actions.toast('เก็บภาพใบนัดแล้ว');
+  };
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      actions.setAppointmentPhoto(appt.id, String(reader.result));
-      actions.toast('เก็บภาพใบนัดแล้ว');
-    };
-    reader.readAsDataURL(file);
+    try {
+      useImage(await readAsDataUrl(file));
+    } catch {
+      actions.toast('อ่านไฟล์รูปไม่ได้');
+    }
+  };
+
+  /** ในแอปใช้กล้องของเครื่องจริง ในเบราว์เซอร์กดผ่านช่องเลือกไฟล์ที่ซ่อนไว้ */
+  const shoot = async () => {
+    if (!hasNativeCamera()) { camRef.current?.click(); return; }
+    try {
+      const dataUrl = await shootPhoto();
+      if (dataUrl) useImage(dataUrl);       // ว่าง = กดยกเลิก ไม่ใช่ความผิดพลาด
+    } catch (e) {
+      actions.toast(`เปิดกล้องไม่ได้ — ${(e as Error).message}`);
+    }
   };
 
   return (
@@ -286,7 +303,7 @@ function ApptPhoto({ appt }: { appt: Appointment }) {
         </button>
       )}
       <div className="o-row" style={{ marginTop: (appt.photo || stored) ? 10 : 0 }}>
-        <button type="button" className="o-btn ghost" onClick={() => camRef.current?.click()}>
+        <button type="button" className="o-btn ghost" onClick={() => void shoot()}>
           <Icon name="camera" size={18} /> {(appt.photo || stored) ? 'ถ่ายใหม่' : 'ถ่ายใบนัด'}
         </button>
         <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>

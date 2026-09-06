@@ -4,7 +4,8 @@ import React, { useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
 import { dataUrlSize, isPdf, todayKey } from '@/lib/format';
-import { shrinkDoc } from '@/lib/photo';
+import { hasNativeCamera, shootPhoto } from '@/lib/camera';
+import { readAsDataUrl, shrinkDoc } from '@/lib/photo';
 import { VISIT_CHIPS } from '@/lib/seed';
 import { useStore } from '@/lib/store';
 
@@ -61,23 +62,39 @@ export function AddDocSheet({ open, bookId, onClose }: {
   // เจ้าของจ่ายแทนคนอื่น ย่อที่ 1600px แล้วยังอ่านตัวเลขบนใบผลเลือดออกชัด
   //
   // PDF ย่อไม่ได้ ต้องเก็บตามเดิม — และเป็นต้นฉบับจริงจากโรงพยาบาลอยู่แล้ว
-  const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /** ทางเดียวที่รับแผ่นเอกสาร — PDF เก็บตามเดิม รูปย่อก่อนเสมอ */
+  const addPage = async (raw: string) => {
+    setBusy((n) => n + 1);
+    try {
+      const kept = isPdf(raw) ? raw : await shrinkDoc(raw);
+      setPages((cur) => [...cur, kept]);
+    } catch {
+      actions.toast('ใช้ไฟล์นี้ไม่ได้ ลองใบอื่น');
+    }
+    setBusy((n) => n - 1);
+  };
+
+  const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    setBusy((n) => n + files.length);
     for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const raw = String(reader.result);
-        const kept = isPdf(raw) ? raw : await shrinkDoc(raw);
-        setPages((cur) => [...cur, kept]);
-        setBusy((n) => n - 1);
-      };
-      reader.onerror = () => {
+      try {
+        await addPage(await readAsDataUrl(file));
+      } catch {
         actions.toast('อ่านไฟล์ไม่ได้');
-        setBusy((n) => n - 1);
-      };
-      reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  /** ในแอปใช้กล้องของเครื่องจริง ในเบราว์เซอร์กดผ่านช่องเลือกไฟล์ที่ซ่อนไว้
+   *  ถ่ายได้ทีละใบ ผลตรวจหลายหน้าให้กดถ่ายซ้ำ — ปุ่มเดิมอยู่ที่เดิม ไม่ต้องหาใหม่ */
+  const shoot = async () => {
+    if (!hasNativeCamera()) { camRef.current?.click(); return; }
+    try {
+      const dataUrl = await shootPhoto();
+      if (dataUrl) await addPage(dataUrl);      // ว่าง = กดยกเลิก ไม่ใช่ความผิดพลาด
+    } catch (e) {
+      actions.toast(`เปิดกล้องไม่ได้ — ${(e as Error).message}`);
     }
   };
 
@@ -164,7 +181,7 @@ export function AddDocSheet({ open, bookId, onClose }: {
         </div>
       )}
       <div className="o-row" style={{ marginTop: 10 }}>
-        <button type="button" className="o-btn ghost" onClick={() => camRef.current?.click()}>
+        <button type="button" className="o-btn ghost" onClick={() => void shoot()}>
           <Icon name="camera" size={18} /> ถ่ายรูป
         </button>
         <button type="button" className="o-btn ghost" onClick={() => pickRef.current?.click()}>

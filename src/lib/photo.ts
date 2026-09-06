@@ -47,3 +47,15 @@ function resize(dataUrl: string, maxSide: number, quality: number): Promise<stri
     img.src = dataUrl;
   });
 }
+
+/** ไฟล์จากช่องเลือกไฟล์ → data URL
+ *  เดิมทุกที่เขียน FileReader เองซ้ำกันหกที่ พอกล้องในแอปส่ง data URL มาให้ตรงๆ
+ *  อยู่แล้ว การมีทางเดียวที่รับ data URL ทำให้สองเส้นทางไปจบที่โค้ดชุดเดียวกัน */
+export function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('อ่านไฟล์ไม่ได้'));
+    reader.readAsDataURL(file);
+  });
+}
