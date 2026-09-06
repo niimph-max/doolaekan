@@ -63,7 +63,7 @@ export function Onboarding() {
             </div>
 
             <label className="o-label" htmlFor="ob-name">ชื่อเรียกในสมุด</label>
-            <input id="ob-name" className="o-input" placeholder="เช่น เตี่ย / แม่ / พี่หนึ่ง"
+            <input id="ob-name" className="o-input" placeholder="เช่น พ่อ / แม่ / พี่หนึ่ง"
               value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
 
             <label className="o-label" htmlFor="ob-full">ชื่อ–นามสกุลจริง</label>
@@ -188,7 +188,7 @@ export function Onboarding() {
             {groupChoice === 'create' ? (
               <>
                 <label className="o-label" htmlFor="grp-name">ชื่อกลุ่ม</label>
-                <input id="grp-name" className="o-input" placeholder="เช่น บ้านเตี่ย–แม่"
+                <input id="grp-name" className="o-input" placeholder="เช่น บ้านพ่อ–แม่"
                   value={groupName} onChange={(e) => setGroupName(e.target.value)} />
               </>
             ) : (

@@ -17,7 +17,7 @@ export function demoState(): Omit<AppState, 'ready'> {
 
   const books: Book[] = [
     {
-      id: 'b_dad', owner_name: 'เตี่ย', full_name: 'นายสมชาย ใจดี',
+      id: 'b_dad', owner_name: 'พ่อ', full_name: 'นายสมชาย ใจดี',
       address: '12/3 ถ.เบญจมราชูทิศ ต.วัดใหม่ อ.เมือง จ.จันทบุรี',
       allergy: 'เพนิซิลลิน (ผื่นทั้งตัว)',
       conditions: ['หัวใจขาดเลือด', 'ต้อกระจก', 'กระดูกพรุน'],
@@ -68,8 +68,8 @@ export function demoState(): Omit<AppState, 'ready'> {
   ];
 
   const appointments: Appointment[] = [
-    { id: 'a1', book_id: 'b_dad', title: 'หมอหัวใจ — เตี่ย', date: d(4), time: '09:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', note: 'งดน้ำงดอาหารหลังเที่ยงคืน เอาผลเลือดใบเดิมไปด้วย', blood_test_before: true, blood_test_done: true },
-    { id: 'a2', book_id: 'b_dad', title: 'หมอตา — เตี่ย', date: d(83), time: '10:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'น้องสอง', note: '', blood_test_before: false, blood_test_done: false },
+    { id: 'a1', book_id: 'b_dad', title: 'หมอหัวใจ — พ่อ', date: d(4), time: '09:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', note: 'งดน้ำงดอาหารหลังเที่ยงคืน เอาผลเลือดใบเดิมไปด้วย', blood_test_before: true, blood_test_done: true },
+    { id: 'a2', book_id: 'b_dad', title: 'หมอตา — พ่อ', date: d(83), time: '10:00', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'น้องสอง', note: '', blood_test_before: false, blood_test_done: false },
     { id: 'a3', book_id: 'b_mom', title: 'หมอหัวใจ — แม่', date: d(20), time: '10:30', place: 'รพ.พระปกเกล้า จันทบุรี', escort: 'พี่หนึ่ง', note: '', blood_test_before: true, blood_test_done: false },
     { id: 'a4', book_id: 'b_me', title: 'หมอฟัน — ฉัน', date: d(11), time: '17:00', place: 'คลินิกฟันดี', escort: '', note: '', blood_test_before: false, blood_test_done: false },
   ];
@@ -97,11 +97,11 @@ export function demoState(): Omit<AppState, 'ready'> {
     // จากศูนย์เสมอ ทั้งสำหรับคนที่กดลองเล่นและสำหรับ tests/activity.js ที่ตรวจว่า
     // ยอดแคลกับนาทีตรงกับสิ่งที่เพิ่งจดจริง ถ้าเอามาไว้วันนี้ ตัวเลขจะบวกกับของ
     // ตัวอย่างจนไม่มีใครรู้ว่าเลขที่เห็นมาจากไหน
-    { id: 'r15', book_id: 'b_dad', kind: 'exercise', title: 'เดินรอบหมู่บ้าน', body: 'เดินช้าๆ แดดร่ม พักสองรอบ', data: { activity: 'เดิน', minutes: 25 }, at: ago(1, 6, 40), actor_name: 'เตี่ย', important: false },
+    { id: 'r15', book_id: 'b_dad', kind: 'exercise', title: 'เดินรอบหมู่บ้าน', body: 'เดินช้าๆ แดดร่ม พักสองรอบ', data: { activity: 'เดิน', minutes: 25 }, at: ago(1, 6, 40), actor_name: 'พ่อ', important: false },
     { id: 'r16', book_id: 'b_dad', kind: 'food', title: 'ข้าวต้มปลา', body: 'ไม่ใส่น้ำปลาเพิ่ม', data: { meal: 'เช้า', kcal: 320 }, at: ago(1, 7, 50), actor_name: 'พี่แจ๋ว', important: false },
     { id: 'r17', book_id: 'b_dad', kind: 'food', title: 'ก๋วยเตี๋ยวไก่ฉีก', body: '', data: { meal: 'เที่ยง' }, at: ago(1, 12, 20), actor_name: 'พี่แจ๋ว', important: false },
-    { id: 'r18', book_id: 'b_dad', kind: 'note', title: 'นอนหลับดีขึ้น', body: 'ตื่นกลางดึกครั้งเดียว ตั้งแต่เปลี่ยนเวลากินยาความดัน', at: ago(2, 21, 30), actor_name: 'เตี่ย', important: false },
-    { id: 'r19', book_id: 'b_dad', kind: 'exercise', title: 'กายภาพเข่า', body: 'ยืดเข่าตามที่หมอให้มา 3 ชุด', data: { activity: 'กายภาพ', minutes: 15 }, at: ago(2, 17, 10), actor_name: 'เตี่ย', important: false },
+    { id: 'r18', book_id: 'b_dad', kind: 'note', title: 'นอนหลับดีขึ้น', body: 'ตื่นกลางดึกครั้งเดียว ตั้งแต่เปลี่ยนเวลากินยาความดัน', at: ago(2, 21, 30), actor_name: 'พ่อ', important: false },
+    { id: 'r19', book_id: 'b_dad', kind: 'exercise', title: 'กายภาพเข่า', body: 'ยืดเข่าตามที่หมอให้มา 3 ชุด', data: { activity: 'กายภาพ', minutes: 15 }, at: ago(2, 17, 10), actor_name: 'พ่อ', important: false },
     { id: 'r20', book_id: 'b_mom', kind: 'exercise', title: 'รำวงตอนเช้าที่ศาลา', body: '', data: { activity: 'เต้น', minutes: 40 }, at: ago(1, 6, 30), actor_name: 'แม่', important: false },
   ];
 
@@ -114,7 +114,7 @@ export function demoState(): Omit<AppState, 'ready'> {
 
   const groups: Group[] = [
     {
-      id: 'g1', name: 'บ้านเตี่ย–แม่', invite_code: 'DLK-4821', owner_id: 'u1',
+      id: 'g1', name: 'บ้านพ่อ–แม่', invite_code: 'DLK-4821', owner_id: 'u1',
       members: [
         { id: 'u1', name: 'พี่หนึ่ง' }, { id: 'u2', name: 'น้องสอง' },
         { id: 'u3', name: 'น้องสาม' }, { id: 'u4', name: 'พี่แจ๋ว (คนดูแล)' },

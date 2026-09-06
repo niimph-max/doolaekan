@@ -56,7 +56,7 @@ export function GroupSheet({ open, onClose }: { open: boolean; onClose: () => vo
           {mode === 'create' ? (
             <>
               <label className="o-label" htmlFor="gs-name">ชื่อกลุ่ม</label>
-              <input id="gs-name" className="o-input" placeholder="เช่น บ้านเตี่ย–แม่"
+              <input id="gs-name" className="o-input" placeholder="เช่น บ้านพ่อ–แม่"
                 value={name} onChange={(e) => setName(e.target.value)} />
             </>
           ) : (
