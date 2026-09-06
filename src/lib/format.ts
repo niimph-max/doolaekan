@@ -135,3 +135,24 @@ export function dataUrlSize(dataUrl: string): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+/** เกณฑ์ความดันสูงที่ใช้ทั้งแอป — ตรงกับค่าเริ่มต้นของการแจ้งเตือนใน 0010 */
+export const BP_HIGH = 140;
+
+/** ประกอบบันทึกความดันจากตัวเลขสามตัว
+ *
+ *  มีที่เดียวเพราะใช้สองที่: ตอนจดใหม่ในหน้าหลัก และตอนแก้ค่าที่จดผิดในไทม์ไลน์
+ *  ถ้าแยกกันเขียน วันหนึ่งจะเหลือที่ที่ยังบอกว่า "สูงกว่าเกณฑ์" ทั้งที่แก้เป็นค่า
+ *  ปกติไปแล้ว ซึ่งเป็นการโกหกที่อันตรายกว่าไม่มีข้อความอะไรเลย */
+export function bpRecordFields(sys: number, dia: number, pulse?: number): {
+  title: string; body: string; important: boolean;
+  data: { sys: number; dia: number; pulse?: number };
+} {
+  const high = sys >= BP_HIGH;
+  return {
+    title: `ความดัน ${sys}/${dia}${pulse ? ` · ชีพจร ${pulse}` : ''}`,
+    body: high ? 'สูงกว่าเกณฑ์ — แจ้งลูกๆ ทันที' : '',
+    important: high,
+    data: { sys, dia, pulse },
+  };
+}

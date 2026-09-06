@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Icon } from '../Icon';
 import { Kicker } from '../Kicker';
 import { REFUSE_REASONS } from '@/lib/seed';
-import { MEAL_LABEL, SLOT_LABEL, SLOT_TIME, daysLabel, fmtDate, fmtTime, todayKey } from '@/lib/format';
+import { MEAL_LABEL, SLOT_LABEL, SLOT_TIME, daysLabel, fmtDate, fmtTime, todayKey, bpRecordFields } from '@/lib/format';
 import { nextAppointment, todayDoseGroups } from '@/lib/selectors';
 import { useStore } from '@/lib/store';
 import type { Book, DoseSlot, MealTiming, Medication } from '@/lib/types';
@@ -37,17 +37,12 @@ export function TodayScreen({ book, onOpenActor, onOpenSymptom, onOpenEmergency,
     const sys = Number(bp.sys);
     const dia = Number(bp.dia);
     if (!sys || !dia) return;
-    const pulse = Number(bp.pulse) || undefined;
-    const high = sys >= 140;
-    actions.addRecord(book.id, {
-      kind: 'bp',
-      title: `ความดัน ${sys}/${dia}${pulse ? ` · ชีพจร ${pulse}` : ''}`,
-      body: high ? 'สูงกว่าเกณฑ์ — แจ้งลูกๆ ทันที' : '',
-      data: { sys, dia, pulse },
-      important: high,
-    });
+    const fields = bpRecordFields(sys, dia, Number(bp.pulse) || undefined);
+    actions.addRecord(book.id, { kind: 'bp', ...fields });
     setBp({ sys: '', dia: '', pulse: '' });
-    actions.toast(high ? 'บันทึกแล้ว — ความดันสูง แจ้งลูกๆ ทันที' : 'บันทึกแล้ว ทุกคนเห็นทันที');
+    actions.toast(fields.important
+      ? 'บันทึกแล้ว — ความดันสูง แจ้งลูกๆ ทันที'
+      : 'บันทึกแล้ว ทุกคนเห็นทันที');
   };
 
   return (

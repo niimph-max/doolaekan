@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
 import { Kicker } from '../Kicker';
-import { daysUntil, fmtDate, fmtShortDate, fmtTime, isPdf } from '@/lib/format';
+import { bpRecordFields, daysUntil, fmtDate, fmtShortDate, fmtTime, isPdf } from '@/lib/format';
 import {
   SHARE_LABEL, bookRecords, bookSummary, bookVaccines, bookWatchRules, bpHistory,
   isVaccine, shareLevel, vaccineDateLabel, visibleBooks,
@@ -243,23 +243,150 @@ export function BookScreen({
           <div key={r.id} className="tl-item">
             <span className="tl-dot" style={{ background: r.important ? 'var(--color-accent)' : DOT[r.kind] }} />
             <div>
-              <div className="o-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <strong>{r.title}</strong>
-                  <span className="subtle" style={{ whiteSpace: 'nowrap' }}>{fmtShortDate(r.at)}</span>
-                </div>
-                {r.body && <p style={{ margin: '4px 0 0' }}>{r.body}</p>}
-                <p className="subtle" style={{ margin: '4px 0 0' }}>
-                  {fmtTime(r.at)} น. · {r.actor_name}บันทึก
-                </p>
-                {}
-                <RecordPhoto record={r} />
-              </div>
+              <TimelineCard record={r} />
             </div>
           </div>
         ))
       )}
 
+    </div>
+  );
+}
+
+/** การ์ดหนึ่งใบในไทม์ไลน์ พร้อมทางแก้เมื่อจดผิด
+ *
+ *  ที่ต้องมี เพราะเรื่องนี้เกิดขึ้นจริงแล้ว: คนในบ้านเปิดสมุดค้างไว้เล่มหนึ่ง
+ *  แล้วจดความดันของตัวเองลงไป กว่าจะรู้ตัวก็บันทึกไปแล้ว และไม่มีทางเอาออก
+ *  ค่าที่ผิดจะอยู่ในไทม์ไลน์ของอีกคนตลอดไป ปนอยู่กับค่าจริงจนกราฟเพี้ยนตาม
+ *  — ของที่ "แก้ไม่ได้เลย" อันตรายกว่าของที่ "แก้ได้แต่ต้องยืนยันก่อน" มาก
+ *
+ *  ใครที่เห็นสมุดเล่มนี้แบบเต็มระดับก็แก้และลบได้ ตรงกับกติกาสิทธิ์ฝั่งฐานข้อมูล
+ *  (records_rw ใช้ can_access_book ระดับ full) ไม่ได้จำกัดแค่คนที่จดเอง เพราะ
+ *  คนที่จดผิดอาจเป็นคนที่ไม่ถนัดแก้เอง แล้วต้องรอให้ลูกหลานมาช่วย */
+function TimelineCard({ record: r }: { record: RecordItem }) {
+  const { actions } = useStore();
+  const [mode, setMode] = useState<'view' | 'edit' | 'confirm'>('view');
+
+  const [title, setTitle] = useState(r.title);
+  const [body, setBody] = useState(r.body);
+  const [sys, setSys] = useState(String(r.data?.sys ?? ''));
+  const [dia, setDia] = useState(String(r.data?.dia ?? ''));
+  const [pulse, setPulse] = useState(String(r.data?.pulse ?? ''));
+
+  const openEdit = () => {
+    // เปิดมาพร้อมค่าปัจจุบันเสมอ ไม่ใช่ค่าที่ค้างจากรอบก่อน
+    setTitle(r.title); setBody(r.body);
+    setSys(String(r.data?.sys ?? ''));
+    setDia(String(r.data?.dia ?? ''));
+    setPulse(String(r.data?.pulse ?? ''));
+    setMode('edit');
+  };
+
+  const saveBp = () => {
+    const s = Number(sys);
+    const d = Number(dia);
+    if (!s || !d) return;
+    const fields = bpRecordFields(s, d, Number(pulse) || undefined);
+    // เขียนทับ data ทั้งก้อนไม่ได้ ของอื่นใน data (เช่นวัคซีน) จะหายไปด้วย
+    actions.updateRecords([r.id], {
+      title: fields.title, body: fields.body, important: fields.important,
+      data: { ...r.data, ...fields.data },
+    });
+    actions.toast('แก้ค่าความดันแล้ว');
+    setMode('view');
+  };
+
+  const saveText = () => {
+    if (!title.trim()) return;
+    actions.updateRecords([r.id], { title: title.trim(), body: body.trim() });
+    actions.toast('แก้บันทึกแล้ว');
+    setMode('view');
+  };
+
+  const hasPhoto = Boolean(r.file_path || r.file);
+
+  return (
+    <div className="o-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <strong>{r.title}</strong>
+        <span className="subtle" style={{ whiteSpace: 'nowrap' }}>{fmtShortDate(r.at)}</span>
+      </div>
+      {r.body && <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{r.body}</p>}
+      <p className="subtle" style={{ margin: '4px 0 0' }}>
+        {fmtTime(r.at)} น. · {r.actor_name}บันทึก
+      </p>
+      <RecordPhoto record={r} />
+
+      {mode === 'edit' && (r.kind === 'bp' ? (
+        <div style={{ marginTop: 12 }}>
+          <div className="o-row">
+            <div>
+              <label className="o-label" style={{ marginTop: 0 }} htmlFor={`bp-sys-${r.id}`}>ตัวบน</label>
+              <input id={`bp-sys-${r.id}`} className="o-input" inputMode="numeric"
+                value={sys} onChange={(e) => setSys(e.target.value)} />
+            </div>
+            <div>
+              <label className="o-label" style={{ marginTop: 0 }} htmlFor={`bp-dia-${r.id}`}>ตัวล่าง</label>
+              <input id={`bp-dia-${r.id}`} className="o-input" inputMode="numeric"
+                value={dia} onChange={(e) => setDia(e.target.value)} />
+            </div>
+            <div>
+              <label className="o-label" style={{ marginTop: 0 }} htmlFor={`bp-pulse-${r.id}`}>ชีพจร</label>
+              <input id={`bp-pulse-${r.id}`} className="o-input" inputMode="numeric"
+                value={pulse} onChange={(e) => setPulse(e.target.value)} />
+            </div>
+          </div>
+          <div className="o-row" style={{ marginTop: 12 }}>
+            <button type="button" className="o-btn ghost" onClick={() => setMode('view')}>ยกเลิก</button>
+            <button type="button" className="o-btn primary"
+              disabled={!Number(sys) || !Number(dia)} onClick={saveBp}>
+              บันทึก
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginTop: 12 }}>
+          <label className="o-label" style={{ marginTop: 0 }} htmlFor={`tl-title-${r.id}`}>หัวข้อ</label>
+          <input id={`tl-title-${r.id}`} className="o-input"
+            value={title} onChange={(e) => setTitle(e.target.value)} />
+
+          <label className="o-label" htmlFor={`tl-body-${r.id}`}>รายละเอียด</label>
+          <textarea id={`tl-body-${r.id}`} className="o-textarea" rows={3}
+            value={body} onChange={(e) => setBody(e.target.value)} />
+
+          <div className="o-row" style={{ marginTop: 12 }}>
+            <button type="button" className="o-btn ghost" onClick={() => setMode('view')}>ยกเลิก</button>
+            <button type="button" className="o-btn primary" disabled={!title.trim()} onClick={saveText}>
+              บันทึก
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {mode === 'confirm' && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ flex: 1, minWidth: 150 }}>
+            ลบบันทึกนี้?{hasPhoto && ' (ไฟล์ที่แนบไว้จะหายไปด้วย)'}
+          </span>
+          <button type="button" className="o-btn ghost" onClick={() => setMode('view')}>ไม่ลบ</button>
+          <button type="button" className="o-btn danger"
+            onClick={() => { actions.removeRecords([r.id]); actions.toast('ลบแล้ว'); }}>
+            ลบ
+          </button>
+        </div>
+      )}
+
+      {mode === 'view' && (
+        <div className="o-row" style={{ marginTop: 12 }}>
+          <button type="button" className="o-btn ghost" style={{ minHeight: 38 }} onClick={openEdit}>
+            แก้ไข
+          </button>
+          <button type="button" className="o-btn ghost" style={{ minHeight: 38 }}
+            onClick={() => setMode('confirm')}>
+            ลบ
+          </button>
+        </div>
+      )}
     </div>
   );
 }

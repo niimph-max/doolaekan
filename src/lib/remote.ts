@@ -443,7 +443,10 @@ export async function deleteImages(paths: string[]): Promise<void> {
 /** แก้ไขบันทึกที่จดไว้แล้ว — แก้พร้อมกันหลายแถวเพื่อให้ชุดเดียวกันยังจับกลุ่มกันติด */
 export async function updateRecords(
   ids: string[],
-  patch: { title?: string; body?: string; data?: RecordItem['data']; at?: string },
+  patch: {
+    title?: string; body?: string; data?: RecordItem['data']; at?: string;
+    important?: boolean;
+  },
 ): Promise<void> {
   if (!ids.length) return;
   const row: Record<string, unknown> = {};
@@ -451,6 +454,7 @@ export async function updateRecords(
   if (patch.body !== undefined) row.body = patch.body || null;
   if (patch.data !== undefined) row.data = patch.data ?? null;
   if (patch.at !== undefined) row.created_at = patch.at;
+  if (patch.important !== undefined) row.hit_watch_rule = patch.important;
   if (!Object.keys(row).length) return;
   const { error } = await db().from('records').update(row).in('id', ids);
   check('updateRecords', error);

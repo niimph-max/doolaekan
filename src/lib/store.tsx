@@ -147,7 +147,12 @@ interface Actions {
   /** แก้บันทึกที่จดไว้แล้ว — แก้ทุกแถวในชุดเดียวกันพร้อมกัน */
   updateRecords: (
     ids: string[],
-    patch: { title?: string; body?: string; data?: RecordItem['data']; at?: string },
+    patch: {
+      title?: string; body?: string; data?: RecordItem['data']; at?: string;
+      /** แก้ค่าความดันให้กลับมาปกติแล้ว ธง "เรื่องสำคัญ" ต้องหายตามไปด้วย
+       *  ไม่งั้นไทม์ไลน์จะยังชี้ว่าเป็นเรื่องน่ากังวลทั้งที่แก้ไปแล้ว */
+      important?: boolean;
+    },
   ) => void;
   addWatchRule: (bookId: string, rule: Omit<WatchRule, 'id' | 'book_id'>) => void;
   updateWatchRule: (id: string, patch: Partial<WatchRule>) => void;
