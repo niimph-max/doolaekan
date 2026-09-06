@@ -1,0 +1,118 @@
+# ขึ้น App Store โดยไม่ต้องมีเครื่อง Mac — Codemagic ให้เครื่อง macOS มา build ให้
+#
+# ── ต้องตั้งค่าใน Codemagic ก่อนรันครั้งแรก (ทำในเว็บ ไม่ใช่ในไฟล์นี้) ──
+#
+# 1. Teams/App → Settings → Environment variables → สร้างกลุ่มชื่อ `doolaekan`
+#    ใส่สองตัวนี้ ติ๊ก Secure ทั้งคู่
+#      NEXT_PUBLIC_SUPABASE_URL
+#      NEXT_PUBLIC_SUPABASE_ANON_KEY
+#    (ไม่ต้องใส่ VAPID — ในแอปแจ้งเตือนไปทาง APNs ไม่ได้ใช้กุญแจนั้นเลย)
+#
+# 2. Settings → Integrations → Apple Developer Portal → เชื่อม App Store Connect
+#    ด้วยกุญแจ API (.p8 คนละใบกับกุญแจ APNs) แล้วจำ "ชื่อ integration" ที่ตั้งไว้
+#    เอามาใส่ที่ช่อง app_store_connect ข้างล่าง
+#
+# 3. ที่ App Store Connect ต้องมีแอปที่ Bundle ID = com.doolaekan.app อยู่ก่อนแล้ว
+#    ไม่งั้นขั้นส่งขึ้นจะล้มด้วยข้อความที่ไม่ได้บอกว่าเพราะแอปยังไม่มี
+#
+# ── ที่ผมไม่ได้รันจริง ต้องดูรอบแรกด้วยกัน ──
+# ชื่อตัวแปรเลข build ของ Codemagic เปลี่ยนมาแล้วหลายรุ่น (BUILD_NUMBER /
+# PROJECT_BUILD_NUMBER) สคริปต์ข้างล่างจึงลองทีละตัวแล้วค่อยตกไปใช้เวลาปัจจุบัน
+# เลขจะไม่สวยแต่ไม่มีวันซ้ำ ซึ่งเป็นข้อเดียวที่ App Store Connect สนใจ
+
+workflows:
+  ios-testflight:
+    name: Doolaekan — ขึ้น TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    integrations:
+      app_store_connect: doolaekan-asc      # ← เปลี่ยนเป็นชื่อ integration ของคุณ
+
+    environment:
+      groups:
+        - doolaekan
+      node: 22
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.doolaekan.app
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+
+    triggering:
+      # ไม่ให้ build ทุกครั้งที่ push — สั่งเองเมื่อพร้อมส่งจริง
+      events: []
+
+    scripts:
+      - name: ตรวจว่ามีค่าที่ต้องใช้ครบ
+        script: |
+          set -e
+          missing=""
+          [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] && missing="$missing NEXT_PUBLIC_SUPABASE_URL"
+          [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && missing="$missing NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          if [ -n "$missing" ]; then
+            echo "ขาดค่าที่ต้องใช้:$missing — ใส่ในกลุ่ม doolaekan ที่หน้า Environment variables"
+            exit 1
+          fi
+          echo "ค่าครบ (คีย์ยาว ${#NEXT_PUBLIC_SUPABASE_ANON_KEY} ตัวอักษร)"
+
+      - name: ติดตั้งแพ็กเกจ
+        script: npm ci
+
+      - name: build เว็บแล้วคัดลอกเข้าโปรเจกต์ iOS
+        script: |
+          set -e
+          # ไม่ตั้ง NEXT_PUBLIC_BASE_PATH = แอปอยู่ที่รากของตัวเอง ซึ่งถูกต้องสำหรับ
+          # ไฟล์ที่ฝังในแอป (ต่างจากตอนขึ้น GitHub Pages ที่อ่านค่าจาก CNAME)
+          export NEXT_PUBLIC_BUILD="ios-${BUILD_NUMBER:-local}"
+          npx next build
+          npx cap sync ios
+
+          # ด่านตรวจแบบเดียวกับฝั่งเว็บ — ถ้าหน้าเว็บชี้ไฟล์ผิดที่ แอปจะเปิดขึ้นมา
+          # ค้างที่หน้ารอโดยไม่มี error อะไรเลย ซึ่งเป็นอาการที่หาสาเหตุยากที่สุด
+          # ยอมให้ build ล้มตรงนี้ ดีกว่าไปรู้ตอนแอปอยู่บนเครื่องจริงแล้ว
+          if ! grep -q '"/_next/' ios/App/App/public/index.html; then
+            echo "index.html ไม่ได้ชี้ไปที่ /_next/ — basePath ไม่ว่าง แอปจะเปิดไม่ขึ้น"
+            grep -o '"[^"]*_next/static/chunks/[^"]*"' ios/App/App/public/index.html | head -3
+            exit 1
+          fi
+          echo "หน้าเว็บชี้ไฟล์ถูกที่แล้ว"
+
+      - name: ตั้งเลขรุ่นให้ไม่ซ้ำกับที่เคยส่งไป
+        script: |
+          set -e
+          BUILD_NO="${BUILD_NUMBER:-${PROJECT_BUILD_NUMBER:-}}"
+          [ -z "$BUILD_NO" ] && BUILD_NO="$(date +%s)"
+          VERSION="$(node -p "require('./package.json').version")"
+          cd ios/App
+          agvtool new-version -all "$BUILD_NO"
+          agvtool new-marketing-version "$VERSION"
+          echo "รุ่น $VERSION build $BUILD_NO"
+
+      - name: ใส่ใบเซ็นชื่อ
+        script: xcode-project use-profiles
+
+      - name: build ไฟล์ ipa
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # ยังไม่ส่งเข้ารีวิวอัตโนมัติ — ให้ลองบนเครื่องจริงผ่าน TestFlight ก่อน
+        submit_to_app_store: false
+      email:
+        recipients:
+          - nim_nl@hotmail.com
+        notify:
+          success: true
+          failure: true
