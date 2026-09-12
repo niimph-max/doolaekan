@@ -24,7 +24,10 @@ const OTHERS = [
     const body = req.postData() || '';
     writes.push({ m, t: u.split('/rest/v1/')[1].split('?')[0], body, prefer: req.headers()['prefer'] || '' });
     if (u.includes('/rpc/')) { joined = true;
-      return r.fulfill({ status: 200, contentType: 'application/json', body: 'true' }); }
+      // ฟังก์ชันคืนเป็น setof จึงได้ array กลับมาเสมอ เจอกลุ่ม = หนึ่งแถว
+      return r.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify([{ id: 'grp-baan', name: 'บ้านพ่อ–แม่',
+          invite_code: 'DLK-2885MPXZ', owner_id: 'mmmmmmmm-0000-0000-0000-000000000001' }]) }); }
     if (u.includes('/books') && m === 'POST') {
       const parsed = JSON.parse(body);
       const rows = Array.isArray(parsed) ? parsed : [parsed];

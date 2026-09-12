@@ -489,8 +489,13 @@ export async function upsertShare(s: BookShare): Promise<void> {
 export async function joinGroupByCode(code: string): Promise<Group> {
   const { data, error } = await db().rpc('join_group_by_code', { p_code: code });
   check('joinGroupByCode', error);
+  // ฟังก์ชันคืนผลว่างเมื่อไม่พบกลุ่ม ไม่ใช่โยน error — ตั้งใจแบบนั้นเพื่อให้แถว
+  // บันทึกการลองรอด ไม่ถูกย้อนทิ้งไปกับ error (ดู 0016_join_attempts_commit.sql)
+  // ข้อความบอกผู้ใช้จึงย้ายมาอยู่ที่นี่แทน
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  const g = data as any;
+  const rows = (Array.isArray(data) ? data : data ? [data] : []) as any[];
+  const g = rows[0];
+  if (!g) throw new Error('ไม่พบกลุ่มที่ใช้รหัสนี้');
   return { id: g.id, name: g.name, invite_code: g.invite_code, owner_id: g.owner_id, members: [] };
 }
 
