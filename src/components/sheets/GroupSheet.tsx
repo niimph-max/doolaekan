@@ -63,7 +63,7 @@ export function GroupSheet({ open, onClose }: { open: boolean; onClose: () => vo
             <>
               <div className="ph" style={{ width: 140, height: 140, borderRadius: 18, margin: '4px auto 12px' }} />
               <label className="o-label" htmlFor="gs-code">รหัสเข้ากลุ่ม</label>
-              <input id="gs-code" className="o-input" placeholder="เช่น DLK-4821"
+              <input id="gs-code" className="o-input" placeholder="เช่น DLK-7QK4MPXZ"
                 value={code} onChange={(e) => setCode(e.target.value)} />
             </>
           )}

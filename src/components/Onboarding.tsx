@@ -198,7 +198,7 @@ export function Onboarding() {
                   <p className="subtle">เล็งกล้องที่ QR ของกลุ่ม หรือพิมพ์รหัสด้านล่าง</p>
                 </div>
                 <label className="o-label" htmlFor="grp-code">รหัสเข้ากลุ่ม</label>
-                <input id="grp-code" className="o-input" placeholder="เช่น DLK-4821"
+                <input id="grp-code" className="o-input" placeholder="เช่น DLK-7QK4MPXZ"
                   value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
               </>
             )}

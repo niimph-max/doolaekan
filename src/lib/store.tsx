@@ -5,7 +5,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type {
   Appointment, AppState, Book, BookShare, Doctor, Group, Medication, MedLog, RecordItem, ShareLevel, Tab, WatchRule,
 } from './types';
-import { uid } from './format';
+import { inviteCode, uid } from './format';
 import { demoState } from './seed';
 import {
   clearAuthStorage, clearCloudCache, clearLocal, loadCloudCache, loadLastUserId, loadLocal, loadPrefs,
@@ -606,7 +606,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (input.groupChoice === 'create') {
           const g: Group = {
             id: uid(), name: input.groupName || 'ครอบครัวของฉัน',
-            invite_code: `DLK-${Math.floor(1000 + Math.random() * 9000)}`,
+            invite_code: inviteCode(),
             owner_id: s.userId,
             members: [{ id: s.userId || uid(), name: book.owner_name }],
           };
@@ -1066,7 +1066,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const s = stateRef.current;
         const group: Group = {
           id: uid(), name: name || 'ครอบครัวใหม่',
-          invite_code: `DLK-${Math.floor(1000 + Math.random() * 9000)}`,
+          invite_code: inviteCode(),
           owner_id: s.userId,
           members: [{ id: s.userId || uid(), name: s.actorName || 'ฉัน' }],
         };

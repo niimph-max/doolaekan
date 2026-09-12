@@ -156,3 +156,32 @@ export function bpRecordFields(sys: number, dia: number, pulse?: number): {
     data: { sys, dia, pulse },
   };
 }
+
+/** ตัวอักษรของรหัสเชิญ — ตัดตัวที่อ่านสลับกันได้ออก (0/O, 1/I/L)
+ *  เพราะรหัสนี้ถูกอ่านออกเสียงทางโทรศัพท์และจดใส่กระดาษกันจริงๆ */
+const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+/** รหัสเชิญเข้ากลุ่ม
+ *
+ *  เดิมเป็น `DLK-` ตามด้วยเลขสี่หลัก = ความเป็นไปได้แค่ 9,000 แบบ ซึ่งคนที่สมัคร
+ *  บัญชีใหม่ (ฟรี ใช้แค่อีเมล) ไล่เดาจนครบได้ในเวลาไม่นาน แล้วเข้ากลุ่มของ
+ *  ครอบครัวที่ไม่รู้จักได้เลย — ได้เห็นทุกอย่างที่กลุ่มนั้นแชร์กันไว้
+ *  ยา ความดัน อาการ รูปเอกสารจากโรงพยาบาล
+ *
+ *  แปดตัวจากชุดอักษร 31 ตัว = ราวหนึ่งล้านล้านแบบ ยังอ่านให้พ่อแม่จดทางโทรศัพท์ได้
+ *  และฐานข้อมูลบังคับความยาวขั้นต่ำไว้อีกชั้น เผื่อวันหนึ่งมีโค้ดตรงไหนพลาด */
+export function inviteCode(): string {
+  const n = 8;
+  const out: string[] = [];
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    const bytes = new Uint8Array(n);
+    crypto.getRandomValues(bytes);
+    // ตัดเศษที่ทำให้ตัวอักษรต้นๆ ออกบ่อยกว่าตัวท้ายๆ (modulo bias)
+    for (const b of bytes) out.push(CODE_ALPHABET[b % CODE_ALPHABET.length]);
+  } else {
+    for (let i = 0; i < n; i += 1) {
+      out.push(CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]);
+    }
+  }
+  return `DLK-${out.join('')}`;
+}

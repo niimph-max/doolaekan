@@ -114,7 +114,7 @@ export function demoState(): Omit<AppState, 'ready'> {
 
   const groups: Group[] = [
     {
-      id: 'g1', name: 'บ้านพ่อ–แม่', invite_code: 'DLK-4821', owner_id: 'u1',
+      id: 'g1', name: 'บ้านพ่อ–แม่', invite_code: 'DLK-7QK4MPXZ', owner_id: 'u1',
       members: [
         { id: 'u1', name: 'พี่หนึ่ง' }, { id: 'u2', name: 'น้องสอง' },
         { id: 'u3', name: 'น้องสาม' }, { id: 'u4', name: 'พี่แจ๋ว (คนดูแล)' },
