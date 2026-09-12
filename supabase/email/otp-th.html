@@ -1,0 +1,50 @@
+<!-- อีเมลรหัสเข้าระบบ — วางใน Supabase → Authentication → Emails → Magic Link
+     ตัวแปรที่ Supabase เติมให้: {{ .Token }} = รหัส 6 หลัก
+
+     ตั้งใจไม่มีลิงก์ให้กดเลยสักอัน ทั้งฉบับ
+     แอปนี้ใช้รหัสที่พิมพ์เอง ไม่ได้ใช้ลิงก์กดเข้า การมีลิงก์ในอีเมลขอรหัสคือ
+     การฝึกให้ผู้ใช้กดลิงก์ในอีเมลที่อ้างว่ามาจากเรา ซึ่งเป็นนิสัยที่คนหลอกลวง
+     ใช้ทำมาหากิน — ผู้สูงอายุคือกลุ่มที่โดนหนักที่สุด
+
+     ⚠️ ตัวเลข "10 นาที" ต้องตรงกับค่าอายุรหัสที่ตั้งไว้จริงใน Supabase
+     (Authentication → Sessions → Email OTP Expiration) ถ้าเปลี่ยนที่นั่น
+     ต้องกลับมาแก้ตรงนี้ด้วย ไม่งั้นอีเมลจะโกหกผู้ใช้ -->
+<div style="margin:0;padding:24px 12px;background:#f5ead8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;background:#fdf8ef;border-radius:20px;padding:28px 24px;">
+
+    <p style="margin:0 0 22px;font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#c2652a;">
+      Doolaekan · ดูแลกัน
+    </p>
+
+    <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#4a3728;">
+      รหัสเข้าใช้งานของคุณ
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#6b5344;">
+      พิมพ์รหัสนี้ลงในแอป ใช้ได้ภายใน 10 นาที และใช้ได้ครั้งเดียว
+    </p>
+
+    <div style="margin:0 0 20px;padding:18px 12px;background:#f5ead8;border-radius:16px;text-align:center;">
+      <span style="font-size:38px;font-weight:700;letter-spacing:.18em;color:#4a3728;font-family:'SF Mono',Menlo,Consolas,monospace;">
+        {{ .Token }}
+      </span>
+    </div>
+
+    <p style="margin:0 0 6px;font-size:15px;line-height:1.7;color:#6b5344;">
+      <strong style="color:#4a3728;">ถ้าคุณไม่ได้เป็นคนขอรหัสนี้</strong>
+      ไม่ต้องทำอะไรทั้งสิ้น รหัสจะหมดอายุไปเอง และไม่มีใครเข้าสมุดของคุณได้
+      ถ้าไม่มีรหัสนี้
+    </p>
+    <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#6b5344;">
+      เราไม่เคยขอรหัสนี้จากคุณทางโทรศัพท์ ทางแชท หรือทางอีเมล
+      <strong style="color:#4a3728;">ห้ามบอกรหัสนี้กับใครทั้งนั้น</strong>
+      แม้คนนั้นจะอ้างว่าเป็นเจ้าหน้าที่หรือเป็นคนทำแอปนี้ก็ตาม
+    </p>
+
+    <hr style="border:0;border-top:1px solid #e8dcc8;margin:0 0 18px;">
+
+    <p style="margin:0;font-size:13.5px;line-height:1.7;color:#8a7565;">
+      Doolaekan — สมุดสุขภาพของคุณ และของคนที่คุณเป็นห่วง<br>
+      doolaekan.com
+    </p>
+  </div>
+</div>
