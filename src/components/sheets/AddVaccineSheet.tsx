@@ -7,7 +7,7 @@ import { Icon } from '../Icon';
 import { hasNativeCamera, shootPhoto } from '@/lib/camera';
 import { readAsDataUrl } from '@/lib/photo';
 import { DOSE_CHIPS, VACCINE_CHIPS } from '@/lib/seed';
-import { todayKey } from '@/lib/format';
+import { recordAt, todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { RecordItem } from '@/lib/types';
 
@@ -115,7 +115,12 @@ export function AddVaccineSheet({ open, bookId, edit, onClose }: {
 
   const save = () => {
     if (!valid) return;
-    const at = new Date(`${resolvedDate()}T12:00:00`).toISOString();
+    // รู้วันเป๊ะ = ใช้กติกาเดียวกับบันทึกอื่น (วันนี้ได้เวลาจริง) ส่วนความละเอียด
+    // ที่ไม่รู้ ต้องคงเป็นเที่ยงวันของกลางช่วงไว้ เติมเวลาจริงลงไปคือการแกล้งรู้
+    // มากกว่าที่รู้จริง ทั้งที่ทั้งใบตั้งใจบอกว่าจำได้แค่เดือนหรือแค่ปี
+    const at = precision === 'day'
+      ? recordAt(date)
+      : new Date(`${resolvedDate()}T12:00:00`).toISOString();
     const vaccine = {
       name: name.trim(),
       dose: dose.trim() || undefined,

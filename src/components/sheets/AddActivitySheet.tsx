@@ -5,7 +5,7 @@ import { Sheet } from '../Sheet';
 import { Chips } from '../Chips';
 import { Icon } from '../Icon';
 import { EXERCISE_CHIPS, MEAL_CHIPS } from '@/lib/seed';
-import { fmtShortDate, todayKey } from '@/lib/format';
+import { fmtShortDate, recordAt, todayKey } from '@/lib/format';
 import { hasNativeCamera, shootPhoto } from '@/lib/camera';
 import { readAsDataUrl, shrinkPhoto } from '@/lib/photo';
 import { equipmentHistory, equipmentLine, knownEquipment, lastExercise, lastWeight } from '@/lib/selectors';
@@ -163,14 +163,9 @@ export function AddActivitySheet({ open, bookId, edit, onClose }: {
   const save = () => {
     if (!hasContent) return;
 
-    // เที่ยงวันเพื่อกันเขตเวลาทำให้วันเลื่อนไปวันก่อนหน้า — ยกเว้นวันนี้ที่ใช้เวลาจริง
-    // เพื่อให้หลายรายการในวันเดียวกันเรียงตามลำดับที่จดจริง
+    // แก้ของเดิมโดยไม่เปลี่ยนวัน = คงเวลาเดิมไว้ ไม่ใช่เลื่อนไปเวลาที่กดแก้
     const sameDay = edit && edit.head.at.slice(0, 10) === date;
-    const at = sameDay
-      ? edit.head.at
-      : date === todayKey()
-        ? new Date().toISOString()
-        : new Date(`${date}T12:00:00`).toISOString();
+    const at = sameDay ? edit.head.at : recordAt(date);
 
     const mins = Number(minutes) || undefined;
     const cal = Number(kcal) || undefined;

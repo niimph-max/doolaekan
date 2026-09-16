@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { Sheet } from '../Sheet';
 import { Icon } from '../Icon';
-import { dataUrlSize, isPdf, todayKey } from '@/lib/format';
+import { dataUrlSize, isPdf, recordAt, todayKey } from '@/lib/format';
 import { hasNativeCamera, shootPhoto } from '@/lib/camera';
 import { readAsDataUrl, shrinkDoc } from '@/lib/photo';
 import { VISIT_CHIPS } from '@/lib/seed';
@@ -107,8 +107,8 @@ export function AddDocSheet({ open, bookId, onClose }: {
     // ไม่มีรูปแปลว่าเป็นการบันทึกว่าไปทำอะไรมา ไม่ใช่การเก็บกระดาษ
     // ชื่อตั้งต้นจึงต้องบอกตามนั้น ไม่ใช่เรียกว่าเอกสารทั้งที่ไม่มีเอกสารสักใบ
     const name = title.trim() || `${pages.length ? 'เอกสารจากหมอ' : 'พบหมอ'} ${date}`;
-    // เวลาเที่ยงวันเพื่อกันเรื่องเขตเวลาทำให้วันเลื่อนไปวันก่อนหน้า
-    const at = new Date(`${date}T12:00:00`).toISOString();
+    // วันนี้ = เวลาจริงตอนกด · ย้อนหลัง = เที่ยงวัน (กันเขตเวลาเลื่อนวัน)
+    const at = recordAt(date);
     const sheets: (string | undefined)[] = pages.length ? pages : [undefined];
     sheets.forEach((file, i) => {
       actions.addRecord(bookId, {

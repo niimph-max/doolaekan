@@ -83,6 +83,26 @@ const { chromium } = require('../node_modules/playwright-core');
   check('เปิดกลับมา ข้อความยังอยู่',
     await sheet().locator('#doc-note').inputValue() === 'เขียนค้างไว้');
 
+  // ── เวลาบนบันทึก ──
+  // การ์ดเขียนกำกับไว้ว่า "HH:MM น. · ใครบันทึก" ฉะนั้นเวลาที่แสดงต้องเป็นเวลาที่
+  // จดจริง เดิมชีตนี้ปั๊มเป็นเที่ยงวันเสมอ บันทึกที่จดตอนเย็นจึงโผล่ไปกลางวัน
+  // และไปแทรกใต้เรื่องอื่นที่จดก่อนหน้าในวันเดียวกัน
+  //
+  // แต่ของย้อนหลังต้องเป็นเที่ยงวันต่อไป เพราะรู้แค่วัน และเที่ยงคืนเลื่อนวันได้
+  console.log('\n=== 6. เวลาบนบันทึก ===');
+  const minsOf = (text) => {
+    const m = text.match(/(\d{1,2}):(\d{2}) น\./);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const todayCard = p.locator('.tl-item').filter({ hasText: /พบหมอ 20\d\d-/ }).first();
+  const todayMins = minsOf(await todayCard.innerText());
+  const nowMins = await p.evaluate(() => new Date().getHours() * 60 + new Date().getMinutes());
+  check(`บันทึกของวันนี้ลงเวลาจริง (${String(Math.floor(todayMins / 60)).padStart(2, '0')}:`
+    + `${String(todayMins % 60).padStart(2, '0')} เทียบกับนาฬิกาตอนนี้ `
+    + `${String(Math.floor(nowMins / 60)).padStart(2, '0')}:${String(nowMins % 60).padStart(2, '0')})`,
+    todayMins !== null && Math.abs(todayMins - nowMins) <= 3);
+  check('ของย้อนหลังยังเป็นเที่ยงวันตามเดิม (รู้แค่วัน)', minsOf(await card.innerText()) === 12 * 60);
+
   console.log('\n' + (ok ? '✅ ผ่านหมด' : '❌ มีข้อที่ตก'));
   await b.close();
   process.exit(ok ? 0 : 1);
