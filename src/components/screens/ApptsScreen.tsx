@@ -184,11 +184,60 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
     );
   };
 
+  // ── นัดที่ผ่านไปแล้วต้องลงไปอยู่ข้างล่าง ──
+  // เดิมเรียงตามวันที่ล้วนๆ นัดเก่าจึงกองอยู่ข้างบนและดันนัดที่ยังไม่ถึงลงไป
+  // ทั้งที่นัดที่ยังไม่ถึงคือเหตุผลเดียวที่คนเปิดหน้านี้ ยิ่งใช้ไปนานวันยิ่งแย่ลง
+  // เพราะจำนวนนัดที่ผ่านไปแล้วมีแต่เพิ่มขึ้น ไม่มีวันลดลง
+  const upcoming = appts.filter((a) => daysUntil(a.date) >= 0);
+  // ของเก่าเรียงกลับด้าน ครั้งล่าสุดอยู่บนสุด เพราะเวลาย้อนดูมักหาครั้งที่เพิ่งไปมา
+  const past = appts.filter((a) => daysUntil(a.date) < 0).reverse();
+
+  const renderCard = (a: Appointment, isPast: boolean) => (
+    <div key={a.id} className="o-card" style={{ opacity: isPast ? .6 : 1 }}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{
+          flex: '0 0 44px', height: 44, borderRadius: '50%',
+          background: 'var(--color-accent-2-100)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="calendar" size={22} color="var(--color-accent-2-700)" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <h3 style={{ margin: 0 }}>{a.title}</h3>
+            <span className="o-tag accent" style={{ height: 'fit-content' }}>{daysLabel(a.date)}</span>
+          </div>
+          <p className="subtle" style={{ margin: '2px 0 0' }}>
+            {fmtDate(a.date)} · {a.time} น.{a.place ? ` · ${a.place}` : ''}
+          </p>
+          {a.note && editingId !== a.id && (
+            <p style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{a.note}</p>
+          )}
+        </div>
+        <button type="button" className="o-btn ghost"
+          style={{ padding: '6px 14px', minHeight: 34, flex: '0 0 auto' }}
+          onClick={() => setEditingId(editingId === a.id ? null : a.id)}>
+          {editingId === a.id ? 'ปิด' : 'แก้ไข'}
+        </button>
+      </div>
+      {editingId === a.id
+        ? <EditAppt appt={a} book={book} onDone={() => setEditingId(null)} />
+        : !isPast && renderSteps(a)}
+
+      <ApptPhoto appt={a} />
+    </div>
+  );
+
   return (
     <div className="screen">
       <Kicker book={book} />
       <h2>นัดหมอ</h2>
-      <p className="subtle">ของ{book.owner_name} · {appts.length} นัด</p>
+      {/* บอกแยกกันตามที่เห็นบนจอจริง — "7 นัด" ทั้งที่เหลือจะถึงจริงแค่สองนัด
+          คือตัวเลขที่ทำให้เข้าใจผิดว่ายังมีอะไรต้องไปอีกเยอะ */}
+      <p className="subtle">
+        ของ{book.owner_name} · {upcoming.length} นัดที่จะถึง
+        {past.length > 0 ? ` · ผ่านไปแล้ว ${past.length}` : ''}
+      </p>
 
       {/* ── ปุ่มเพิ่มนัดต้องอยู่เหนือรายการ ไม่ใช่ใต้ ──
           เดิมอยู่ล่างสุด ต้องเลื่อนผ่านนัดทั้งหมดกว่าจะเจอ ซึ่งยิ่งใช้ไปนานวัน
@@ -204,44 +253,21 @@ export function ApptsScreen({ book, onAdd }: { book: Book; onAdd: () => void }) 
             ยังไม่มีนัดหมอ — แตะเพื่อเพิ่มนัด
           </button>
         )}
-        {appts.map((a) => {
-          const past = daysUntil(a.date) < 0;
-          return (
-            <div key={a.id} className="o-card" style={{ opacity: past ? .6 : 1 }}>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{
-                  flex: '0 0 44px', height: 44, borderRadius: '50%',
-                  background: 'var(--color-accent-2-100)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Icon name="calendar" size={22} color="var(--color-accent-2-700)" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <h3 style={{ margin: 0 }}>{a.title}</h3>
-                    <span className="o-tag accent" style={{ height: 'fit-content' }}>{daysLabel(a.date)}</span>
-                  </div>
-                  <p className="subtle" style={{ margin: '2px 0 0' }}>
-                    {fmtDate(a.date)} · {a.time} น.{a.place ? ` · ${a.place}` : ''}
-                  </p>
-                  {a.note && editingId !== a.id && (
-                    <p style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{a.note}</p>
-                  )}
-                </div>
-                <button type="button" className="o-btn ghost"
-                  style={{ padding: '6px 14px', minHeight: 34, flex: '0 0 auto' }}
-                  onClick={() => setEditingId(editingId === a.id ? null : a.id)}>
-                  {editingId === a.id ? 'ปิด' : 'แก้ไข'}
-                </button>
-              </div>
-              {editingId === a.id
-                ? <EditAppt appt={a} book={book} onDone={() => setEditingId(null)} />
-                : !past && renderSteps(a)}
+        {/* มีแต่นัดเก่า ≠ ยังไม่มีนัดหมอ — ต้องบอกให้ตรงกับที่เป็นจริง
+            ไม่งั้นคนจะนึกว่านัดที่เคยลงไว้หายไปไหนหมด */}
+        {appts.length > 0 && upcoming.length === 0 && (
+          <button type="button" className="o-empty" onClick={onAdd}>
+            ยังไม่มีนัดที่จะถึง — แตะเพื่อเพิ่มนัด
+          </button>
+        )}
+        {upcoming.map((a) => renderCard(a, false))}
 
-              <ApptPhoto appt={a} />
-            </div>
-          );
-        })}
+        {past.length > 0 && (
+          <>
+            <h3 style={{ margin: '26px 0 10px' }}>นัดที่ผ่านไปแล้ว</h3>
+            {past.map((a) => renderCard(a, true))}
+          </>
+        )}
       </div>
     </div>
   );
