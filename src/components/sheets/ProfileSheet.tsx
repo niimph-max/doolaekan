@@ -4,7 +4,7 @@ import Link from 'next/link';
 import React, { useState } from 'react';
 import { Sheet } from '../Sheet';
 import { AvatarPicker } from '../Avatar';
-import { DraftInput } from '../DraftInput';
+import { DraftInput, DraftTextarea } from '../DraftInput';
 import { WatchRuleEditor } from '../WatchRuleEditor';
 import { ConnectionCheck } from '../ConnectionCheck';
 import { Icon } from '../Icon';
@@ -82,9 +82,24 @@ export function ProfileSheet({ open, book, onClose }: {
       <DraftInput id="pf-addr" value={book.address}
         onCommit={(v) => set({ address: v })} />
 
-      <label className="o-label" htmlFor="pf-allergy">แพ้ยา</label>
-      <DraftInput id="pf-allergy" value={book.allergy}
+      {/* ── ช่องแพ้ยาต้องเป็นกล่องใหญ่ ไม่ใช่บรรทัดเดียว ──
+          ของจริงยาวกว่าที่คิดเสมอ เพราะคนเขียนชื่อยาเต็มพร้อมอาการที่แพ้ไว้ด้วย
+          เช่น "Pioglitazone HCl 30mg. - เท้าบวม / ทีซีมัยซิน (ผื่น)" ซึ่งในช่อง
+          บรรทัดเดียวจะเห็นแค่ต้นประโยค ที่เหลือซ่อนอยู่นอกจอ ต้องเลื่อนทีละตัว
+          อักษรถึงจะอ่านครบ — คนเปิดดูจะเห็นตัวแรกแล้วนึกว่าแพ้แค่ตัวนั้น
+          ซึ่งเป็นการเข้าใจผิดที่อันตรายที่สุดเท่าที่ช่องกรอกช่องหนึ่งจะทำได้
+
+          และย้ำด้วยสีเดียวกับบัตรฉุกเฉิน เพราะนี่คือช่องเดียวกันที่ไปโผล่ตรงนั้น */}
+      <label className="o-label" htmlFor="pf-allergy"
+        style={{ color: 'var(--color-accent-700)', marginTop: 18 }}>
+        แพ้ยา / แพ้อะไรบ้าง
+      </label>
+      <DraftTextarea id="pf-allergy" rows={3} value={book.allergy}
+        placeholder="เช่น เพนิซิลลิน (ผื่นทั้งตัว)&#10;แอสไพริน (หอบ)"
         onCommit={(v) => set({ allergy: v })} />
+      <p className="subtle" style={{ margin: '6px 0 0' }}>
+        ขึ้นบนบัตรฉุกเฉินที่ยื่นให้หมอ — เขียนยาวได้ ใส่อาการที่แพ้ไว้ด้วยยิ่งดี
+      </p>
 
       <label className="o-label" htmlFor="pf-contact">เบอร์ติดต่อลูก</label>
       <DraftInput id="pf-contact" value={book.emergency_contact}

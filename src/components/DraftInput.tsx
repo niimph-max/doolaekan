@@ -11,10 +11,9 @@ import React, { useEffect, useRef, useState } from 'react';
  *     โหลดข้อมูลใหม่ทั้งชุด ค่าที่พิมพ์ค้างอยู่โดนของเก่าจากเซิร์ฟเวอร์ทับ
  *
  *  ระหว่างที่เคอร์เซอร์ยังอยู่ในช่อง จะไม่รับค่าจากข้างนอกมาทับเด็ดขาด */
-export function DraftInput({ value, onCommit, ...rest }: {
-  value: string;
-  onCommit: (value: string) => void;
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur' | 'onFocus'>) {
+/** ตรรกะร่างข้อความอยู่ที่เดียว ช่องบรรทัดเดียวกับกล่องหลายบรรทัดใช้ร่วมกัน
+ *  ถ้าเขียนแยกกัน วันหนึ่งจะมีฝั่งเดียวที่ยังโดนค่าจากคลาวด์ทับระหว่างพิมพ์ */
+function useDraft(value: string, onCommit: (v: string) => void) {
   const [local, setLocal] = useState(value);
   const focused = useRef(false);
 
@@ -23,17 +22,31 @@ export function DraftInput({ value, onCommit, ...rest }: {
     if (!focused.current) setLocal(value);
   }, [value]);
 
-  return (
-    <input
-      {...rest}
-      className={rest.className ?? 'o-input'}
-      value={local}
-      onFocus={() => { focused.current = true; }}
-      onChange={(e) => setLocal(e.target.value)}
-      onBlur={() => {
-        focused.current = false;
-        if (local !== value) onCommit(local);
-      }}
-    />
-  );
+  return {
+    value: local,
+    onFocus: () => { focused.current = true; },
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setLocal(e.target.value),
+    onBlur: () => {
+      focused.current = false;
+      if (local !== value) onCommit(local);
+    },
+  };
+}
+
+export function DraftInput({ value, onCommit, ...rest }: {
+  value: string;
+  onCommit: (value: string) => void;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur' | 'onFocus'>) {
+  return <input {...rest} className={rest.className ?? 'o-input'} {...useDraft(value, onCommit)} />;
+}
+
+/** กล่องหลายบรรทัดที่เก็บร่างแบบเดียวกัน — ใช้กับช่องที่ข้อความยาวเกินหนึ่งบรรทัดจริงๆ
+ *
+ *  ช่องบรรทัดเดียวซ่อนข้อความส่วนเกินไว้นอกจอ ต้องเลื่อนทีละตัวอักษรถึงจะอ่านครบ
+ *  ซึ่งกับช่องแพ้ยาคือของอันตราย เพราะคนเปิดดูจะเห็นแค่ตัวแรกแล้วนึกว่ามีแค่นั้น */
+export function DraftTextarea({ value, onCommit, ...rest }: {
+  value: string;
+  onCommit: (value: string) => void;
+} & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange' | 'onBlur' | 'onFocus'>) {
+  return <textarea {...rest} className={rest.className ?? 'o-textarea'} {...useDraft(value, onCommit)} />;
 }

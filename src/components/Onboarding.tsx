@@ -96,9 +96,18 @@ export function Onboarding() {
             <input id="ob-cond" className="o-input" placeholder="พิมพ์เพิ่มเองได้"
               value={condOther} onChange={(e) => setCondOther(e.target.value)} />
 
-            <label className="o-label" htmlFor="ob-allergy">แพ้ยา / แพ้อะไรบ้าง</label>
-            <input id="ob-allergy" className="o-input" placeholder="เช่น เพนิซิลลิน (ผื่นทั้งตัว)"
+            {/* กล่องใหญ่เหมือนในชีตโปรไฟล์ — ของจริงยาวกว่าหนึ่งบรรทัดเสมอ
+                และช่องนี้ไปโผล่บนบัตรฉุกเฉิน จึงใช้สีเดียวกันทั้งสองที่ */}
+            <label className="o-label" htmlFor="ob-allergy"
+              style={{ color: 'var(--color-accent-700)' }}>
+              แพ้ยา / แพ้อะไรบ้าง
+            </label>
+            <textarea id="ob-allergy" className="o-textarea" rows={3}
+              placeholder="เช่น เพนิซิลลิน (ผื่นทั้งตัว)&#10;แอสไพริน (หอบ)"
               value={allergy} onChange={(e) => setAllergy(e.target.value)} />
+            <p className="subtle" style={{ margin: '6px 0 0' }}>
+              ขึ้นบนบัตรฉุกเฉินที่ยื่นให้หมอ — ไม่รู้ก็เว้นไว้ได้
+            </p>
 
             <div className="o-row" style={{ marginTop: 22 }}>
               <button type="button" className="o-btn ghost" onClick={() => setStep(3)}>ข้ามไปก่อน</button>

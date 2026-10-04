@@ -52,7 +52,12 @@ export function EmergencyCard({ book, onClose }: { book: Book; onClose: () => vo
 
         <div className="o-card" style={{ border: '2px solid var(--color-accent-500)', marginTop: 16 }}>
           <div className="kicker" style={{ color: 'var(--color-accent-700)' }}>แพ้ยา</div>
-          <strong style={{ fontSize: 19 }}>{book.allergy || 'ไม่มีที่ทราบ'}</strong>
+          {/* ช่องแพ้ยาเป็นกล่องหลายบรรทัด คนจึงขึ้นบรรทัดใหม่แยกยาแต่ละตัวจริงๆ
+              ถ้าไม่คงบรรทัดไว้ ยาสองตัวจะเชื่อมติดกันเป็นข้อความเดียว แล้วหมอ
+              ที่รับบัตรไปอ่านจะแยกไม่ออกว่าอันไหนชื่อยา อันไหนอาการ */}
+          <strong style={{ fontSize: 19, whiteSpace: 'pre-wrap' }}>
+            {book.allergy || 'ไม่มีที่ทราบ'}
+          </strong>
         </div>
 
         <div className="o-card">
